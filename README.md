@@ -5,14 +5,14 @@
 
 ![WSL2](./images/WSL.png)
 
-## 윈도우에 WSL2을 여러 개 설치하는 방법
+## 윈도우에 WSL2을 여러 개 설치하는 방법 (실패)
 - 상세 절차는 [MS Document를 참조](https://docs.microsoft.com/en-us/windows/wsl/install-manual)
 #### Step 1: Enable the Windows Subsystem for Linux
 - 윈도우에 Linux를 깔기 전에 "Windows Subsystem for Linux" optional feature를 Enable함
 - Windows PowerShell에서 아래의 명령 입력
 ```powerShell
 dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
-``` 
+```
 #### Step 2: Check requirements for running WSL2
 - Windows 10에서 운영 중이어야 함
 - For x64 systems: Version 1903 or higher, with Build 18362 or higher.
@@ -100,8 +100,141 @@ wsl --mount <DiskPath>
  - wsl --mount --partition ``<Partition Number>``: 탑재할 파티션의 인덱스 번호입니다. 지정하지 않으면 전체 디스크가 기본값입니다.
  - wsl --mount --options ``<MountOptions>``: 디스크를 탑재할 때 포함할 수 있는 몇 가지 파일 시스템 관련 옵션이 있습니다. wsl --mount -o "data-ordered" 또는 wsl --mount -o "data=writeback 같은 ext4 탑재 옵션을 예로 들 수 있습니다. 그러나 현재는 파일 시스템 관련 옵션만 지원됩니다. ro, rw 또는 noatime과 같은 일반 옵션은 지원되지 않습니다.
  - wsl --unmount ``<DiskPath>``: 모든 WSL 2 배포판에서 디스크를 탑재 해제하고 분리합니다. ``<DiskPath>``가 포함되지 않으면 이 명령은 탑재된 모든 디스크를 탑재 해제하고 분리합니다.
+## Virtual Box를 이용하여 여러개의 VM 설치
+- 참조: [나만의 k8s 클러스터 구축하기](https://coffeewhale.com/kubernetes/cluster/virtualbox/2020/08/31/k8s-virtualbox/)
+- ``VirtualBox 6.1.28 platform packages`` 설치
+#### virtual Box 설치
+- [https://www.virtualbox.org/wiki/Downloads](https://www.virtualbox.org/wiki/Downloads)
+  - ``VirtualBox platform packages > Windows hosts`` 선택해서 다운로드
+#### Ubuntu 20.04 LTS 설치
+- [https://releases.ubuntu.com/20.04/](https://releases.ubuntu.com/20.04/)
+  - ``64-bit PC (AMD64) desktop image`` 선택해서 다운로드
+#### 네트워크 및 노드 설정
+###### NAT 네트워크 구성
+- Virtual Box 실행 > 파일 > 환경설정 > 네트워크
+- 새로운 NAT 네트워크를 추가
+- 추가된 ``NatNetwork`` 더블 클릭
+- 다음과 같이 설정
+  - 네트워크 이름: k8s-network
+  - 네트워크 CIDR: 10.0.1.0/24
+  - 네트워크 옵션: DHCP 지원 (체크)
+#### Master Node 설치
+- Virtual Box 실행 > 머신 > 새로만들기
+- 다음과 같이 설정
+  - 이름: master
+  - 머신 폴더: 디스크 용량이 넉넉한 드라이버를 선택
+  - 종류: Linux
+  - 버전: Ubuntu (64-bit)
+- 메모리 크기: 3GB (k3s 스펙상 512MB도 가능하나 원활한 테스트 진행을 위해)
+- 새 가상 하드 디스크 만들기
+- VDI(VirtualBox 디스크 이미지)
+- 하드디스크: 고정 크기
+- 하드디스크 크기: 20GB
+- 만들기
+###### VM 설정
+- Virtual Box 실행 > 머신 > 설정
+  - 일반 > 고급 > 클립 보드 공유: 양방향
+  - 네트워크 > 어댑터 1
+    - 네트워크 어댑터 사용하기: 체크
+    - 다음에 연결됨: ``NAT 네트워크``(NAT라고만 적혀 있는 것은 다른 네트워크)
+    - 네트워크 이름: k8s-network
+###### VM 시작 및 우분투 설치
+- master VM을 더블클릭하여 서버를 구동
+  - 시동 디스크 선택: 다운로드 받은 우분투 20.04 이미지를 선택
+  - 시작
+  - English > Install Ubuntu (사용자의 취향에 맞게 설정합니다.)
+  - Keyboard layout: English > English(US) (사용자의 취향에 맞게 설정합니다.) > Continue
+  - Minimal installation > Download updates (체크 해제) > Continue
+  - Erase disk and install Ubuntu (사용자의 취향에 맞게 설정합니다.) > Install Now
+  - Write the changes to disk? > Continue
+  - Where are you? (Seoul) > Continue
+  - Who are you?
+    - Your name: gusami
+    - Your computer’s name: master
+    - Pick a username: gusami
+    - Password: e*****3
+    - Installation Complete > Restart Now
+    - Please remove the installation medium, then press ENTER > ENTER
 
- ## kubeadm을 이용한 쿠버네티스 설치 - 온프레미스
+###### Master Node VM 시작 시 ``가상머신 master의 세션을 열 수 없습니다`` 해결 방법
+- 최신의 ``Oracle VM VirtualBox Extension Pack`` 설치
+  - 도움말에서 Virtual Box의 버전 확인
+  - Virtual box 다운로드 사이트에서 최신의 Extension Pack을 다운로드 받음
+  - Virtual Box > 메뉴 > 파일 > 환경설정 > 확장
+    - 기존 패키지를 삭제 후, 새 패키지를 설치
+    - 상위 버전의 패키지는 하위 버전과의 호환성을 보장
+- 명령어를 이용해서 Hyper-v 기능 off
+  - open a cmd with admin privilige
+  - bcdedit /set hypervisorlaunchtype auto
+  - bcdedit /set hypervisorlaunchtype off
+  - reboot
+
+###### 네트워크 설정
+![WSL2](./images/Master_Ubuntu_Network.png)
+- Master Node의 Ubuntu 서버를 접속하여 네트워크를 설정
+  - 우측 상단, 네트워크 아이콘 클륵
+  - Settings 클릭
+  - 톱니바퀴 아이콘 클릭
+  - 이미 10.0.1.4로 IP가 자동으로 잡혀져있는 것을 확인할 수 있지만 IP를 명시적으로 고정시키기 위해 IPv4 수동 설정
+  - IPv4 탭 클릭 > Manual 선택
+    - Address: 10.0.1.4
+    - Netmask: 255.255.255.0
+    - Gateway: 10.0.1.1
+    - DNS: 8.8.8.8
+  - Apply 버튼 클릭
+  - 네트워크 반영을 위해 토글 버튼을 눌러 잠깐 껐다가 다시 켜줌
+- ``CTRL + ALT + T``를 눌러 터미널을 열고, 네트워크 설정이 정상적으로 동작하는지 확인 위해 아래의 명령을 수행  
+```bash
+sudo apt update
+```
+- 인터넷이 정상적으로 작동하면 VM 복제를 위해 종료
+```bash
+sudo shutdown now
+```
+#### Worker Node 설치
+###### worker 복제
+- 이미 생성한 master 노드를 복제
+- 종료된 master 노드를 우클릭하여 복제 메뉴를 클릭
+  - 이름: worker-1
+  - 경로: master VM을 저장한 위치에 저장
+  - MAC 주소 정책: 모든 네트워크 어댑터의 새 MAC 주소 생성
+  - 나머지 전부 체크 해제 > 다음
+  - 복제 방식: 완전한 복제 > 복제
+- 복제가 완료되면 master, worker 노드 둘다 시작
+###### Host명 변경 및 네트워크 설정
+- worker 노드로 접속하여 Host명 변경 및 네트워크 설정
+- master 노드를 복제했기 때문에 Host명이 master로 설정되어 있음
+- CTRL + ALT + T를 눌러 터미널을 열어 다음과 같은 명령을 수행
+```bash
+sudo hostname worker-1
+sudo sh -c 'echo worker-1 > /etc/hostname' // 실패 시 직접 파일을 열어서 수정
+sudo sed -i 's/master/worker-1/g' /etc/hosts
+# 터미널을 종료합니다.
+exit
+```
+- Host명 변경 후 네트워크 세팅으로 들어가 다음과 같이 설정
+  - IPv4 탭 클릭 > Manual 선택
+  - Address: 10.0.1.5
+  - Netmask: 255.255.255.0
+  - Gateway: 10.0.1.1
+  - DNS: 8.8.8.8
+  - Apply 버튼 클릭
+  - 네트워크 반영을 위해 토글 버튼을 눌러 잠깐 껐다가 다시 켜줌
+###### DHCP
+- DHCP는 Dynamic Host Configuration Protocol의 약자
+- 호스트의 IP주소와 각종 TCP/IP 프로토콜의 기본 설정을 클라이언트에게 자동적으로 제공
+- 네트워크에 사용되는 IP주소를 DHCP서버가 중앙집중식으로 관리하는 클라이언트/서버 모델
+- DHCP지원 클라이언트는 네트워크 부팅과정에서 DHCP서버에 IP주소를 요청해서 얻어 감
+- 네트워크 안의 컴퓨터에 자동으로 네임서버 주소, IP 주소, 게이트웨이 주소를 할당
+- 클라이언트에게 일정 기간 임대를 하는 동적 주소 할당 프로토콜
+- 장점
+  - PC의 수가 많거나 PC 자체 변동사항이 많은 경우, IP 설정이 자동으로 되기 때문에 효율적으로 사용 가능
+  - IP를 자동으로 할당해주기 때문에 IP 충돌을 막을 수 있음
+- 단점
+  - DHCP 서버에 의존되기 때문에 서버가 다운되면 IP 할당
+- 출처: [개발자를 꿈꾸는 프로그래머](https://jwprogramming.tistory.com/35)
+
+## kubeadm을 이용한 쿠버네티스 설치 - 온프레미스
  1. Docker Install
  2. Kubernetes Install
    1. 설치 전 환경설정
@@ -130,8 +263,8 @@ $echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/dock
 $sudo apt-get update
 $sudo apt-get install -y docker-ce docker-ce-cli containerd.io
 #3. Verify that Docker Engine is installed correctly by running the hello-world image.
-$sudo systemctl enable docker
-$sudo systemctl start docker
+$sudo systemctl enable docker  // on WSL2 => $sudo systemctl enable docker
+$sudo systemctl start docker   // on WSL2 => $sudo service docker start
 $sudo docker version
 ```
 2-1. Install Docker Engine with Specific version(번외)
