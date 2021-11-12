@@ -100,7 +100,7 @@ wsl --mount <DiskPath>
  - wsl --mount --partition ``<Partition Number>``: 탑재할 파티션의 인덱스 번호입니다. 지정하지 않으면 전체 디스크가 기본값입니다.
  - wsl --mount --options ``<MountOptions>``: 디스크를 탑재할 때 포함할 수 있는 몇 가지 파일 시스템 관련 옵션이 있습니다. wsl --mount -o "data-ordered" 또는 wsl --mount -o "data=writeback 같은 ext4 탑재 옵션을 예로 들 수 있습니다. 그러나 현재는 파일 시스템 관련 옵션만 지원됩니다. ro, rw 또는 noatime과 같은 일반 옵션은 지원되지 않습니다.
  - wsl --unmount ``<DiskPath>``: 모든 WSL 2 배포판에서 디스크를 탑재 해제하고 분리합니다. ``<DiskPath>``가 포함되지 않으면 이 명령은 탑재된 모든 디스크를 탑재 해제하고 분리합니다.
-## Virtual Box를 이용하여 여러개의 VM 설치
+## Virtual Box를 이용하여 여러개의 VM 설치 (성공)
 - 참조: [나만의 k8s 클러스터 구축하기](https://coffeewhale.com/kubernetes/cluster/virtualbox/2020/08/31/k8s-virtualbox/)
 - ``VirtualBox 6.1.28 platform packages`` 설치
 #### virtual Box 설치
@@ -281,7 +281,75 @@ $sudo apt-get install docker-ce=<VERSION_STRING> docker-ce-cli=<VERSION_STRING> 
 $sudo docker run hello-world
 3. Upgrade Docker Engine(번외)
 - To upgrade Docker Engine, first run ``sudo apt-get update``, then follow the installation instructions, choosing the new version you want to install.
+#### Kubernetes Install
+- kubernetes.io 사이트 접속 > Documentation 선택 > Install the kubeadm setup tool 선택
+###### 설치전 환경설정
+1. root 계정 활성화
+- 기본적으로 Ubuntu는 root계정이 locked 상태임
+- 아래와 같은 명령어들을 사용해서 unlock 시킴
+- 이제부터는 root 계정으로 명령어들을 수행
+```bash
+$sudo passwd root
+$su -
+```
+2. Swap disabled. You MUST disable swap in order for the kubelet to work properly.
+```bash
+$swapoff -a && sed -i '/swap/s/^/#/' /etc/fstab
+```
+2. 브릿지 네트워크을 Listen할 수 있도록 지원하기 위한 설정
+- root 계정으로 진행
+```bash
+cat <<EOF | tee /etc/modules-load.d/k8s.conf
+br_netfilter
+EOF
 
+cat <<EOF | tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+sysctl --system
+```
+3. 방화벽 해제
+- 방화벽은 일반적으로 네트워크에서 k8s앞단에 위치한 서버에 존재하기 때문에 필요없음
+```bash
+$systemctl stop firewalld 
+$systemctl disable firewalld
+```
+###### kubeadm, kubectl, kubelet 역할
+- kubeadm
+  - the command to bootstrap the cluster
+  - k8s 전체를 운영하고 관리해주는 역할을 하는 명령어
+- kubelet
+  - the component that runs on all of the machines in your cluster and does things like starting pods and containers
+  - k8s의 컨테이너를 조작하고, master와 통신에 사용하는 데몬
+- kubectl
+  - the command line util to talk to your cluster
+  - k8s를 제어하는 명령어를 수행
+
+###### kubeadm, kubectl, kubelet 설치 절차
+1. Update the apt package index and install packages needed to use the Kubernetes apt repository
+```bash
+apt-get update
+apt-get install -y apt-transport-https ca-certificates curl
+```
+2. Download the Google Cloud public signing key
+```bash
+curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+```
+3. Add the Kubernetes apt repository:
+```bash
+echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | tee /etc/apt/sources.list.d/kubernetes.list
+```
+4. Update apt package index, install kubelet, kubeadm and kubectl, and pin their version
+```bash
+apt-get update
+apt-get install -y kubelet kubeadm kubectl
+apt-mark hold kubelet kubeadm kubectl
+```
+
+   3. control-plane 구성
+   4. worker node 구성
+   5. 설치 확인
 
 
 
