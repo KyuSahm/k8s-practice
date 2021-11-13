@@ -1,10 +1,12 @@
 # kubernetes
+- 유튜브 이성미 강사님의 [따라하면서 배우는 쿠버네티스](https://www.youtube.com/watch?v=6n5obRKsCRQ&list=PLApuRlvrZKohaBHvXAOhUD-RxD0uQ3z0c)를 주로 정리
+- ``쿠버네티스 입문(90가지 예제로 배우는 컨테이너 관리 자동화 표준)``을 정리
+
 ## WSL
 - Windows Subsystem for Linux
 - Hypervisor 위에 윈도우 NT 커널과 리눅스 커널을 각각 올리는 방식
 
 ![WSL2](./images/WSL.png)
-
 ## 윈도우에 WSL2을 여러 개 설치하는 방법 (실패)
 - 상세 절차는 [MS Document를 참조](https://docs.microsoft.com/en-us/windows/wsl/install-manual)
 #### Step 1: Enable the Windows Subsystem for Linux
@@ -103,6 +105,8 @@ wsl --mount <DiskPath>
 ## Virtual Box를 이용하여 여러개의 VM 설치 (성공)
 - 참조: [나만의 k8s 클러스터 구축하기](https://coffeewhale.com/kubernetes/cluster/virtualbox/2020/08/31/k8s-virtualbox/)
 - ``VirtualBox 6.1.28 platform packages`` 설치
+- 아래 그림의 형태로 노드들을 구성
+![Node Configuration](./images/Node_Configuration.png)
 #### virtual Box 설치
 - [https://www.virtualbox.org/wiki/Downloads](https://www.virtualbox.org/wiki/Downloads)
   - ``VirtualBox platform packages > Windows hosts`` 선택해서 다운로드
@@ -376,7 +380,7 @@ systemctl enable kubelet
 ```bash
 $sudo kubeadm init
 ```  
-![WSL2](./images/K8s_cluster.png)
+![k8s_cluster](./images/K8s_cluster.png)
 
 - 일반 유저로 클러스터를 Start하기 위해서는 master node에서 아래의 명령어를 수행
 ```bash  
@@ -447,3 +451,58 @@ $echo "source <(kubectl completion bash)" >> ~/.bashrc
 $source <(kubeadm completion bash)
 $echo "source <(kubeadm completion bash)" >> ~/.bashrc
 ```
+#### SSH를 이용한 Virtual Box내부의 노드에 접근
+1. master, worker-1, worker-2 노드에 ssh 설치
+```bash
+gusami@master:~$ sudo apt-get install ssh
+```
+2. SSH daemon이 시작되었는지 확인
+```bash
+gusami@master:~$ sudo lsof -i -P -n | grep LISTEN
+sshd      33448            root    3u  IPv4 192286      0t0  TCP *:22 (LISTEN)
+sshd      33448            root    4u  IPv6 192288      0t0  TCP *:22 (LISTEN)
+```
+3. VirtualBox에서 포트 포워딩 규칙 추가
+  - host IP: 127.0.0.1
+  - host port: 104
+  - guest IP: 10.0.1.4
+  - guest Port: 22
+
+4. XShell에서 로긴 정보 추가
+  - 연결 > 호스트: 127.0.0.1
+  - 연결 > 포트번호: 104
+  - 사용자 인증 > 사용자 이름: gusami
+  - 연결 끊는법: exit 명령어를 사용
+```bash
+gusami@master:~$ exit
+logout
+
+Connection closed.
+```  
+
+## 쿠버네티스 클러스터
+#### 쿠버네티스 클러스터를 직접 구성하는 도구
+- kubeadm
+  - 쿠버네티스에서 공식 제공하는 클러스터 생성/관리 도구
+- kubespray
+  - 쿠버네티스 클러스터를 배포하는 오픈 소스 프로젝트
+  - multi master를 구성하기에 적합
+  - 다양한 형식으로 쿠버네티스 클러스터 구성가능
+  - 온프레미스에서 상용 서비스 클러스터 운용시 유용
+  - 다양한 CNI 제공 - p60, p61  
+#### CNI(Container Network Interface)
+- Container간 통신을 지원하는 VxLAN. Pod Network이라고도 부름
+- 다양한 종류의 플러그인이 존재
+  - 플라넬(flannel), 칼리코(calico), 위브넷(weavenet)등이 존재
+- 물리적인 노드의 네트워크와 Container내부의 네트워크간의 중간 매개자 역할 수행
+  - 예를 들면, 아래 그림에서 node1의 UI Container가 CNI를 겨쳐 물리 네트워크를 통해서 전달
+  - 물리 네트워크에서 받은 데이터를 CNI를 거쳐 node2의 Login 컨테이너로 전달
+
+![cni](./images/CNI.png)
+#### 쿠버네티스 클러스터 구성
+- control plane(master node)
+  - 워커 노드들의 상태를 관리하고 제어
+  - single master
+  - multi master(3, 5개의 master nodes)
+- worker node
+  - 도커 플랫폼을 통해 컨테이너를 동작하며 실제 서비스 제공
