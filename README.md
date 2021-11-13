@@ -281,6 +281,21 @@ $sudo apt-get install docker-ce=<VERSION_STRING> docker-ce-cli=<VERSION_STRING> 
 $sudo docker run hello-world
 3. Upgrade Docker Engine(번외)
 - To upgrade Docker Engine, first run ``sudo apt-get update``, then follow the installation instructions, choosing the new version you want to install.
+
+4. Docker 컨테이너의 cgroup 관리에 systemd를 사용하도록 도커 데몬을 구성
+```bash
+sudo mkdir /etc/docker
+cat <<EOF | sudo tee /etc/docker/daemon.json
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m"
+  },
+  "storage-driver": "overlay2"
+}
+EOF
+```
 #### Kubernetes Install
 - kubernetes.io 사이트 접속 > Documentation 선택 > Install the kubeadm setup tool 선택
 ###### 설치전 환경설정
@@ -347,10 +362,88 @@ apt-get install -y kubelet kubeadm kubectl
 apt-mark hold kubelet kubeadm kubectl
 ```
 
-   3. control-plane 구성
-   4. worker node 구성
-   5. 설치 확인
+5. restarting the kubelet
+```bash
+systemctl start kubelet
+systemctl enable kubelet
+```
+###### Cluster 생성하기(single master and multi worker nodes)
+- 참조 - [Creating a cluster with kubeadm](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/)
+- VirtualBox에서 모든 노드에 대해서 CPU를 두 개 이상 할당해 줌
+- Control-plane 구성하기 
+  - master node에서만 아래의 명령 수행(중요!!!)
+  - 이 명령어를 통해서 master node의 ``API``, ``scheduler``, ``controller``, ``CoreDNS`` 컴포넌트들이 구성
+```bash
+$sudo kubeadm init
+```  
+![WSL2](./images/K8s_cluster.png)
 
-
-
-
+- 일반 유저로 클러스터를 Start하기 위해서는 master node에서 아래의 명령어를 수행
+```bash  
+#To start using your cluster, you need to run the following as a regular user:
+$mkdir -p $HOME/.kube
+$sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+$sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+- 일반 유저가 아닌 root user로 클러스터를 Start하기 위해서는 master node에서 아래의 명령어를 .bashrc에 추가
+```bash
+#Alternatively, if you are the root user, you can run:
+export KUBECONFIG=/etc/kubernetes/admin.conf
+```
+- ``kubectl``로 노드 정보를 아래와 같이 가져오는지 확인
+  - 만약, port 관련 에러가 난다면 시스템 리부팅
+```bash
+gusami@master:~$ kubectl get nodes
+# or
+root@master:~$ kubectl get nodes
+```
+###### Pod Network 설치
+- AddOn으로 여러 제품들 중 하나를 설치
+- master 노드에 Weave Net works를 설치
+```bash
+gusami@master:~$ kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+$ kubectl get nodes
+```
+###### Cluster에 조인하기
+- Worker node들에서 조인 명령 수행(중요!!!)
+  - 해당 인증서 해쉬 값은 ``kubeadm init`` 수행 할 때, 주어지는 값
+```bash  
+#Then you can join any number of worker nodes by running the following on each as root:
+gusami@worker-2:~$sudo kubeadm join 10.0.1.4:6443 --token u9mrhu.g7n13qbgz67wg0kj \
+	--discovery-token-ca-cert-hash sha256:2fddaed3f956819bff808814053fe95c64b0b55612b430b65622a38b038dd3bd 
+```
+- 마지막으로, master 노드에서 정상적으로 조인 되었는지 확인
+```bash
+gusami@master:~$ kubectl get nodes -o wide
+NAME       STATUS   ROLES                  AGE    VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+master     Ready    control-plane,master   49m    v1.22.3   10.0.1.4      <none>        Ubuntu 20.04.3 LTS   5.11.0-40-generic   docker://20.10.10
+worker-1   Ready    <none>                 103s   v1.22.3   10.0.1.5      <none>        Ubuntu 20.04.3 LTS   5.11.0-40-generic   docker://20.10.10
+worker-2   Ready    <none>                 32s    v1.22.3   10.0.1.6      <none>        Ubuntu 20.04.3 LTS   5.11.0-40-generic   docker://20.10.10
+gusami@master:~$ kubectl get pods --all-namespaces
+NAMESPACE     NAME                             READY   STATUS    RESTARTS        AGE
+kube-system   coredns-78fcd69978-nz4fr         1/1     Running   0               52m
+kube-system   coredns-78fcd69978-vsnzh         1/1     Running   0               52m
+kube-system   etcd-master                      1/1     Running   1 (23m ago)     52m
+kube-system   kube-apiserver-master            1/1     Running   1 (23m ago)     52m
+kube-system   kube-controller-manager-master   1/1     Running   1 (23m ago)     52m
+kube-system   kube-proxy-s9cp2                 1/1     Running   0               4m36s
+kube-system   kube-proxy-vscnf                 1/1     Running   1 (23m ago)     52m
+kube-system   kube-proxy-wsc4f                 1/1     Running   0               3m25s
+kube-system   kube-scheduler-master            1/1     Running   1 (23m ago)     52m
+kube-system   weave-net-kzxnd                  2/2     Running   1 (2m41s ago)   3m25s
+kube-system   weave-net-tbcxg                  2/2     Running   1 (9m24s ago)   9m35s
+kube-system   weave-net-zvqg4                  2/2     Running   0               4m36s
+```
+#### k8s 명령어 자동완성 on bash shell
+- [k8s documentation 사이트](https://kubernetes.io/docs/home/)에서 ``bash completion cheat sheet``으로 검색
+- 아래 명령어를 수행
+  - 일반 유저와 root user 모두 수행
+  - master node와 worker node들에 모두 수행
+```bash
+# setup autocomplete in bash into the current shell, bash-completion package should be installed first.
+$source <(kubectl completion bash)
+# add autocomplete permanently to your bash shellash 
+$echo "source <(kubectl completion bash)" >> ~/.bashrc
+$source <(kubeadm completion bash)
+$echo "source <(kubeadm completion bash)" >> ~/.bashrc
+```
