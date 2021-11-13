@@ -2,12 +2,22 @@
 - 유튜브 이성미 강사님의 [따라하면서 배우는 쿠버네티스](https://www.youtube.com/watch?v=6n5obRKsCRQ&list=PLApuRlvrZKohaBHvXAOhUD-RxD0uQ3z0c)를 주로 정리
 - ``쿠버네티스 입문(90가지 예제로 배우는 컨테이너 관리 자동화 표준)``을 정리
 
-## WSL
-- Windows Subsystem for Linux
-- Hypervisor 위에 윈도우 NT 커널과 리눅스 커널을 각각 올리는 방식
+## 설치없이 쿠버네티스 사용하기
+- 카타코다 쿠버네티스 플레이그라운드
+  - https://www.katacoda.com/courses/kubernetes/playground
+  - Master, node1이 구성되어 있어 바로 사용가능
+- Play with Kubernetes
+  - docker에서 제공. docker hub 계정으로 로그인
+  - https://labs.play-with-k8s.com/
+  - 4시간 사용 가능.
+  - Master, Worker Noder를 직접 구성한 후 사용가능
 
-![WSL2](./images/WSL.png)
-## 윈도우에 WSL2을 여러 개 설치하는 방법 (실패)
+## 쿠버네티스 설치해서 사용하기
+### 윈도우에 WSL2을 여러 개 설치하는 방법 (실패)
+- WSL이란?
+  - Windows Subsystem for Linux
+  - Hypervisor 위에 윈도우 NT 커널과 리눅스 커널을 각각 올리는 방식
+![WSL2](./images/WSL.png)  
 - 상세 절차는 [MS Document를 참조](https://docs.microsoft.com/en-us/windows/wsl/install-manual)
 #### Step 1: Enable the Windows Subsystem for Linux
 - 윈도우에 Linux를 깔기 전에 "Windows Subsystem for Linux" optional feature를 Enable함
@@ -57,7 +67,7 @@ usermod -aG sudo gusami
 ```powerShell
 wsl --distribution Ubuntu-20.04-Master --user gusami
 ```
-## WSL의 명령 참고 자료
+### WSL의 명령 참고 자료
 - [Microsoft Document](https://docs.microsoft.com/ko-kr/windows/wsl/basic-commands)
 #### Linux 배포판 생성
 ```powerShell
@@ -102,7 +112,8 @@ wsl --mount <DiskPath>
  - wsl --mount --partition ``<Partition Number>``: 탑재할 파티션의 인덱스 번호입니다. 지정하지 않으면 전체 디스크가 기본값입니다.
  - wsl --mount --options ``<MountOptions>``: 디스크를 탑재할 때 포함할 수 있는 몇 가지 파일 시스템 관련 옵션이 있습니다. wsl --mount -o "data-ordered" 또는 wsl --mount -o "data=writeback 같은 ext4 탑재 옵션을 예로 들 수 있습니다. 그러나 현재는 파일 시스템 관련 옵션만 지원됩니다. ro, rw 또는 noatime과 같은 일반 옵션은 지원되지 않습니다.
  - wsl --unmount ``<DiskPath>``: 모든 WSL 2 배포판에서 디스크를 탑재 해제하고 분리합니다. ``<DiskPath>``가 포함되지 않으면 이 명령은 탑재된 모든 디스크를 탑재 해제하고 분리합니다.
-## Virtual Box를 이용하여 여러개의 VM 설치 (성공)
+
+### Virtual Box를 이용하여 여러개의 VM 설치 (성공)
 - 참조: [나만의 k8s 클러스터 구축하기](https://coffeewhale.com/kubernetes/cluster/virtualbox/2020/08/31/k8s-virtualbox/)
 - ``VirtualBox 6.1.28 platform packages`` 설치
 - 아래 그림의 형태로 노드들을 구성
@@ -506,3 +517,42 @@ Connection closed.
   - multi master(3, 5개의 master nodes)
 - worker node
   - 도커 플랫폼을 통해 컨테이너를 동작하며 실제 서비스 제공
+
+## 쿠버네티스로 컨테이너 실행하기
+### kubectl이란?
+- "쿠버네티스야 웹서버 3개 실행해줘"라고 하면, worker node들에 알아서 분배해서 실행해 줌
+- 실제 실행할 컨테이너와 이미지와 옵션들과 개수들을 지정할 수 있음
+![kubectl_concept](./images/kubectl_concept.png)  
+#### kubectl 명령어 기본 구조
+- command: 자원(object)에 실행 할 명령
+  - ``create, get, delete, edit.....``
+- TYPE: 자원의 타입
+  - ``node, pod, service....``
+- NAME: 자원의 이름(내가 지어준 이름)
+  - 예: ``webserver``
+- flags: 부가적으로 설정할 옵션
+  - ``--help, -o options``
+```bash
+kubectl [command] [TYPE] [NAME] [flags]
+```
+```bash
+kubectl get pod webserver -o wide
+```
+#### kubectl commands
+```bash
+$kubectl --help
+$kubectl command --help
+
+$kubectl run <자원이름> <옵션>
+$kubectl create -f obj.yaml
+$kubectl apply -f obj.yaml
+
+$kubectl get <자원타입> <자원이름>
+$kubectl edit <자원타입> <자원이름>
+$kubectl describe <자원타입> <자원이름>
+
+$kubectl delete pod main
+```
+
+
+
