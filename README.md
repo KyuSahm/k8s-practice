@@ -1360,3 +1360,58 @@ webserver   1/1     Running   0          13s   10.44.0.1   worker-1   <none>    
   - ``kubectl run`` 명령어
   - ``kubectl create -f <yaml 파일>`` 명령어
   - ``kubectl create deployment ...`` 명령어
+## 쿠버네티스 Architecture
+### 쿠버네티스 동작 원리
+- 쿠버네티스에서 컨테이너 동작 Flow
+
+![kubectl_deploy_flow](./images/kubectl_deploy_flow.png)
+#### 쿠버네티스 컴포넌트
+- Master Component
+  - etcd
+    - key-value 타입의 저장소
+    - worker node들에 대한 상태 정보
+      - H/W Resource 정보, worker node내의 docker container 상태, 다운로드한 image 상태를 저장
+      - worker node들에 존재하는 kubelet의 도움을 받음 
+      - kubelet에는 cAdvisor이라는 Container Monitor Tool이 존재
+  - kube-apiserver
+    - k8s API를 사용하도록 요청을 받고, 요청이 유효한지 검사
+    - ``kubectl create ui ngnix``와 같은 명령어를 받음
+  - kube-scheduler
+    - Pod를 실행할 노드 선택
+    - etcd의 정보를 받아서 사용
+      - 특정 노드가 선택되면, kube-apiserver를 거쳐 worker node의 kubelet에 이미지의 생성과 실행을 요청
+      - kubelet은 docker에게 특정 이미지의 실행을 요청
+      - docker는 docker-hub으로부터 요청 받은 이미지를 다운 받아 container를 생성
+  - kube-controller-manager
+    - Pod를 관찰하며 개수를 보장
+    - 만약, 특정 Worker node가 down된다면, 부족한 개수만큼의 container들을 생성하도록 kube-apiserver에 요청
+- Worker node component
+  - kubelet
+    - 모든 노드에서 실행되는 k8s agent
+    - 데몬 형태로 동작
+  - kube-proxy
+    - k8s의 network 동작을 관리
+    - iptables rule를 구성
+  - Container runtime
+    - 컨테이너를 실행하는 엔진
+    - docker, containerd, runc등의 컨테이너 엔진이 존재    
+- Add On Component
+  - 네트워크 AddOn
+    - CNI - weave, calico, flaneId, kube-route
+      - Container간의 통신을 지원
+  - dns AddOn
+    - coreDNS
+  - 대시보드 AddOn
+  - Container 자원 모니터링
+    - cAdvisor
+  - Clustor Logging
+    - Container 로그, k8s 운영 로그들을 수집해서 중앙화
+    - ELK(ElasticSearch, LogStash, Kibana), EFK(ElasticSearch, Fluentd Kibana), DataLog    
+
+![k8s architecture](./images/K8S_architecture.png)
+- 웹 UI Dashboard (별도 설치)
+
+![k8s dashboard](./images/k8s_dashboard.png)
+### namespace
+### yaml
+### api version  
