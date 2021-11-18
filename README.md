@@ -1413,5 +1413,236 @@ webserver   1/1     Running   0          13s   10.44.0.1   worker-1   <none>    
 
 ![k8s dashboard](./images/k8s_dashboard.png)
 ### namespace
-### yaml
-### api version  
+- 클러스터 하나를 여러 개의 논리적인 cluster단위로 나눠서 사용
+ - 쿠버네티스 클러스터 하나를 여러 팀이나 사용자가 함께 공유
+ - 용도에 다라 실행해야 하는 앱을 구분할 때 사용
+ - ``namespace = k8s API`` 종류 중 하나
+
+![k8s_namespace](./images/k8s_namespaces.png)
+#### namespace 생성
+- CLI
+  - command를 통해서 생성
+  - yaml 파일을 통해서 생성
+```bash
+# command를 통한 생성
+controlplane $kubectl create namespace blue
+namespace/blue created
+$kubectl get namespaces
+```
+- yaml
+```bash
+# yaml 파일을 통한 생성 (dry-run 옵션 사용)
+controlplane $kubectl create namespace orange --dry-run=client -o yaml > orange-ns.yaml
+# 필요없는 속성 제거
+$vim orange.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: orange
+# yaml 파일을 통한 namespace 생성
+controlplane $kubectl create -f orange-ns.yaml
+namespace/orange created
+# 생성된 namespace를 확인
+controlplane $kubectl get namespace
+NAME              STATUS   AGE
+blue              Active   6m24s
+default           Active   31m
+kube-node-lease   Active   31m
+kube-public       Active   31m
+kube-system       Active   31m
+orange            Active   29s
+```
+
+#### namespace 관리
+- 기본적으로 4개의 namespace가 존재
+  - default, kube-node-lease, kube-public, kube-system
+##### namespace 관련 테스트   
+```bash
+# katacoda playground를 이용
+# 현재의 namespace 정보 확인 (기본적으로 4개의 namespace가 존재)
+controlplane $kubectl get namespace
+NAME              STATUS   AGE
+default           Active   3m36s
+kube-node-lease   Active   3m38s
+kube-public       Active   3m38s
+kube-system       Active   3m38s
+# 특정 namespace내의 pod를 확인
+controlplane $kubectl get pod --namespace default
+No resources found in default namespace
+# yaml 파일 생성
+controlplane $vi nginx.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+    - image: nginx:1.14
+      name: nginx
+      ports:
+      - containerPort: 80
+      - containerPort: 443
+# default namespace에서 pod 생성      
+controlplane $kubectl create -f nginx.yaml
+pod/mypod created
+# default namespace의 pod 확인
+controlplane $kubectl get pods -n default
+NAME    READY   STATUS    RESTARTS   AGE
+mypod   1/1     Running   0          3m1s
+# kube-system namespace의 pod 확인
+controlplane $kubectl get pods -n kube-system
+NAME                                       READY   STATUS             RESTARTS   AGE
+coredns-66bff467f8-2jmrx                   1/1     Running            0          18m
+coredns-66bff467f8-58z5z                   1/1     Running            0          18m
+etcd-controlplane                          1/1     Running            0          18m
+katacoda-cloud-provider-5779df96d7-nwl8w   0/1     CrashLoopBackOff   7          18m
+kube-apiserver-controlplane                1/1     Running            0          18m
+kube-controller-manager-controlplane       1/1     Running            0          18m
+kube-flannel-ds-amd64-4gfrh                1/1     Running            1          18m
+kube-flannel-ds-amd64-d2jhh                1/1     Running            0          18m
+kube-keepalived-vip-486lv                  1/1     Running            0          17m
+kube-proxy-ttzmh                           1/1     Running            0          18m
+kube-proxy-xpmf4                           1/1     Running            0          18m
+kube-scheduler-controlplane                1/1     Running            0          18m
+# 모든 namespace에서 작동 중인 pod를 확인
+controlplane $ kubectl get pods --all-namespaces
+NAMESPACE     NAME                                       READY   STATUS    RESTARTS   AGE
+default       mypod                                      1/1     Running   0          9m1s
+kube-system   coredns-66bff467f8-2jmrx                   1/1     Running   0          22m
+kube-system   coredns-66bff467f8-58z5z                   1/1     Running   0          22m
+kube-system   etcd-controlplane                          1/1     Running   0          23m
+kube-system   katacoda-cloud-provider-5779df96d7-nwl8w   1/1     Running   9          22m
+kube-system   kube-apiserver-controlplane                1/1     Running   0          23m
+kube-system   kube-controller-manager-controlplane       1/1     Running   0          23m
+kube-system   kube-flannel-ds-amd64-4gfrh                1/1     Running   1          22m
+kube-system   kube-flannel-ds-amd64-d2jhh                1/1     Running   0          22m
+kube-system   kube-keepalived-vip-486lv                  1/1     Running   0          22m
+kube-system   kube-proxy-ttzmh                           1/1     Running   0          22m
+kube-system   kube-proxy-xpmf4                           1/1     Running   0          22m
+kube-system   kube-scheduler-controlplane                1/1     Running   0          23m
+# blue namespace에서 pod 생성
+controlplane $kubectl create -f nginx.yaml -n blue
+pod/mypod created
+# orange namespace에서 pod 생성
+controlplane $kubectl create -f nginx.yaml -n orange
+pod/mypod created
+# orange namespace에서 pod 삭제
+controlplane $kubectl delete pod mypod -n orange
+# pod 생성 파일에 namespace를 명시할 수도 있음
+controlplane $vi nginx.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+  namespace: orange
+spec:
+  containers:
+    - image: nginx:1.14
+      name: nginx
+      ports:
+      - containerPort: 80
+      - containerPort: 443
+# orange namespace에서 pod 생성      
+controlplane $kubectl create -f nginx.yaml
+pod/mypod created
+# 생성된 pod 확인
+controlplane $ kubectl get pods -n orange
+NAME    READY   STATUS    RESTARTS   AGE
+mypod   1/1     Running   0          16s
+# blue namespace 삭제 (내부적으로 존재하는 pod들도 모두 삭제됨)
+controlplane $kubectl delete namespace blue
+namespace "blue" deleted
+```
+##### namespace switch
+- 기본으로 사용하는 namespace를 default가 아닌 다른 이름의 namespace로 switch
+- 먼저 선행 조건으로 k8s의 config에 namespace들을 등록을 해줘야 함
+  - namespace가 등록된 공간을 config의 context라고 부름
+```bash
+# 현재의 config의 context 정보 보기
+controlplane $kubectl config get-contexts
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+*         kubernetes-admin@kubernetes   kubernetes   kubernetes-admin   
+# 현재의 config의 전체 정보 보기
+controlplane $kubectl config view
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://172.17.0.62:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+current-context: kubernetes-admin@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: REDACTED
+    client-key-data: REDACTED
+# blue namespace를 blue@kubernetes라는 context에 등록해 줌
+controlplane $kubectl config set-context blue@kubernetes --cluster=kubernetes --user=kubernetes-admin --namespace=blue
+Context "blue@kuberentes" created
+# 현재의 config 정보 전체 보기 (새로운 context가 생성됨)
+controlplane $ kubectl config view
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://172.17.0.41:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    namespace: blue
+    user: kubernetes-admin
+  name: blue@kubernetes
+- context:
+    cluster: kubernetes
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+current-context: kubernetes-admin@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: REDACTED
+    client-key-data: REDACTED
+       
+# 생성된 context와 등록된 namespace 정보 확인
+controlplane $ kubectl config get-contexts
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+          blue@kubernetes               kubernetes   kubernetes-admin   blue
+*         kubernetes-admin@kubernetes   kubernetes   kubernetes-admin      
+# 현재의 context를 확인
+controlplane $kubectl config current-context
+kubernetes-admin@kubernetes
+# context와 namespace를 스위치 (기본 namespace가 바뀜)
+controlplane $kubectl config use-context blue@kubernetes
+Switched to context "blue@kubernetes".
+# 현재의 context를 확인
+controlplane $kubectl config current-context
+blue@kubernetes
+# default context를 확인
+controlplane $ kubectl config get-contexts
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+*         blue@kubernetes               kubernetes   kubernetes-admin   blue
+          kubernetes-admin@kubernetes   kubernetes   kubernetes-admin
+# 현재 context의 pod 확인             
+controlplane $ kubectl get pods
+NAME    READY   STATUS    RESTARTS   AGE
+mypod   1/1     Running   0          46s
+
+# context의 namespace이름 지정
+controlplane $kubectl config set-context kubernetes-admin@kubernetes --namespace=default
+Context "kubernetes-admin@kubernetes" modified.
+# 확인
+controlplane $ kubectl config get-contexts
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+*         blue@kubernetes               kubernetes   kubernetes-admin   blue
+          kubernetes-admin@kubernetes   kubernetes   kubernetes-admin   default
+```
