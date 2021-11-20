@@ -1413,12 +1413,17 @@ webserver   1/1     Running   0          13s   10.44.0.1   worker-1   <none>    
 
 ![k8s dashboard](./images/k8s_dashboard.png)
 ### namespace
-- 클러스터 하나를 여러 개의 논리적인 cluster단위로 나눠서 사용
- - 쿠버네티스 클러스터 하나를 여러 팀이나 사용자가 함께 공유
- - 용도에 다라 실행해야 하는 앱을 구분할 때 사용
+- 클러스터 하나를 여러 개의 논리적인 단위로 나눠서 사용
+ - 쿠버네티스 오브젝트를 묶는 하나의 가상공간 또는 그룹
+ - 논리적으로 분리하는 것이지, 물리적으로 분리하는 것이 아님
+ - 다른 namespace의 pod이더라도, 서로 통신이 가능
+ - 클러스터의 장애가 발생한 경우, 모든 namespace가 타격을 입음
+ - 쿠버네티스 클러스터 하나를 여러 팀이나 사용자가 함께 공유 가능
+ - 용도에 다라 실행해야 하는 앱을 구분할 때 사용 
  - ``namespace = k8s API`` 종류 중 하나
 
 ![k8s_namespace](./images/k8s_namespaces.png)
+![k8s_namespace](./images/k8s_namespaces_1.png)
 #### namespace 생성
 - CLI
   - command를 통해서 생성
@@ -1452,7 +1457,6 @@ kube-public       Active   31m
 kube-system       Active   31m
 orange            Active   29s
 ```
-
 #### namespace 관리
 - 기본적으로 4개의 namespace가 존재
   - default, kube-node-lease, kube-public, kube-system
@@ -1645,4 +1649,78 @@ controlplane $ kubectl config get-contexts
 CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
 *         blue@kubernetes               kubernetes   kubernetes-admin   blue
           kubernetes-admin@kubernetes   kubernetes   kubernetes-admin   default
+```
+### yaml 템플릿과 API
+#### yaml 템플릿
+- 사람이 쉽게 읽을 수 있는 데이터 직렬화 양식
+- 기본 문법
+  - 구조화된 데이터를 표현하기 위한 데이터 포맷
+  - Python처럼 들여쓰기로 데이터 계층을 표기
+  - 들여쓰기를 할 때에는 Tab이 아닌 **Space Bar**를 사용
+  - 가독성이 좋아 설정 파일에 적합한 형식
+  - Scalar 문법: **`:`을 기준으로 key:value를 설정
+  - 배열 문법: `-`문자로 여러 개를 나열
+  - 공식 사이트: http://yaml.org/
+- kubernetes yaml example
+```bash
+$cat nginx-pod.yaml
+apiVersion: v1
+kind: Pod
+parent:
+  child1: first child
+  key2:
+    grandchild1: kim
+  key3:
+    - grandchild2:
+      name: kim
+    - grandchild3:
+      name: lee # comment
+# comment line        
+```
+#### API version
+- alpha -> beta -> stable
+- kubernetes Object 정의 시 apiVersion이 필요
+- kubernetes가 update하는 API가 있으면 새로운 API가 생성됨
+- API Object의 종류 및 버전
+  - Deployment: apps/v1
+  - Pod: v1
+  - ReplicaSet: apps/v1
+  - ReplicationController: v1
+  - Service: v1
+  - PersistentVolume: v1
+- `kubectl explain [오브젝트타입명]`: 리소스의 정보 출력, **api version도 확인 가능**
+```bash
+controlplane $ kubectl explain pod
+KIND:     Pod
+VERSION:  v1
+
+DESCRIPTION:
+     Pod is a collection of containers that can run on a host. This resource is
+     created by clients and scheduled onto hosts.
+
+FIELDS:
+   apiVersion   <string>
+     APIVersion defines the versioned schema of this representation of an
+     object. Servers should convert recognized schemas to the latest internal
+     value, and may reject unrecognized values. More info:
+     https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+
+   kind <string>
+     Kind is a string value representing the REST resource this object
+     represents. Servers may infer this from the endpoint the client submits
+     requests to. Cannot be updated. In CamelCase. More info:
+     https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+
+   metadata     <Object>
+     Standard object's metadata. More info:
+     https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+
+   spec <Object>
+     Specification of the desired behavior of the pod. More info:
+     https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+
+   status       <Object>
+     Most recently observed status of the pod. This data may not be up to date.
+     Populated by the system. Read-only. More info:
+     https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 ```
