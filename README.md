@@ -1724,3 +1724,252 @@ FIELDS:
      Populated by the system. Read-only. More info:
      https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 ```
+## Pod
+### Pod 개념 및 사용하기
+#### Container 정리
+- docker container는 하나의 application과 동일
+```bash
+# source file 생성
+$cat > app.js
+const http = require('http');
+const os = require('os');
+console.log("Test server starting...");
+var handler = function(req, res) {
+  res.writeHead(200);
+  res.end("Container Hostname: " + os.hostname() + "\n");  
+};
+var www = http.createServer(handler);
+www.listen(8080);
+# Docker file 생성
+$cat > Dockerfile
+FROM node:12
+COPY app.js /app.js
+# container 실행 시 "node app.js" 실행
+ENTRYPOINT ["node", "app.js"] 
+<Ctrl><d>
+# Container build (Docker 이미지 파일 생성)
+$docker build -t smlinux/appjs .
+# Docker hub에 올림. 아래 명령은 docker hub에 smlinux계정내에 appjs로 올림
+$docker push smlinux/appjs
+```
+![k8s_docker_image_generation](./images/k8s_docker_image_generation.png)
+#### Pod란?
+  - Container를 표현하는 k8s API의 최소 단위
+  - Pod에는 하나 또는 여러 개의 컨테이너가 포함될 수 있음
+
+![k8s pod](./images/k8s_pod.png)
+#### Pod 생성하기
+- kubectl run 명령으로 생성(CLI)
+```bash
+$kubectl run webserver --image=nginx:1.14
+# port를 지정해도 되고 안해도 됨
+$kubectl run web-1 --image=nginx:1.14 --port=80
+```
+- pod yaml을 이용해 생성
+  - dry-run을 통해서 생성 가능
+  - ``$kubectl get pods <pod name> -o yaml``을 통해서 생성 후 필요한 정보만 추출해서 생성 가능
+```bash
+# yaml 파일 생성
+$cat pod-nginx.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: webserver-2
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.14
+    imagePullPolicy: Always
+    ports:
+    - containerPort: 80
+      protocol: TCP
+# Pod 생성 및 실행
+$kubectl create -f pod-nginx.yaml
+# 현재 동작중인 Pod 확인
+$kubectl get pods
+$kubectl get pods -o wide
+$kubectl get pods -o yaml
+$kubectl get pods -o json
+$kubectl get pods webserver -o yaml
+# 2초마다 한번씩 지속적으로 명령 실행(linux watch 명령 이용)
+$watch kubectl get pods -o wide
+NAME        READY   STATUS    RESTARTS      AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+web-1       1/1     Running   0             12m     10.36.0.1   worker-2   <none>           <none>
+web2        1/1     Running   0             8m51s   10.44.0.2   worker-1   <none>           <none>
+webserver   1/1     Running   1 (17m ago)   5d21h   10.44.0.1   worker-1   <none>           <none>
+# Pod에 접속해서 결과보기
+$curl <pod IP address>
+# grep을 이용하여 특정 정보만 추출
+$ kubectl get pods webserver -o json | grep -i podip
+        "podIP": "10.44.0.1",
+        "podIPs": [
+```
+#### multi-container Pod 생성하기
+- 예시: ``web-server container``와 ``wblog-agent container``를 하나의 Pod에 생성
+  - 웹서비스와 관련된 로그를 생성하는 컨테이너를 하나의 Pod에 둠
+  - volume을 두 개의 컨테이너 간에 공유하고, web server가 생성한 로그를 wblog가 수집 및 분석
+  - **Pod 단위로 IP가 할당되므로, 두 개의 Container가 동일한 IP 사용**
+  - Container들간의 유기적인 관계가 필요한 경우 
+```bash
+# multi-container pod를 위한 yaml파일 정의
+# centos는 container 실행 시, sleep "10000"를 실행
+$cat multi-container-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: multi-container-pod
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.14
+    ports:
+    - containerPort: 80
+  - name: centos-container
+    image: centos:7
+    command:
+    - sleep
+    - "10000"
+# multi-container pod 생성    
+$kubectl create -f multi-container-pod.yaml
+$kubectl get pods
+
+# READY 정보를 이용해서 pod내부의 container 개수를 확인 가능
+$kubectl get pods -o wide
+NAME                  READY   STATUS    RESTARTS      AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+multi-container-pod   2/2     Running   0             11m     10.36.0.2   worker-2   <none>           <none>
+web-1                 1/1     Running   0             51m     10.36.0.1   worker-2   <none>           <none>
+web2                  1/1     Running   0             47m     10.44.0.2   worker-1   <none>           <none>
+webserver             1/1     Running   1 (55m ago)   5d22h   10.44.0.1   worker-1   <none>           <none>
+
+# resource의 정확한 상세 정보를 출력하는 명령어
+$kubectl describe --help
+Show details of a specific resource or group of resources.
+# multi-container-pod의 상세 정보 출력
+# 만약, pod 생성이 안되거나 했을 때 troubleshooting 용도로 사용 가능
+$kubectl describe pod multi-container-pod 
+Name:         multi-container-pod
+Namespace:    default
+Priority:     0
+Node:         worker-2/10.0.1.6
+Start Time:   Sat, 20 Nov 2021 13:08:10 +0900
+Labels:       <none>
+Annotations:  <none>
+Status:       Running
+IP:           10.36.0.2
+IPs:
+  IP:  10.36.0.2
+Containers:
+  nginx-container:
+    Container ID:   docker://07b2ab909b623b5102b35fe92aa18c4e3bf3ece5c6814633026d5bf3a5adf939
+    Image:          nginx:1.14
+    Image ID:       docker-pullable://nginx@sha256:f7988fb6c02e0ce69257d9bd9cf37ae20a60f1df7563c3a2a6abe24160306b8d
+    Port:           80/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Sat, 20 Nov 2021 13:08:11 +0900
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-jrjkm (ro)
+  centos-container:
+    Container ID:  docker://ebb07f3f5e496f595dca119171d6f910b6135cda8b400c92f655273f8920bc81
+    Image:         centos:7
+    Image ID:      docker-pullable://centos@sha256:9d4bcbbb213dfd745b58be38b13b996ebb5ac315fe75711bd618426a630e0987
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      sleep
+      10000
+    State:          Running
+      Started:      Sat, 20 Nov 2021 13:08:11 +0900
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-jrjkm (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             True 
+  ContainersReady   True 
+  PodScheduled      True 
+Volumes:
+  kube-api-access-jrjkm:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   BestEffort
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type    Reason     Age    From               Message
+  ----    ------     ----   ----               -------
+  Normal  Scheduled  6m47s  default-scheduler  Successfully assigned default/multi-container-pod to worker-2
+  Normal  Pulled     6m46s  kubelet            Container image "nginx:1.14" already present on machine
+  Normal  Created    6m46s  kubelet            Created container nginx-container
+  Normal  Started    6m46s  kubelet            Started container nginx-container
+  Normal  Pulled     6m46s  kubelet            Container image "centos:7" already present on machine
+  Normal  Created    6m46s  kubelet            Created container centos-container
+  Normal  Started    6m46s  kubelet            Started container centos-container
+# nginx-container에 접속해 보기
+$kubectl exec multi-container-pod -c nginx-container -it -- /bin/bash
+root@multi-container-pod:/#cd /usr/share/nginx/html/
+root@multi-container-pod:/usr/share/nginx/html# ls -al
+total 16
+drwxr-xr-x 2 root root 4096 Mar 26  2019 .
+drwxr-xr-x 3 root root 4096 Mar 26  2019 ..
+-rw-r--r-- 1 root root  537 Dec  4  2018 50x.html
+-rw-r--r-- 1 root root  612 Dec  4  2018 index.html
+
+# cento os container에 접속하여 nginx web server에 curl로 접속해 보기
+# centos-container의 /bin/bash 명령어를 수행(standard input을 terminal로 지정)
+$kubectl exec multi-container-pod -c centos-container -it -- /bin/bash
+[root@multi-container-pod /]# curl localhost:80
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+# multi container pod인 경우, 로그 정보는 특정 container 단위로 볼 수 있음
+$kubectl logs multi-container-pod
+error: a container name must be specified for pod multi-container-pod, choose one of: [nginx-container centos-container]
+gusami@master:~$kubectl logs multi-container-pod -c nginx-container
+127.0.0.1 - - [20/Nov/2021:04:24:53 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.29.0" "-"
+10.32.0.1 - - [20/Nov/2021:04:32:19 +0000] "GET / HTTP/1.1" 200 9 "-" "curl/7.68.0" "-"
+127.0.0.1 - - [20/Nov/2021:04:32:34 +0000] "GET / HTTP/1.1" 200 9 "-" "curl/7.29.0" "-"
+gusami@master:~$kubectl logs multi-container-pod -c centos-container
+# single container pod인 경우, 로그 정보는 pod 단위로 볼 수 있음
+gusami@master:~$kubectl logs web-1
+10.32.0.1 - - [20/Nov/2021:03:29:50 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.68.0" "-"
+```
+### livenessPorbe를 사용한 self-healing Pod
+### init container
+### infra container(pause) 이해하기
+### static pod 만들기
+### Pod에 resource 할당하기
+### 환경변수를 이용해 컨테이너에 데이터 전달하기
+### pod 구성 패턴의 종류
