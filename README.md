@@ -1966,6 +1966,208 @@ gusami@master:~$kubectl logs multi-container-pod -c centos-container
 gusami@master:~$kubectl logs web-1
 10.32.0.1 - - [20/Nov/2021:03:29:50 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.68.0" "-"
 ```
+#### 쿠버네티스 Pod 동작 Flow
+- Pending 상태
+  - The Pod has been accepted by the Kubernetes cluster, but one or more of the containers has not been set up and made ready to run. This includes time a Pod spends waiting to be scheduled as well as the time spent downloading container images over the network.
+- Running	상태
+  - The Pod has been bound to a node, and all of the containers have been created. At least one container is still running, or is in the process of starting or restarting.
+- Succeeded 상태
+  - All containers in the Pod have terminated in success, and will not be restarted.
+- Failed 상태
+  - All containers in the Pod have terminated, and at least one container has terminated in failure. That is, the container either exited with non-zero status or was terminated by the system.
+- Unknown 상태
+  -	For some reason the state of the Pod could not be obtained. This phase typically occurs due to an error in communicating with the node where the Pod should be running.
+##### 실습
+- 초기 셋팅
+  - 기존의 모든 Pod 삭제 후, 새로운 Pod 생성
+```bash
+gusami@master:~$kubectl delete pod --all
+```
+- 새로운 Pod 생성 및 삭제
+```bash
+gusami@master:~$kubectl create -f pod-nginx.yaml
+pod/web2 created
+gusami@master:~$kubectl delete pod web2
+```
+- ``--watch`` option을 이용한 상태 정보 추적
+```bash
+gusami@master:~$kubectl get pods -o wide --watch
+web2                  0/1     Pending       0             0s    <none>      <none>     <none>           <none>
+web2                  0/1     Pending       0             0s    <none>      worker-2   <none>           <none>
+web2                  0/1     ContainerCreating   0             0s    <none>      worker-2   <none>           <none>
+web2                  1/1     Running             0             5s    10.36.0.1   worker-2   <none>           <none>
+web2                  1/1     Terminating         0             61s   10.36.0.1   worker-2   <none>           <none>
+web2                  0/1     Terminating         0             62s   10.36.0.1   worker-2   <none>           <none>
+web2                  0/1     Terminating         0             62s   10.36.0.1   worker-2   <none>           <none>
+web2                  0/1     Terminating         0             62s   10.36.0.1   worker-2   <none>           <none>
+```
+##### Pod 관리하기
+- 동작 중인 Pod 정보 보기
+```bash
+# 현재 namespace에서의 Pod 보기
+gusami@master:~$kubectl get pods
+No resources found in default namespace.
+# 전체 namespace에서의 Pod 보기
+gusami@master:~$kubectl get pods --all-namespaces
+NAMESPACE     NAME                             READY   STATUS    RESTARTS       AGE
+kube-system   coredns-78fcd69978-nz4fr         1/1     Running   5 (12d ago)    19d
+kube-system   coredns-78fcd69978-vsnzh         1/1     Running   5 (12d ago)    19d
+kube-system   etcd-master                      1/1     Running   6 (12d ago)    19d
+kube-system   kube-apiserver-master            1/1     Running   6 (12d ago)    19d
+kube-system   kube-controller-manager-master   1/1     Running   6 (12d ago)    19d
+kube-system   kube-proxy-s9cp2                 1/1     Running   4 (12d ago)    19d
+kube-system   kube-proxy-vscnf                 1/1     Running   6 (12d ago)    19d
+kube-system   kube-proxy-wsc4f                 1/1     Running   4 (12d ago)    19d
+kube-system   kube-scheduler-master            1/1     Running   6 (12d ago)    19d
+kube-system   weave-net-kzxnd                  2/2     Running   9 (12d ago)    19d
+kube-system   weave-net-tbcxg                  2/2     Running   11 (12d ago)   19d
+kube-system   weave-net-zvqg4                  2/2     Running   8 (12d ago)    19d
+$kubectl get pods -o wide
+$kubectl describe pod webserver
+```
+- 동작 중인 Pod 수정
+```bash
+$kubectl edit pod webserver
+```
+- 동작 중인 Pod 삭제
+```bash
+$kubectl delete pod webserver
+# 모든 Pod 삭제
+$kubectl delete pod --all
+```
+##### Question & Answer
+- 현재 namespace에서 동작 중인 Pod는 몇 개인가?
+```bash
+$kubectl get pods
+```
+- 현재 시스템에서 동작 중인 Pod 수는?
+```bash
+$kubectl get pods --all-namespaces
+```
+- 컨테이너 nginx를 실행하는 nginx-pod라는 이름의 Pod를 생성하시오
+```bash
+$kubectl run nginx-pod --image=nginx:1.14 --port 80
+```
+- 앞에서 생성한 Pod의 image정보를 확인하는 명령은 무엇인가?
+```bash
+$kubectl describe pod nginx-pod
+```
+- 앞에서 생성한 nginx-pod는 어느 node에 배치되었나?
+```bash
+$ kubectl get pods -o wide
+NAME   READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+web2   1/1     Running   0          9s    10.44.0.1   worker-1   <none>           <none>
+```
+- 앞에서 생성한 Pod에는 몇 개의 컨테이너가 포함되어 있나?
+  - ``kubectl get pods`` 명령: READY 칼럼 정보를 확인
+  - ``kubectl describe pod <Pod name>``: yaml 형식의 containers항목을 살펴봄
+- 앞에서 생성한 Pod는 현재 상태는 어떠한가?
+  - ``kubectl describe pod <Pod name>``
+  - ``kubectl get pods`` 명령어에서 STATUS 칼럼 확인
+- 새 Pod내의 컨테이너 상태는 어떻습니까?
+  - ``kubectl describe pod <Pod name>``를 이용
+- ``kubectl get pods``명령의 출력에서 READY 열은 무엇을 의미하나?
+  - 현재 READY중인 컨테이너 수 / 전체 컨테이너 수
+- 생성한 Pod를 삭제하시오.
+```bash
+$kubectl delete pod webserver
+```
+- 컨테이너 image `redis123`을 실행하는 pod `redis`를 ``redis.yaml``을 이용해 생성하시오
+```bash
+gusami@master:~$kubectl run redis --image=redis123 --dry-run=client -o yaml > redis.yaml
+gusami@master:~$cat redis.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: redis
+  name: redis
+spec:
+  containers:
+  - image: redis123
+    name: redis
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+# 불필요한 항목 제거
+gusami@master:~$vi redis.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis
+spec:
+  containers:
+  - image: redis123
+    name: redis
+# 상태 점검. 이미지 이름이 잘못 되어서 Pull에서 실패    
+gusami@master:~$kubectl get pods
+NAME    READY   STATUS         RESTARTS   AGE
+redis   0/1     ErrImagePull   0          8s
+# describe pod 명령을 이용한 정확한 원인 분석 (Events항목을 분석)
+gusami@master:~$kubectl describe pod redis
+Name:         redis
+Namespace:    default
+Priority:     0
+Node:         worker-2/10.0.1.6
+Start Time:   Thu, 02 Dec 2021 23:29:35 +0900
+Labels:       <none>
+Annotations:  <none>
+Status:       Pending
+IP:           10.36.0.1
+IPs:
+  IP:  10.36.0.1
+Containers:
+  redis:
+    Container ID:   
+    Image:          redis123
+    Image ID:       
+    Port:           <none>
+    Host Port:      <none>
+    State:          Waiting
+      Reason:       ErrImagePull
+    Ready:          False
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-n2tjz (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             False 
+  ContainersReady   False 
+  PodScheduled      True 
+Volumes:
+  kube-api-access-n2tjz:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   BestEffort
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason     Age   From               Message
+  ----     ------     ----  ----               -------
+  Normal   Scheduled  12s   default-scheduler  Successfully assigned default/redis to worker-2
+  Normal   Pulling    12s   kubelet            Pulling image "redis123"
+  Warning  Failed     8s    kubelet            Failed to pull image "redis123": rpc error: code = Unknown desc = Error response from daemon: pull access denied for redis123, repository does not exist or may require 'docker login': denied: requested access to the resource is denied
+  Warning  Failed     8s    kubelet            Error: ErrImagePull
+  Normal   BackOff    8s    kubelet            Back-off pulling image "redis123"
+  Warning  Failed     8s    kubelet            Error: ImagePullBackOff
+```
+- 앞서 만든 redis pod의 image를 redis로 수정하여 동작시키시오.
+```bash
+$kubectl edit pod redis
+# image 이름을 redis123에서 redis로 수정 후, 저장
+# 상태가 Running로 자동 변경됨
+gusami@master:~$kubectl get pods
+NAME    READY   STATUS    RESTARTS   AGE
+redis   1/1     Running   0          5m5s
+```
 ### livenessPorbe를 사용한 self-healing Pod
 ### init container
 ### infra container(pause) 이해하기
