@@ -1,5 +1,6 @@
 # kubernetes
 - 유튜브 이성미 강사님의 [따라하면서 배우는 쿠버네티스](https://www.youtube.com/watch?v=6n5obRKsCRQ&list=PLApuRlvrZKohaBHvXAOhUD-RxD0uQ3z0c)를 주로 정리
+- [이성미 강사님의 GitHub 페이지](https://github.com/237summit)
 - ``쿠버네티스 입문(90가지 예제로 배우는 컨테이너 관리 자동화 표준)``을 정리
 
 ## 설치없이 쿠버네티스 사용하기
@@ -2169,9 +2170,240 @@ NAME    READY   STATUS    RESTARTS   AGE
 redis   1/1     Running   0          5m5s
 ```
 ### livenessPorbe를 사용한 self-healing Pod
-### init container
-### infra container(pause) 이해하기
-### static pod 만들기
-### Pod에 resource 할당하기
-### 환경변수를 이용해 컨테이너에 데이터 전달하기
-### pod 구성 패턴의 종류
+- kubelet으로 컨테이너 진단하기
+- 사용자 헬스체크 루틴에 응답하지 않는 컨테이너를 죽이고 재시작 함
+##### Liveness Probe 개념
+- Pod가 계속 실행할 수 있음을 보장
+- Pod의 spec에 정의
+- livenessProbe definition을 추가한 Pod yaml 형식 정의
+  - 웹 기반의 서비스이므로, 80 포트에 대해서 http로 주기적으로 접속해 봄
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+spec:
+  containers:
+    - image: nginx:1.14
+      name: nginx-container
+      livenessProbe:
+        httpGet:
+          path: /
+          port: 80
+```
+##### livenessProbe 메커니즘
+- 중요한 점
+  - 오류가 연속 세번 발생하면, Pod는 그대로 두고 새로운 Container 이미지를 다운로드 받아 다시 시작
+  - **만약, Pod는 그대로이고, Container만 재시작하므로 Pod에 맵핑된 IP는 그대로 임**
+
+- 방법 1: httpGet Probe
+  - 웹 기반의 서비스에 적용가능한 방법
+  - 지정한 IP주소, Port, Path에 Http GET 요청을 주기적으로 보내, 해당 컨테이너가 응답하는지를 확인
+  - 반환 코드가 200이 아닌 값이 연속으로 3번 나오면 오류발생
+    - docker hub에서 새로운 이미지를 다운로드 받아 컨테이너를 다시 시작
+```yaml
+livenessProbe:
+  httpGet:
+    path: /
+    port: 80
+```
+- 방법 2: tcpSocket Probe
+  - 지정한 포트에 TCP 연결을 주기적으로 시도
+    - 연속 3번 연결되지 않으면 docker hub에서 새로운 이미지를 다운로드 받아 컨테이너를 다시 시작
+    - 사용예: ssh가 제대로 동작하는지 체크하는 예
+```yaml
+livenessProbe:
+  tcpSocket:
+    port: 22
+```
+- 방법 3: exec Probe
+  - exec 명령을 주기적으로 전달한 후
+    - 연속 3번 명령의 종료코드가 0이 아니면 docker hub에서 새로운 이미지를 다운로드 받아 컨테이너를 다시 시작
+    - ``ls command, ps command etc`` 다양한 명령어를 사용 가능
+```yaml
+livenessProbe:
+  exec:
+    command:
+    - ls
+    - /data/file
+```
+##### livenessProbe 적용
+- liveness probe 매개 변수
+  - 명시하지 않으면, Default 값이 존재
+  - periodSeconds: health check 반복 실행 시간(초) (Defaults to 10 seconds)
+  - initialDelaySeconds: Pod 실행 후, delay할 시간(초) (Default to 0 seconds)
+  - timeoutSeconds: health check 후, 응답을 기다리는 시간(초) (Default to 1 seconds)
+  - successThreshold: 성공으로 생각하는 연속적인 정상 응답 횟수 (Defaults to 1)
+  - failureThreshold: 실패로 생각하는 연속적인 실패 응답 횟수 (Defaults to 3)  
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+spec:
+  containers:
+    - image: nginx:1.14
+      name: nginx-container
+      livenessProbe:
+        httpGet:
+          path: /
+          port: 80
+        initialDelaySeconds: 15
+        periodSeconds: 20
+        timeoutSeconds: 1
+        successThreshold: 1
+        failureThreshold: 3  
+```
+- liveness probe 매개 변수를 명시하지 않은 경우의 Default 값 확인
+```bash
+# liveness probe 매개 변수를 지정하지 않은 yaml 파일
+gusami@master:~$cat pod-nginx-liveness.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod-liveness
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.14
+    ports:
+    - containerPort: 80
+      protocol: TCP
+    livenessProbe:
+      httpGet:
+        path: /
+        port: 80
+# yaml 파일을 이용한 pod 생성
+gusami@master:~$kubectl create -f pod-nginx-liveness.yaml
+pod/nginx-pod-liveness created
+# liveness porbe 매개 변수 확인
+# Liveness 항목에서 확인 가능
+# Liveness:       http-get http://:80/ delay=0s timeout=1s period=10s #success=1 #failure=3
+# initialDelaySeconds: 0, periodSeconds: 10, timeoutSeconds: 1에 해당
+gusami@master:~$kubectl describe pod nginx-pod-liveness 
+Name:         nginx-pod-liveness
+Namespace:    default
+Priority:     0
+Node:         worker-1/10.0.1.5
+Start Time:   Sat, 04 Dec 2021 12:35:44 +0900
+Labels:       <none>
+Annotations:  <none>
+Status:       Running
+IP:           10.44.0.1
+IPs:
+  IP:  10.44.0.1
+Containers:
+  nginx-container:
+    Container ID:   docker://6b240d5331451c52f5da31b28037f2c5f9a2e847062f783652c51e240f29e007
+    Image:          nginx:1.14
+    Image ID:       docker-pullable://nginx@sha256:f7988fb6c02e0ce69257d9bd9cf37ae20a60f1df7563c3a2a6abe24160306b8d
+    Port:           80/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Sat, 04 Dec 2021 12:35:45 +0900
+    Ready:          True
+    Restart Count:  0
+    Liveness:       http-get http://:80/ delay=0s timeout=1s period=10s #success=1 #failure=3
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-ztz29 (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             True 
+  ContainersReady   True 
+  PodScheduled      True 
+Volumes:
+  kube-api-access-ztz29:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   BestEffort
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type    Reason     Age   From               Message
+  ----    ------     ----  ----               -------
+  Normal  Scheduled  49s   default-scheduler  Successfully assigned default/nginx-pod-liveness to worker-1
+  Normal  Pulled     48s   kubelet            Container image "nginx:1.14" already present on machine
+  Normal  Created    48s   kubelet            Created container nginx-container
+  Normal  Started    48s   kubelet            Started container nginx-container        
+```
+##### livenessProbe example (1)
+- liveness Probe는 Pod의 spec에 정의
+- 아래 example의 smlinux/unhealthy 컨테이너는 HTTP 연결에 대해서
+  - 초기의 5번은 200번 상태코드를 응답
+  - 6번째부터는 내부 서버 오류로 HTTP 500 ERROR를 발생시킴
+```bash
+# pod 정의
+$cat pod-liveness.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-pod
+spec:
+  containers:
+  - image: smlinux/unhealthy
+    name: unhealthy-container
+    ports:
+    - containerPort: 8080
+      protocol: TCP
+    livenessProbe:
+      httpGet:
+        path: /
+        port: 8080
+# pod 생성
+gusami@master:~$kubectl create -f pod-liveness.yaml 
+pod/liveness-pod created
+# test 8080 port
+gusami@master:~$curl 10.36.0.1:8080
+I am not well. Please restart me!
+gusami@master:~$curl 10.36.0.1:8080
+curl: (7) Failed to connect to 10.36.0.1 port 8080: Connection refused
+# monitor pods
+gusami@master:~$watch kubectl get pods -o wide
+NAME                 READY   STATUS    RESTARTS      AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+liveness-pod         1/1     Running   2 (71s ago)   5m11s   10.36.0.1   worker-2   <none>           <none>
+nginx-pod-liveness   1/1     Running   0             11m     10.44.0.1   worker-1   <none>           <none>
+```        
+##### livenessProbe example (2)
+- 아래의 liveness-exam.yaml 파일에 self-healing 기능을 추가하시오
+  - 동작되는 Pod내의 컨테이너에 /tmp/healthy 파일이 있는지 5초마다 확인
+  - Pod 실행 후, 10초 후부터 검사
+  - 성공횟수는 1번, 실패횟수는 연속 2회로 구성
+```bash  
+# pod 정의
+$cat > pod-liveness-exam.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-exam
+spec:
+  containers:
+  - image: busybox
+    name: busybox-container
+    args:
+    - /bin/sh
+    - -c
+    - touch /tmp/healthy; sleep 30; rm -rf /tmp/healthy; sleep 600
+    livenessProbe:
+      exec:
+        command:
+        - ls
+        - /tmp/healthy
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      successThreshold: 1
+      failureThreshold: 2
+# Pod 생성
+gusami@master:~$kubectl create -f pod-liveness-busybox.yaml 
+pod/liveness-exam created
+# Watch kubectl get pods 
+gusami@master:~$watch kubectl get pods -o wide
+NAME                 READY   STATUS    RESTARTS     AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+liveness-exam        1/1     Running   3 (6s ago)   3m41s   10.36.0.1   worker-2   <none>           <none>
+```
+### Kubernetes Pod - init container & infra container
