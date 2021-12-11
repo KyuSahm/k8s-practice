@@ -181,8 +181,10 @@ wsl --mount <DiskPath>
     - 상위 버전의 패키지는 하위 버전과의 호환성을 보장
 - 명령어를 이용해서 Hyper-v 기능 off
   - open a cmd with admin privilige
-  - bcdedit /set hypervisorlaunchtype auto
-  - bcdedit /set hypervisorlaunchtype off
+  - turn on
+    - bcdedit /set hypervisorlaunchtype auto
+  - turn off
+    - bcdedit /set hypervisorlaunchtype off
   - reboot
 
 ###### 네트워크 설정
@@ -2407,3 +2409,145 @@ NAME                 READY   STATUS    RESTARTS     AGE     IP          NODE    
 liveness-exam        1/1     Running   3 (6s ago)   3m41s   10.36.0.1   worker-2   <none>           <none>
 ```
 ### Kubernetes Pod - init container & infra container
+#### init container 
+- 앱 컨테이너 실행 전에 미리 동작시킬 컨테이너
+- 본 컨테이너(Main Container)가 실행되기 전에 사전 작업이 필요할 경우 사용
+- 초기화 컨테이너가 모두 실행된 후에 앱 컨테이너를 실행
+- https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+- https://github.com/arisu1000/kubernetes-book-sample/blob/master/pod/pod-init.yaml
+- init container를 적용한 Pod
+  - init container의 역할
+    - main container의 실행을 위한 환경 셋팅 및 초기화 구성
+- 적용 예시
+  - node.js로 만들어진 login application container이 있다고 가정
+  - db에 접속해서 사용자 정보를 가져오는 container가 있다고 가정
+  - 두 개의 container을 하나의 Pod로 묶으면? (종속 관계)
+    - db관련 container는 init container 역할
+    - login application container는 main container 역할
+    - db관련 container가 성공해야 login application container가 정상 동작 가능
+
+![init_container_concept.png](./images/init_container_concept.png)    
+- 예제
+  - ``until``: ``nslookup`` 명령어 실패 시, ``do``와 ``done`` 사이의 명령어 수행을 반복
+  - init container들은 ``nslookup`` 이용해서 ``myservice.XXX``와 ``mydb.XXX``가 실행될 때까지 대기
+    - init container들은 ``command`` 항목이 실행이 끝나야 완료되는 것임
+  - main container는 init container들의 ``command`` 항목이 완료된 후에, 실행을 시작
+    - init container들이 완료되지 않으면, main container에서 ``The app is running!``를 볼 수 없음
+```bash
+# delete all pods using currently
+$kubectl delete pods --all
+# define pod with init containers from k8s site example
+$cat > init-container-exam.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+spec:
+  containers:
+  - name: myapp-container
+    image: busybox:1.28
+    command: ['sh', '-c', 'echo The app is running! && sleep 3600']
+  initContainers:
+  - name: init-myservice
+    image: busybox:1.28
+    command: ['sh', '-c', "until nslookup myservice.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for myservice; sleep 2; done"]
+  - name: init-mydb
+    image: busybox:1.28
+    command: ['sh', '-c', "until nslookup mydb.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for mydb; sleep 2; done"]
+# Pod 생성
+$kubectl create -f init-container-exam.yaml 
+pod/myapp-pod created
+# Pod 상태 관찰 - init container 생성 중
+$kubectl get pods -o wide
+NAME        READY   STATUS     RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+myapp-pod   0/1     Init:0/2   0          26s   10.36.0.1   worker-2   <none>           <none>
+# myservice 파일 생성
+$cat > init-container-exam-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: myservice
+spec:
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 9376
+# myservice 생성
+$kubectl create -f init-container-exam-svc.yaml 
+service/myservice created
+# Pod 상태 관찰 - init container 한 개 생성 완료
+$kubectl get pods -o wide
+NAME        READY   STATUS     RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+myapp-pod   0/1     Init:1/2   0          7m20s   10.36.0.1   worker-2   <none>           <none>
+# mydb 파일 생성
+$cat > init-container-exam-db.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mydb
+spec:
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 9377
+# mydb 서비스 생성    
+$kubectl create -f init-container-exam-db.yaml 
+service/mydb created
+# Pod 상태 관찰 - init container 두개 생성 완료 및 Pod가 running 상태로 변함
+$kubectl get pods -o wide
+NAME        READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+myapp-pod   1/1     Running   0          13m   10.36.0.1   worker-2   <none>           <none>
+# 서비스 목록 보기
+$kubectl get services -o wide
+NAME         TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE     SELECTOR
+kubernetes   ClusterIP   10.96.0.1      <none>        443/TCP   28d     <none>
+mydb         ClusterIP   10.98.227.39   <none>        80/TCP    2m55s   <none>
+myservice    ClusterIP   10.106.2.106   <none>        80/TCP    9m39s   <none>
+```
+#### infra container(pause) 이해
+- Pod 생성 시, 기본적으로 사용자가 만든 container외에도 infra container가 생성
+- Pod의 infra(IP, hostname etc) 및 환경을 생성하고 관리하는 역할
+
+![infra_container.png](./images/infra_container.png)
+```bash
+# Pod 생성
+$kubectl run webserver --image=nginx:1.14 --port=80
+pod/webserver created
+# worker-1 node에 pod 생성됨
+$kubectl get pods -o wide
+NAME        READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+webserver   1/1     Running   0          4m37s   10.44.0.1   worker-1   <none>           <none>
+# worker-1과 worker-2에 대한 ip 정보 입력
+$vi /etc/hosts
+127.0.0.1	localhost
+127.0.1.1	master
+10.0.1.5 worker-1
+10.0.1.6 worker-2
+...
+# worker node 접속
+gusami@master:~$ssh gusami@worker-1
+# infra container 생성 확인(pause)
+gusami@worker-1:~$sudo docker ps
+[sudo] password for gusami: 
+CONTAINER ID   IMAGE                  COMMAND                  CREATED             STATUS             PORTS     NAMES
+1a897a2a5c45   295c7be07902           "nginx -g 'daemon of…"   7 minutes ago       Up 7 minutes                 k8s_webserver_webserver_default_a80d0fa6-dc99-4720-a6d0-480130fc735f_0
+a914dae8873e   k8s.gcr.io/pause:3.5   "/pause"                 7 minutes ago       Up 7 minutes                 k8s_POD_webserver_default_a80d0fa6-dc99-4720-a6d0-480130fc735f_0
+c5ee827d7a1c   7f92d556d4ff           "/usr/bin/launch.sh"     About an hour ago   Up About an hour             k8s_weave-npc_weave-net-zvqg4_kube-system_e4417f2c-f194-4dcb-b38a-266b742f9fe0_9
+9a04c85e1f59   df29c0a4002c           "/home/weave/launch.…"   About an hour ago   Up About an hour             k8s_weave_weave-net-zvqg4_kube-system_e4417f2c-f194-4dcb-b38a-266b742f9fe0_9
+72616719126f   6120bd723dce           "/usr/local/bin/kube…"   About an hour ago   Up About an hour             k8s_kube-proxy_kube-proxy-s9cp2_kube-system_e8bc827e-645d-4e3e-85b2-6468b6e7f64a_9
+f3bff8222eae   k8s.gcr.io/pause:3.5   "/pause"                 About an hour ago   Up About an hour             k8s_POD_weave-net-zvqg4_kube-system_e4417f2c-f194-4dcb-b38a-266b742f9fe0_9
+277e0433e3fb   k8s.gcr.io/pause:3.5   "/pause"                 About an hour ago   Up About an hour             k8s_POD_kube-proxy-s9cp2_kube-system_e8bc827e-645d-4e3e-85b2-6468b6e7f64a_9
+# webserver pod 삭제
+gusami@master:~$kubectl delete pods webserver
+pod "webserver" deleted
+# infra container도 함께 삭제됨
+gusami@worker-1:~$sudo docker ps
+CONTAINER ID   IMAGE                  COMMAND                  CREATED             STATUS             PORTS     NAMES
+c5ee827d7a1c   7f92d556d4ff           "/usr/bin/launch.sh"     About an hour ago   Up About an hour             k8s_weave-npc_weave-net-zvqg4_kube-system_e4417f2c-f194-4dcb-b38a-266b742f9fe0_9
+9a04c85e1f59   df29c0a4002c           "/home/weave/launch.…"   About an hour ago   Up About an hour             k8s_weave_weave-net-zvqg4_kube-system_e4417f2c-f194-4dcb-b38a-266b742f9fe0_9
+72616719126f   6120bd723dce           "/usr/local/bin/kube…"   About an hour ago   Up About an hour             k8s_kube-proxy_kube-proxy-s9cp2_kube-system_e8bc827e-645d-4e3e-85b2-6468b6e7f64a_9
+f3bff8222eae   k8s.gcr.io/pause:3.5   "/pause"                 About an hour ago   Up About an hour             k8s_POD_weave-net-zvqg4_kube-system_e4417f2c-f194-4dcb-b38a-266b742f9fe0_9
+277e0433e3fb   k8s.gcr.io/pause:3.5   "/pause"                 About an hour ago   Up About an hour             k8s_POD_kube-proxy-s9cp2_kube-system_e8bc827e-645d-4e3e-85b2-6468b6e7f64a_9
+```
