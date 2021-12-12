@@ -2658,4 +2658,171 @@ No resources found in default namespace.
 gusami@master:~$ls /etc/kubernetes/manifests
 etcd.yaml  kube-apiserver.yaml  kube-controller-manager.yaml  kube-scheduler.yaml
 ```
+### Pod에 리소스(cpu, memory) 할당하기
+- Pod에 리소스를 명시적으로 제한하지 않으면?
+  - 물리적인 노드의 리소스를 특정 Pod가 다 사용할 수도 있음
+  - 만약, 특정 Pod가 보안에 취약해서 리소스 공격을 받으면, 모든 리소스를 다 사용하는 경우가 발생
+    - 다른 Pod가 실행되지 못하는 경우가 발생
+
+![Pod_Resource_Assign](./images/Pod_Resource_Assign.png)
+- 새로운 Pod가 생성될 때 어디에 배치될까?
+  - 물리적인 Worker node들에서 실행 중인 Pod들의 개수와 리소스 사용량을 가지고, Scheduler가 판단
+    - 만약, Pod들의 개수를 이용해서 판단하면, 리소스가 남지 않은 Worker node에 할당되는 경우가 발생 가능
+  - 새로운 Pod에 대한 cpu와 memory 값을 Request에 명시하면, 해당 조건을 만족하는 Worker node에 할당 가능
+    - scheduler는 worker node들에 대한 cpu와 메모리 사용량 정보를 얻음 
+    - scheduler는 새로운 Pod를 사용자가 명시한 값보다 여유가 있는 worker node에 할당
+
+- 리소스 할당값 명시하기 (Request, Limit)
+  - 새로운 Pod를 생성할 때, 배치를 위해서 Request에 명시 가능
+  - 실제 Worker node에서 운영중에 사용가능한 Limit 값을 명시 가능
+
+![Pod_Resource_Assign_1](./images/Pod_Resource_Assign_1.png)  
+### Pod Resource 요청 및 제한
+- 실제적으로는 Pod내의 container별로 Request 및 limit를 명시
+  - Pod는 구성하는 container 값들의 합임
+- Resource Requests
+  - Container를 실행하기 위한 최소 리소스 양을 요청
+- Resource Limit
+  - Container가 사용할 수 있는 최대 리소스 양을 제한
+  - Memory limit를 초과해서 사용되는 Pod는 종료(OOM Kill)되며 다시 스케줄링 됨(Pod Restart)
+- 참고 사이트: https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/ 
+- 메모리 단위
+  - 1MB와 1024KB가 아니라 1000KB임
+  - 1MiB는 1024KiB임
+- CPU 단위
+  - 물리적인 Core수로 판단(Chipset 수가 아님)
+  - 1 core = 1000m core임. 200m core는 1 core의 1/5임   
+- 사용 예제
+  - 사용자가 Limit만 명시하면, Request 값도 Limit와 동일한 값 사용
+  - 사용자가 Request만 명시하면, Limit값은 설정 안됨
+```bash
+# define pod yaml with container's resource request and limit
+gusami@master:~$cat > pod-nginx-resources.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod-env
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.14
+    ports:
+    - containerPort: 80
+      protocol: TCP
+    env:
+    - name: MYVAR
+      value: "testvalue"
+    resources:
+      requests:
+        memory: 500Mi
+        cpu: 200m
+      limits:
+        memory: 1Gi
+        cpu: 1
+# Pod 생성        
+gusami@master:~$kubectl create -f pod-nginx-resources.yaml 
+pod/nginx-pod-env created
+# Pod 상태 확인
+gusami@master:~$ kubectl get pods -o wide
+NAME            READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+nginx-pod-env   1/1     Running   0          26s   10.36.0.1   worker-2   <none>           <none>
+# Pod 상세 정보 확인
+gusami@master:~$kubectl describe pod nginx-pod-env
+Name:         nginx-pod-env
+Namespace:    default
+Priority:     0
+Node:         worker-2/10.0.1.6
+Start Time:   Sun, 12 Dec 2021 15:03:33 +0900
+Labels:       <none>
+Annotations:  <none>
+Status:       Running
+IP:           10.36.0.1
+IPs:
+  IP:  10.36.0.1
+Containers:
+  nginx-container:
+    Container ID:   docker://8cec8bcdb1b9c20dee824477383754aca2f067767e87a1c2bdaf577dea4520a8
+    Image:          nginx:1.14
+    Image ID:       docker-pullable://nginx@sha256:f7988fb6c02e0ce69257d9bd9cf37ae20a60f1df7563c3a2a6abe24160306b8d
+    Port:           80/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Sun, 12 Dec 2021 15:03:34 +0900
+    Ready:          True
+    Restart Count:  0
+    Limits:
+      cpu:     1
+      memory:  1Gi
+    Requests:
+      cpu:     200m
+      memory:  500Mi
+    Environment:
+      MYVAR:  testvalue
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-w4ln7 (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             True 
+  ContainersReady   True 
+  PodScheduled      True 
+Volumes:
+  kube-api-access-w4ln7:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type    Reason     Age   From               Message
+  ----    ------     ----  ----               -------
+  Normal  Scheduled  101s  default-scheduler  Successfully assigned default/nginx-pod-env to worker-2
+  Normal  Pulled     101s  kubelet            Container image "nginx:1.14" already present on machine
+  Normal  Created    101s  kubelet            Created container nginx-container
+  Normal  Started    101s  kubelet            Started container nginx-container
+# 특정 Pod의 CPU와 메모리 사용량 확인하기
+gusami@master:~$ kubectl top pod nginx-pod-env --namespace=default
+error: Metrics API not available
+# 기존의 모든 Pod 삭제
+gusami@master:~$kubectl delete pods --all
+pod "nginx-pod-env" deleted
+# 만약, 가상머신에 할당된 2GB 전체를 할당해 보면? 
+gusami@master:~$vi pod-nginx-resources.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod-env
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.14
+    ports:
+    - containerPort: 80
+      protocol: TCP
+    env:
+    - name: MYVAR
+      value: "testvalue"
+    resources:
+      requests:
+        memory: 500Mi
+        cpu: 2
+      limits:
+        memory: 1Gi
+        cpu: 2
+# Pod 생성        
+gusami@master:~$kubectl create -f pod-nginx-resources.yaml 
+pod/nginx-pod-env created
+# Pod 상태 확인.
+# 기존의 물리적인 노드에서 사용하는 기본 양이 있으므로,
+# 리소스 부족으로 Pending 상태에 머무르고, Scheduler에 deploy가 안됨
+gusami@master:~$ kubectl get pods -o wide
+NAME            READY   STATUS    RESTARTS   AGE     IP       NODE     NOMINATED NODE   READINESS GATES
+nginx-pod-env   0/1     Pending   0          2m14s   <none>   <none>   <none>           <none>          
+```
+
+
 
