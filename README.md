@@ -2551,3 +2551,111 @@ c5ee827d7a1c   7f92d556d4ff           "/usr/bin/launch.sh"     About an hour ago
 f3bff8222eae   k8s.gcr.io/pause:3.5   "/pause"                 About an hour ago   Up About an hour             k8s_POD_weave-net-zvqg4_kube-system_e4417f2c-f194-4dcb-b38a-266b742f9fe0_9
 277e0433e3fb   k8s.gcr.io/pause:3.5   "/pause"                 About an hour ago   Up About an hour             k8s_POD_kube-proxy-s9cp2_kube-system_e8bc827e-645d-4e3e-85b2-6468b6e7f64a_9
 ```
+### static Pod 만들기
+- static Pod는 Master node(control-plane)의 API 서버를 통해 요청을 보내지 않음
+- worker node내에 존재하는 ``kubelet`` 데몬에 의해 직접 관리
+  - ``kubelet` 데몬이 관리하는 디렉토리가 존재
+  - 해당 디렉토리에 yaml 파일을 생성하면, 자동으로 pod가 실행됨
+  - 해당 디렉토리에 yaml 파일을 지우면, 자동으로 pod가 삭제됨
+
+![static_pod](./images/static_pod.png)
+#### static Pod
+- API 서버없이 특정 노드에 있는 kubelet 데몬에 의해 직접 관리  
+- /etc/kubernetes/manifests/ 디렉토리에 k8s yaml 파일을 저장 시 적용됨
+  - master node는 해당 디렉토리에 etcd, apiserver, scheduler pod에 대한 yaml 정의
+    - master node에서 사용자 정의 yaml을 추가 시, worker 노드들 중 하나에 배치 (주의)
+- static pod 디렉토리 구성
+  - config yaml 파일에 경로가 존재  
+  - CKA 자격증 문제로 자주 출제: staticPodPath 변경
+    - 설정 파일에서 경로 변경
+    - 새로운 경로의 디렉토리 생성
+    - ``kubelet`` daemon 재시작
+    - 해당 경로에 yaml 파일을 생성
+```bash
+# 디렉토리 경로 확인
+$vi /var/lib/kubelet/config.yaml
+...
+staticPodPath: /etc/kubernetes/manifests
+....
+# 디렉토리 경로 수정 시, kubelet 데몬 재실행
+$systemctl restart kubelet
+```
+- 실제 예시
+```bash
+root@worker-2:~#cat /var/lib/kubelet/config.yaml
+apiVersion: kubelet.config.k8s.io/v1beta1
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    cacheTTL: 0s
+    enabled: true
+  x509:
+    clientCAFile: /etc/kubernetes/pki/ca.crt
+authorization:
+  mode: Webhook
+  webhook:
+    cacheAuthorizedTTL: 0s
+    cacheUnauthorizedTTL: 0s
+cgroupDriver: systemd
+clusterDNS:
+- 10.96.0.10
+clusterDomain: cluster.local
+cpuManagerReconcilePeriod: 0s
+evictionPressureTransitionPeriod: 0s
+fileCheckFrequency: 0s
+healthzBindAddress: 127.0.0.1
+healthzPort: 10248
+httpCheckFrequency: 0s
+imageMinimumGCAge: 0s
+kind: KubeletConfiguration
+logging: {}
+memorySwap: {}
+nodeStatusReportFrequency: 0s
+nodeStatusUpdateFrequency: 0s
+resolvConf: /run/systemd/resolve/resolv.conf
+rotateCertificates: true
+runtimeRequestTimeout: 0s
+shutdownGracePeriod: 0s
+shutdownGracePeriodCriticalPods: 0s
+staticPodPath: /etc/kubernetes/manifests
+streamingConnectionIdleTimeout: 0s
+syncFrequency: 0s
+volumeStatsAggPeriod: 0s
+# 디렉토리 이동
+root@worker-2:~#cd /etc/kubernetes/manifests
+# 파일 생성
+root@worker-2:/etc/kubernetes/manifests#vi pod-nginx.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.14
+    imagePullPolicy: Always
+    ports:
+    - containerPort: 80
+      protocol: TCP
+# 파드 상태 확인. 파일이 생성되면 자동 시작
+gusami@master:~$kubectl get pods -o wide
+NAME                 READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+nginx-pod-worker-2   1/1     Running   0          26s   10.36.0.1   worker-2   <none>           <none>
+# 파드 삭제 명으로 삭제
+gusami@master:~$ kubectl delete pods --all
+pod "nginx-pod-worker-2" deleted
+# 파드 삭제 후, 자동으로 재생성 됨
+gusami@master:~$kubectl get pods -o wide
+NAME                 READY   STATUS    RESTARTS   AGE   IP       NODE       NOMINATED NODE   READINESS GATES
+nginx-pod-worker-2   0/1     Pending   0          3s    <none>   worker-2   <none>           <none>
+# worker node에서 yaml 파일 삭제
+root@worker-2:/etc/kubernetes/manifests#rm -rf pod-nginx.yaml
+# Pod도 함께 삭제됨
+gusami@master:~$kubectl get pods -o wide
+No resources found in default namespace.
+# master node에는 etcd, apiserver, controller-manager, scheduler이 static pod 형태로 존재
+gusami@master:~$ls /etc/kubernetes/manifests
+etcd.yaml  kube-apiserver.yaml  kube-controller-manager.yaml  kube-scheduler.yaml
+```
+
