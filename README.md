@@ -18,7 +18,7 @@
 - WSL이란?
   - Windows Subsystem for Linux
   - Hypervisor 위에 윈도우 NT 커널과 리눅스 커널을 각각 올리는 방식
-![WSL2](./images/WSL.png)  
+  ![WSL2](./images/WSL.png)  
 - 상세 절차는 [MS Document를 참조](https://docs.microsoft.com/en-us/windows/wsl/install-manual)
 #### Step 1: Enable the Windows Subsystem for Linux
 - 윈도우에 Linux를 깔기 전에 "Windows Subsystem for Linux" optional feature를 Enable함
@@ -393,7 +393,7 @@ systemctl enable kubelet
   - 이 명령어를 통해서 master node의 ``API``, ``scheduler``, ``controller``, ``CoreDNS`` 컴포넌트들이 구성
 ```bash
 $sudo kubeadm init
-```  
+```
 ![k8s_cluster](./images/K8s_cluster.png)
 
 - 일반 유저로 클러스터를 Start하기 위해서는 master node에서 아래의 명령어를 수행
@@ -492,7 +492,7 @@ gusami@master:~$ exit
 logout
 
 Connection closed.
-```  
+```
 
 ## 쿠버네티스 클러스터
 #### 쿠버네티스 클러스터를 직접 구성하는 도구
@@ -772,7 +772,7 @@ NAME       STATUS   ROLES                  AGE   VERSION   INTERNAL-IP   EXTERNA
 master     Ready    control-plane,master   26h   v1.22.3   10.0.1.4      <none>        Ubuntu 20.04.3 LTS   5.11.0-40-generic   docker://20.10.10
 worker-1   Ready    <none>                 26h   v1.22.3   10.0.1.5      <none>        Ubuntu 20.04.3 LTS   5.11.0-40-generic   docker://20.10.10
 worker-2   Ready    <none>                 26h   v1.22.3   10.0.1.6      <none>        Ubuntu 20.04.3 LTS   5.11.0-40-generic   docker://20.10.1
-```    
+```
 - kubectl 특정 노드의 상세 정보 보기
   - ``kubectl describe node <node명>``
 ```bash
@@ -2370,7 +2370,7 @@ gusami@master:~$watch kubectl get pods -o wide
 NAME                 READY   STATUS    RESTARTS      AGE     IP          NODE       NOMINATED NODE   READINESS GATES
 liveness-pod         1/1     Running   2 (71s ago)   5m11s   10.36.0.1   worker-2   <none>           <none>
 nginx-pod-liveness   1/1     Running   0             11m     10.44.0.1   worker-1   <none>           <none>
-```        
+```
 ##### livenessProbe example (2)
 - 아래의 liveness-exam.yaml 파일에 self-healing 기능을 추가하시오
   - 동작되는 Pod내의 컨테이너에 /tmp/healthy 파일이 있는지 5초마다 확인
@@ -2554,7 +2554,7 @@ f3bff8222eae   k8s.gcr.io/pause:3.5   "/pause"                 About an hour ago
 ### static Pod 만들기
 - static Pod는 Master node(control-plane)의 API 서버를 통해 요청을 보내지 않음
 - worker node내에 존재하는 ``kubelet`` 데몬에 의해 직접 관리
-  - ``kubelet` 데몬이 관리하는 디렉토리가 존재
+  - ``kubelet`` 데몬이 관리하는 디렉토리가 존재
   - 해당 디렉토리에 yaml 파일을 생성하면, 자동으로 pod가 실행됨
   - 해당 디렉토리에 yaml 파일을 지우면, 자동으로 pod가 삭제됨
 
@@ -2823,6 +2823,230 @@ gusami@master:~$ kubectl get pods -o wide
 NAME            READY   STATUS    RESTARTS   AGE     IP       NODE     NOMINATED NODE   READINESS GATES
 nginx-pod-env   0/1     Pending   0          2m14s   <none>   <none>   <none>           <none>          
 ```
+### Pod 환경 변수 설정과 실행 패턴
+#### 환경 변수
+- Pod내의 Container가 실행될 때 필요로 하는 환경변수
+- Container 제작 시 미리 정의
+  - NGINX Dockerfile의 예
+```yaml
+ENV NGINX_VERSION 1.19.2
+ENV NJS_VERSION 0.4.3
+```
+- Pod yaml 파일에서 환경 변수 재정의 및 추가 가능
+  - **Pod 실행 시 미리 정의된 컨테이너 환경 변수를 변경할 수 있음**
+  - **Pod 실행 시 새로운 환경 변수를 추가할 수 있음**
+- 새로운 환경변수를 추가한 예  
+```bash
+# 현재 존재하는 모든 Pod 삭제
+gusami@master:~$kubectl delete pod --all
+gusami@master:~$cat > pod-nginx-env.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod-env
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.14
+    ports:
+    - containerPort: 80
+      protocol: TCP
+    env:
+    - name: MYVAR
+      value: "testvalue"
+    - name: NJS_VERSION
+      value: "0.4.4"
+    resources:
+      requests:
+        memory: 500Mi
+        cpu: 200m
+# Pod 생성        
+gusami@master:~$kubectl create -f pod-nginx-env.yaml
+pod/nginx-pod-env created
+gusami@master:~$kubectl get pods
+NAME            READY   STATUS    RESTARTS   AGE
+nginx-pod-env   1/1     Running   0          4s
+# container에 접속
+gusami@master:~$kubectl exec -it nginx-pod-env -- /bin/bash
+# 환경 변수 확인
+root@nginx-pod-env:/#echo $MYVAR
+testvalue
+root@nginx-pod-env:/#echo $NJS_VERSION
+0.4.4
+# 전체 환경 변수 보기
+root@nginx-pod-env:/#env
+MYDB_SERVICE_PORT=80
+MYSERVICE_PORT_80_TCP_PROTO=tcp
+MYSERVICE_SERVICE_HOST=10.106.2.106
+HOSTNAME=nginx-pod-env
+MYSERVICE_SERVICE_PORT=80
+NJS_VERSION=0.4.4
+MYDB_PORT=tcp://10.98.227.39:80
+NGINX_VERSION=1.14.2-1~stretch
+KUBERNETES_PORT_443_TCP_PROTO=tcp
+KUBERNETES_PORT_443_TCP_ADDR=10.96.0.1
+MYDB_SERVICE_HOST=10.98.227.39
+MYSERVICE_PORT_80_TCP=tcp://10.106.2.106:80
+MYVAR=testvalue
+KUBERNETES_PORT=tcp://10.96.0.1:443
+PWD=/
+HOME=/root
+KUBERNETES_SERVICE_PORT_HTTPS=443
+MYDB_PORT_80_TCP_PORT=80
+KUBERNETES_PORT_443_TCP_PORT=443
+MYSERVICE_PORT_80_TCP_PORT=80
+MYSERVICE_PORT=tcp://10.106.2.106:80
+KUBERNETES_PORT_443_TCP=tcp://10.96.0.1:443
+TERM=xterm
+MYSERVICE_PORT_80_TCP_ADDR=10.106.2.106
+SHLVL=1
+KUBERNETES_SERVICE_PORT=443
+MYDB_PORT_80_TCP_PROTO=tcp
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+KUBERNETES_SERVICE_HOST=10.96.0.1
+MYDB_PORT_80_TCP=tcp://10.98.227.39:80
+MYDB_PORT_80_TCP_ADDR=10.98.227.39
+_=/usr/bin/env
+$kubectl get pods
+$kubectl exec nginx-pod-env --env
+```
+#### Pod 구성 Pattern의 종류
+- Pod를 구성하고 실행하는 Pattern
+- Multi-container Pod
+  - Sidecar Pattern
+  - Adapter Pattern
+  - Ambassador Pattern
+- 참조 사이트: https://matthewpalmer.net/kubernetes-app-developer/articles/multi-container-pod-design-patterns.html
 
+![Pod_Exec_Pattern](./images/Pod_Exec_Pattern.png)
+### Pod 운영 실습
+#### Create a ``static pod`` on node01 called ``mydb`` with image redis
+- Create this pod on ``node01`` and make sure that it is recreated/restarted automatically in case of a failure
+  - Use ``/etc/kubernetes/manifests`` as the Static Pod path for example
+  - Kubelet configured for Static Pods
+  - Pod ``mydb-node01`` is up and running
+```bash
+# Static Pod 생성
+root@worker-2:/etc/kubernetes/manifests#vi pod-redis.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mydb
+spec:
+  containers:
+  - name: redis-container
+    image: redis:latest
+    imagePullPolicy: Always
+    ports:
+    - containerPort: 6379
+      protocol: TCP
+# 생성된 Static Pod 확인      
+gusami@master:~$kubectl get pods -o wide
+NAME            READY   STATUS    RESTARTS   AGE    IP          NODE       NOMINATED NODE   READINESS GATES
+mydb-worker-2   1/1     Running   0          104s   10.36.0.2   worker-2   <none>           <none>
+# Redis 6379 Port에 접속
+gusami@master:~$telnet 10.36.0.2 6379
+Trying 10.36.0.2...
+Connected to 10.36.0.2.
+Escape character is '^]'.
+# yaml file 삭제를 통한 Pod 삭제
+root@worker-2:/etc/kubernetes/manifests#rm pod-redis.yaml
+# 삭제된 Pod 확인
+gusami@master:~$kubectl get pods -o wide
+NAME            READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+```
+- 다음과 같은 조건에 맞는 Pod를 생성하시오
+  - Pod name: ``myweb```, image: ``nginx:1.14``
+  - CPU 200m, Memory 500Mi를 요구하고, CPU 1 core, Memory 1Gi 제한을 받는다
+  - Application 동작에 필요한 환경변수 ``DB=mydb``를 포함한다
+  - ``namespace product``에서 동작되어야 한다
+```bash
+# namespace 생성
+root@master:~#kubectl create namespace product
+namespace/product created
+# 생성된 namespace 확인
+root@master:~# kubectl get namespaces
+NAME              STATUS   AGE
+default           Active   43d
+kube-node-lease   Active   43d
+kube-public       Active   43d
+kube-system       Active   43d
+product           Active   29s
+# Pod yaml 파일 생성
+gusami@master:~$vi pod-nginx-exercise.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myweb
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.14
+    ports:
+    - containerPort: 80
+      protocol: TCP
+    env:
+    - name: DB
+      value: "mydb"
+    resources:
+      requests:
+        memory: 500Mi
+        cpu: 200m
+      limits:
+        memory: 1Gi
+        cpu: 1
+# product namespace내에서 pod 생성
+# pod의 yaml 파일에 namespace를 명시하는 것도 가능
+gusami@master:~$ kubectl create -f pod-nginx-exercise.yaml -n product
+pod/myweb created
+# product namespace내의 Pod 확인
+gusami@master:~$ kubectl get pods -n product -o wide
+NAME    READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+myweb   1/1     Running   0          13s   10.44.0.1   worker-1   <none>           <none>
+# 현재의 cluster와 context 정보 확인
+gusami@master:~$ kubectl config view
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://10.0.1.4:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+current-context: kubernetes-admin@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: REDACTED
+    client-key-data: REDACTED
+# 새로운 context 생성 및 namespace 바인딩
+# 기존의 context에 namespace만 바인딩도 가능
+gusami@master:~$kubectl config set-context example@kubernetes --cluster=kubernetes --user=kubernetes-admin --namespace=product
+gusami@master:~$kubectl config get-contexts
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+          example@kubernetes            kubernetes   kubernetes-admin   product
+*         kubernetes-admin@kubernetes   kubernetes   kubernetes-admin   default
+# context 변경
+gusami@master:~$kubectl config use-context example@kubernetes
+Switched to context "example@kubernetes".
+# Pod 정보 확인
+gusami@master:~$kubectl get pods
+NAME    READY   STATUS    RESTARTS   AGE
+myweb   1/1     Running   0          8m8s             
+```
+### 학습한 내용
+- Pod 개념 및 사용하기
+- livenessProbe를 사용한 self-healing Pod
+- init container
+- infra container(pause) 이해하기
+- static pod 만들기
+- Pod에 resource 할당하기
+- 환경 변수를 이용해 Container에 데이터 전달하기
+- Pod 구성 패턴의 종류
 
-
+## 6-1 Controller
