@@ -354,6 +354,7 @@ $systemctl disable firewalld
   - k8s 전체를 운영하고 관리해주는 역할을 하는 명령어
 - kubelet
   - the component that runs on all of the machines in your cluster and does things like starting pods and containers
+  - The kubelet works in terms of a PodSpec. A PodSpec is a YAML or JSON object that describes a pod. The kubelet takes a set of PodSpecs that are provided through various mechanisms (primarily through the apiserver) and ensures that the containers described in those PodSpecs are running and healthy. The kubelet doesn't manage containers which were not created by Kubernetes.
   - k8s의 컨테이너를 조작하고, master와 통신에 사용하는 데몬
 - kubectl
   - the command line util to talk to your cluster
@@ -3049,4 +3050,292 @@ myweb   1/1     Running   0          8m8s
 - 환경 변수를 이용해 Container에 데이터 전달하기
 - Pod 구성 패턴의 종류
 
-## 6-1 Controller
+## Controller
+![controller](./images/controller.png)
+- 특정 Pod의 개수를 보장
+- 사용자가 API를 통해서 nginx pod를 3개 실행해 달라고 명령하면?
+  - Step 01. ``etcd``를 통해 현재의 node들의 상태 정보를 획득
+  - Step 02. ``controller``에게 nginx pod 3개를 보장해 줄 것을 요청하고, ``scheduler``에게 특정 node에 pod를 실행하도록 명령
+  - Step 03. ``controller``는 nginx pod 3개를 보장하도록 지속적으로 감시
+### Controller의 종류
+![controller_types.png](./images/controller_types.png)
+- ReplicationController: 가장 기본적인 Controller
+- Replicaset
+- Deploymentset: Replicaset의 부모 역할
+- Daemon Set
+- Stateful Sets
+- Job
+- CronJob: Job의 부모 역할
+### ReplicationController
+- 요구하는 Pod의 개수를 보장하며, Pod 집합의 실행을 항상 안정적으로 유지하는 것이 목표
+  - 요구하는 Pod의 개수가 부족하면, ``pod template``를 이용해 Pod를 추가
+  - 요구하는 Pod의 수보다 많으면, 최근에 생성된 Pod를 삭제
+- 기본 구성
+  - selector: 특정 Pod를 고르는 기준을 제시
+  - replicas
+  - template
+```yaml
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: <RC_Name>
+spec:
+  replicas: <배포 갯수>
+  selector:
+    key: value
+  template:
+    <pod template>
+......       
+
+```
+#### ReplicationController(RC)의 동작 원리
+![ReplicationController_Principle](./images/ReplicationController_Principle.png)
+#### ReplicationController Definition
+![PodVsReplication_Definition](./images/PodVsReplication_Definition.png)
+- Pod definition항목을 ``template``에서 정의하면 됨
+- controller는 selector에서 명시한 조건에 해당 하는 Pod의 개수를 ``replicas``만큼 유지하는 것을 보장
+- ``selector``에 명시한 label 값은 ``template``에서 명시한 ``labels`` 값 중 하나와 일치 해야 함
+#### RecplicationController Examples
+```bash
+gusami@master:~$cat > rc-nginx.yaml
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: rc-nginx
+spec:
+  replicas: 3
+  selector:
+    app: webui
+  template:
+    metadata:
+      name: nginx-pod
+      labels:
+        app: webui
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.14
+```
+```bash
+# ReplicationController 생성
+gusami@master:~$kubectl create -f rc-nginx.yaml 
+replicationcontroller/rc-nginx created
+# 현재 동작 중인 Pod 수 확인 (3개가 동작)
+gusami@master:~$watch kubectl get pods -o wide
+NAME             READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+rc-nginx-2g9st   1/1     Running   0          30s   10.44.0.1   worker-1   <none>           <none>
+rc-nginx-85f2c   1/1     Running   0          30s   10.36.0.1   worker-2   <none>           <none>
+rc-nginx-f65kv   1/1     Running   0          30s   10.44.0.2   worker-1   <none>           <none>
+# ReplicationController 정보 확인
+gusami@master:~$kubectl get replicationcontrollers
+NAME       DESIRED   CURRENT   READY   AGE
+rc-nginx   3         3         3       3m17s
+gusami@master:~$kubectl get rc
+NAME       DESIRED   CURRENT   READY   AGE
+rc-nginx   3         3         3       3m36s
+# ReplicationController 상세 정보 확인
+gusami@master:~$kubectl describe rc rc-nginx
+Name:         rc-nginx
+Namespace:    product
+Selector:     app=webui
+Labels:       app=webui
+Annotations:  <none>
+Replicas:     3 current / 3 desired
+Pods Status:  3 Running / 0 Waiting / 0 Succeeded / 0 Failed
+Pod Template:
+  Labels:  app=webui
+  Containers:
+   nginx-container:
+    Image:        nginx:1.14
+    Port:         <none>
+    Host Port:    <none>
+    Environment:  <none>
+    Mounts:       <none>
+  Volumes:        <none>
+Events:
+  Type    Reason            Age    From                    Message
+  ----    ------            ----   ----                    -------
+  Normal  SuccessfulCreate  4m35s  replication-controller  Created pod: rc-nginx-85f2c
+  Normal  SuccessfulCreate  4m35s  replication-controller  Created pod: rc-nginx-f65kv
+  Normal  SuccessfulCreate  4m35s  replication-controller  Created pod: rc-nginx-2g9st
+# generate yaml file
+gusami@master:~$kubectl get rc -o yaml
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    creationTimestamp: "2022-01-20T08:56:27Z"
+    generation: 1
+    labels:
+      app: webui
+    name: rc-nginx
+    namespace: product
+    resourceVersion: "90905"
+    uid: 8ee3659a-204f-4e03-81a4-a29cffe4b7c5
+  spec:
+    replicas: 3
+    selector:
+      app: webui
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: webui
+        name: nginx-pod
+      spec:
+        containers:
+        - image: nginx:1.14
+          imagePullPolicy: IfNotPresent
+          name: nginx-container
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 3
+    fullyLabeledReplicas: 3
+    observedGeneration: 1
+    readyReplicas: 3
+    replicas: 3
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""
+# dry run을 통해 동일한 label("app=webui")를 가진 yaml 파일 생성
+gusami@master:~$kubectl run redis --image=redis --labels=app=webui --dry-run=client
+pod/redis created (dry run)
+gusami@master:~$kubectl run redis --image=redis --labels=app=webui --dry-run=client -o yaml > redis.yaml
+# 불필요한 항목 삭제
+gusami@master:~$vi redis.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: webui
+  name: redis
+spec:
+  containers:
+  - image: redis
+    name: redis
+# 현재 pod 상태 확인    
+gusami@master:~$kubectl get pods --show-labels
+NAME             READY   STATUS    RESTARTS   AGE   LABELS
+rc-nginx-2g9st   1/1     Running   0          14m   app=webui
+rc-nginx-85f2c   1/1     Running   0          14m   app=webui
+rc-nginx-f65kv   1/1     Running   0          14m   app=webui
+# 동일한 label을 가진 Pod 생성 시도
+gusami@master:~$kubectl create -f redis.yaml 
+pod/redis created
+# 생성되지 못함. 왜냐면, 해당 label의 Pod가 이미 3개가 운영 중이기 때문
+gusami@master:~$watch kubectl get pods -o wide
+NAME             READY   STATUS        RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+rc-nginx-2g9st   1/1     Running       0          16m   10.44.0.1   worker-1   <none>           <none>
+rc-nginx-85f2c   1/1     Running       0          16m   10.36.0.1   worker-2   <none>           <none>
+rc-nginx-f65kv   1/1     Running       0          16m   10.44.0.2   worker-1   <none>           <none>
+redis            0/1     Terminating   0          7s    <none>      worker-2   <none>           <none>
+# kubectl edit 명령어를 사용해서 "replicas"개수를 4개로 조정
+# scale In/Out이 가능
+gusami@master:~$kubectl edit rc rc-nginx
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  creationTimestamp: "2022-01-20T08:56:27Z"
+  generation: 1
+  labels:
+    app: webui
+  name: rc-nginx
+  namespace: product
+  resourceVersion: "92299"
+  uid: 8ee3659a-204f-4e03-81a4-a29cffe4b7c5
+spec:
+  replicas: 4  
+# 동일한 Label을 가진 Pod가 4개로 늘어남  
+gusami@master:~$watch kubectl get pods -o wide
+NAME             READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+rc-nginx-2g9st   1/1     Running   0          19m   10.44.0.1   worker-1   <none>           <none>
+rc-nginx-85f2c   1/1     Running   0          19m   10.36.0.1   worker-2   <none>           <none>
+rc-nginx-f65kv   1/1     Running   0          19m   10.44.0.2   worker-1   <none>           <none>
+rc-nginx-f8rt4   1/1     Running   0          58s   10.36.0.2   worker-2   <none>           <none>
+# kubectl scale 명령어를 통한 scale In/Out
+gusami@master:~$kubectl scale rc rc-nginx --replicas=2
+replicationcontroller/rc-nginx scaled
+# 가장 오래된 Pod를 정리
+gusami@master:~$watch kubectl get pods -o wide
+NAME             READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+rc-nginx-2g9st   1/1     Running   0          22m   10.44.0.1   worker-1   <none>           <none>
+rc-nginx-f65kv   1/1     Running   0          22m   10.44.0.2   worker-1   <none>           <none>
+# 만약에 kubectl edit 명령어로 container의 image verison을 "1.14"에서 "latest"로 수정한다면?
+gusami@master:~$ kubectl edit rc rc-nginx
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  creationTimestamp: "2022-01-20T08:56:27Z"
+  generation: 3
+  labels:
+    app: webui
+  name: rc-nginx
+  namespace: product
+  resourceVersion: "92811"
+  uid: 8ee3659a-204f-4e03-81a4-a29cffe4b7c5
+spec:
+  replicas: 2
+  selector:
+    app: webui
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: webui
+      name: nginx-pod
+    spec:
+      containers:
+      - image: nginx:latest
+# 아무런 변화가 없음. 이미 해당 label의 두개의 Pod가 수행 중이기 때문      
+gusami@master:~$watch kubectl get pods -o wide
+NAME             READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+rc-nginx-2g9st   1/1     Running   0          27m   10.44.0.1   worker-1   <none>           <none>
+rc-nginx-f65kv   1/1     Running   0          27m   10.44.0.2   worker-1   <none>           <none>
+# 강제로 Pod 하나를 삭제한다면?
+gusami@master:~$kubectl delete pod rc-nginx-2g9st
+pod "rc-nginx-2g9st" deleted
+# 새로운 Pod가 생성됨
+gusami@master:~$kubectl get pods -o wide
+NAME             READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+rc-nginx-f65kv   1/1     Running   0          29m   10.44.0.2   worker-1   <none>           <none>
+rc-nginx-wx7p6   1/1     Running   0          15s   10.36.0.1   worker-2   <none>           <none>
+# 새로 생성된 Pod의 상세 정보 확인
+# image가 "nginx:lates"로 생성 됨 => rolling update 기능 (image의 버전을 서비스를 중단하지 않고 올림) 
+gusami@master:~$kubectl describe pod rc-nginx-wx7p6
+Name:         rc-nginx-wx7p6
+Namespace:    product
+Priority:     0
+Node:         worker-2/10.0.1.6
+Start Time:   Thu, 20 Jan 2022 18:25:41 +0900
+Labels:       app=webui
+Annotations:  <none>
+Status:       Running
+IP:           10.36.0.1
+IPs:
+  IP:           10.36.0.1
+Controlled By:  ReplicationController/rc-nginx
+Containers:
+  nginx-container:
+    Container ID:   docker://fd81ae3191363280bbfc0beadaaa55c70e4205f3bdce56d7b4c4de2bfd72efbd
+    Image:          nginx:latest
+.......
+```
+#### Question & Answer
+- Q1. 다음의 조건으로 ReplicationController를 사용하는 rc-lab.yaml파일을 생성하고 동작시킵니다
+  - ``labels(name: apache, app: main, rel: stable)을 가지는 httpd:2.2 version의 Pod를 2개 운영합니다.
+    - rc name: rc-mainui
+    - container: httpd:2.2
+  - 현재 디렉토리에 rc-lab.yaml파일이 생성되어야 하고, Application 동작은 파일을 이용해서 실행합니다.
+- Q2. 동작되는 ``httpd:2.2`` version의 Pod를 3개로 확장하는 명령어를 적고 실행하시오
+
+### ReplicaSet
+- ReplicationController의 차이점은?
