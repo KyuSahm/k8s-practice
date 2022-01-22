@@ -3337,5 +3337,158 @@ Containers:
   - 현재 디렉토리에 rc-lab.yaml파일이 생성되어야 하고, Application 동작은 파일을 이용해서 실행합니다.
 - Q2. 동작되는 ``httpd:2.2`` version의 Pod를 3개로 확장하는 명령어를 적고 실행하시오
 
-### ReplicaSet
-- ReplicationController의 차이점은?
+### ReplicaSet Controller
+- ReplicationController와 동일한 역할을 하는 Controller
+  - 역할: Pod의 개수는 보장
+- ReplicationController보다 풍부한 ``selector``
+```yaml
+  selector:
+    matchLabels:
+      component: redis
+    matchExpressions:
+      - {key: tier, operator: In, values: [cache]}  
+      - {key: environment, operator: NotIn, values: [dev]}  
+```
+- ``matchExpressions`` 연산자
+  - ``In``: key와 values를 지정하여 key, value가 일치하는 Pod만 연결
+  - ``NotIn``: key는 일치하고, value는 일치하지 않는 Pod에 연결
+  - ``Exists``: key에 맞는 label의 pod를 연결
+  - ``DoesNotExist``: key와 다른 label의 pod를 연결
+
+![ReplicaSet_Example](./images/ReplicaSet_Example.png)
+- ReplicationController vs ReplicaSet definition
+
+![ReplicationControllerVsReplicaset](./images/ReplicationControllerVsReplicaset.png)
+- ReplicaSet의 selector
+  - ``matchLabels``: 정확히 일치하는 Label을 가진 Pod를 선택. 여러 개의 Label이 있으면, And 조건임
+    - ``key: value``
+  - ``matchExpressions`` 연산자: 다양한 조건을 명시할 수 있음
+    - ``In``: key와 values를 지정하여 key, value가 일치하는 Pod만 연결
+    - ``NotIn``: key는 일치하고, value는 일치하지 않는 Pod에 연결
+    - ``Exists``: key에 맞는 label의 pod를 연결
+    - ``DoesNotExist``: key와 다른 label의 pod를 연결
+- ``In`` 예제
+  - ``ver``라는 key의 value가 "1.14"인 Pod만 선택
+```yaml
+sepc:
+  replicas: 3
+  selector:
+    matchExpressions:
+      - {key: ver, operator: In, values: ["1.14"]}
+```
+- ``Exists`` 예제
+  - ``ver``이라는 key가 존재하는 Pod를 선택
+```yaml
+sepc:
+  replicas: 3
+  selector:
+    matchExpressions:
+      - {key: ver, operator: Exists}
+```
+- ReplicaSet Example
+  - ``app: webui`` label을 가진 Pod를 3개 실행 해 주는 ReplicaSet
+  - 만약, 3개보다 적게 실행 중이면, ``template``의 항목을 참조하여 Pod를 생성
+```bash
+gusami@master:~$cat rs-nginx.yaml 
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: rs-nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webui
+  template:
+    metadata:
+      name: nginx-pod
+      labels:
+        app: webui
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.14
+# ReplicaSet 생성        
+gusami@master:~$kubectl create -f rs-nginx.yaml 
+replicaset.apps/rs-nginx created
+# 현재 동작 중인 Pod 수를 확인. 3개의 Pod가 실행 중임
+gusami@master:~$kubectl get pod --show-labels
+NAME             READY   STATUS    RESTARTS   AGE    LABELS
+rs-nginx-6cntn   1/1     Running   0          3m7s   app=webui
+rs-nginx-7cn2n   1/1     Running   0          3m7s   app=webui
+rs-nginx-ddzgd   1/1     Running   0          3m7s   app=webui
+# 현재의 replicaset 정보 확인
+gusami@master:~$kubectl get replicaset
+NAME       DESIRED   CURRENT   READY   AGE
+rs-nginx   3         3         3       3m51s
+gusami@master:~$kubectl get rs
+NAME       DESIRED   CURRENT   READY   AGE
+rs-nginx   3         3         3       3m54s
+# 특정 Pod 삭제하면?
+gusami@master:~$kubectl delete pod rs-nginx-6cntn
+pod "rs-nginx-6cntn" deleted
+# 새로운 Pod가 생성되어 3개를 유지
+gusami@master:~$kubectl get pod --show-labels
+NAME             READY   STATUS    RESTARTS   AGE     LABELS
+rs-nginx-4d7lv   1/1     Running   0          15s     app=webui
+rs-nginx-7cn2n   1/1     Running   0          5m31s   app=webui
+rs-nginx-ddzgd   1/1     Running   0          5m31s   app=webui
+# Scale In/Out
+gusami@master:~$kubectl scale rs rs-nginx --replicas=2
+replicaset.apps/rs-nginx scaled
+# 가장 최근에 실행된 Pod("rs-nginx-4d7lv")가 삭제됨
+gusami@master:~$kubectl get pod --show-labels
+NAME             READY   STATUS    RESTARTS   AGE     LABELS
+rs-nginx-7cn2n   1/1     Running   0          6m46s   app=webui
+rs-nginx-ddzgd   1/1     Running   0          6m46s   app=webui
+# replicaset만 지우고, Pod는 그대로 놔두고 싶을 때?
+# --cascade=orphan을 사용하라. 사용하지 않으면, replicaset과 그에 속한 Pod들도 함께 삭제
+gusami@master:~$kubectl delete rs rs-nginx --cascade=orphan
+replicaset.apps "rs-nginx" deleted
+# replicaset 확인
+gusami@master:~$kubectl get rs
+No resources found in product namespace.
+# Pod 확인
+gusami@master:~$kubectl get pods --show-labels
+NAME             READY   STATUS    RESTARTS   AGE    LABELS
+rs-nginx-dlsm6   1/1     Running   0          101s   app=webui
+rs-nginx-f8jzb   1/1     Running   0          101s   app=webui
+rs-nginx-q9tcv   1/1     Running   0          101s   app=webui
+# 이 상태에서 동일한 replicaset를 다시 생성하면?
+# replicaset은 생성되지만, pod는 변화가 없음 => 이미 3개의 pod가 실행 중이었기 때문
+gusami@master:~$kubectl create -f rs-nginx.yaml
+replicaset.apps/rs-nginx created
+gusami@master:~$kubectl get pods --show-labels
+NAME             READY   STATUS    RESTARTS   AGE    LABELS
+rs-nginx-dlsm6   1/1     Running   0          3m6s   app=webui
+rs-nginx-f8jzb   1/1     Running   0          3m6s   app=webui
+rs-nginx-q9tcv   1/1     Running   0          3m6s   app=webu
+# replicaset만 삭제 후, 동일한 label을 가진 replicationcontroller 생성
+gusami@master:~$kubectl delete rs rs-nginx --cascade=orphan
+replicaset.apps "rs-nginx" deleted
+gusami@master:~$kubectl create -f rc-nginx.yaml
+replicationcontroller/rc-nginx created
+# 강제로 pod를 삭제하면?
+gusami@master:~$kubectl delete pod rs-nginx-q9tcv
+pod "rs-nginx-q9tcv" deleted
+# replicationcontroller에 의해서 Pod가 새로 생성됨
+gusami@master:~$kubectl get pod --show-labels
+NAME             READY   STATUS    RESTARTS   AGE     LABELS
+rc-nginx-x5hnw   1/1     Running   0          3s      app=webui
+rs-nginx-dlsm6   1/1     Running   0          8m39s   app=webui
+rs-nginx-f8jzb   1/1     Running   0          8m39s   app=webui
+$kubectl describe rs rs-nginx
+$kubectl delete pod --all
+```
+#### Question & Answer
+- Q1. 다음의 조건으로 ReplicaSet을 사용하는 rc-lab.yaml 파일을 생성하고, 동작시켜 보시오
+  - ``labels(name: apache, app: main, rel: stable)``를 가지는 ``httpd:2.2`` 버전의 Pod를 2개 운영하시오
+    - rs name: ``rs-mainui``
+    - container: ``httpd: 2.2``
+  - 현재 디렉토리에 rs-lab.yaml 파일이 생성되어야 하고, Application 동작은 파일을 이용해 실행하시오
+- Q2. 동작되는 ``httpd:2.2`` 버전의 Container를 1개로 축소하는 명령을 적고, 실행하시오
+```bash
+```
+### RollingUpdate를 위한 Deployment
+- Deployment란?
+  - ReplicaSet를 제어해 주는 부모 역할을 수행
