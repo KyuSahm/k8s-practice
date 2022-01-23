@@ -412,16 +412,16 @@ export KUBECONFIG=/etc/kubernetes/admin.conf
 - ``kubectl``로 노드 정보를 아래와 같이 가져오는지 확인
   - 만약, port 관련 에러가 난다면 시스템 리부팅
 ```bash
-gusami@master:~$ kubectl get nodes
+gusami@master:~$kubectl get nodes
 # or
-root@master:~$ kubectl get nodes
+root@master:~$kubectl get nodes
 ```
 ###### Pod Network 설치
 - AddOn으로 여러 제품들 중 하나를 설치
 - master 노드에 Weave Net works를 설치
 ```bash
-gusami@master:~$ kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
-$ kubectl get nodes
+gusami@master:~$kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+$kubectl get nodes
 ```
 ###### Cluster에 조인하기
 - Worker node들에서 조인 명령 수행(중요!!!)
@@ -433,12 +433,12 @@ gusami@worker-2:~$sudo kubeadm join 10.0.1.4:6443 --token u9mrhu.g7n13qbgz67wg0k
 ```
 - 마지막으로, master 노드에서 정상적으로 조인 되었는지 확인
 ```bash
-gusami@master:~$ kubectl get nodes -o wide
+gusami@master:~$kubectl get nodes -o wide
 NAME       STATUS   ROLES                  AGE    VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
 master     Ready    control-plane,master   49m    v1.22.3   10.0.1.4      <none>        Ubuntu 20.04.3 LTS   5.11.0-40-generic   docker://20.10.10
 worker-1   Ready    <none>                 103s   v1.22.3   10.0.1.5      <none>        Ubuntu 20.04.3 LTS   5.11.0-40-generic   docker://20.10.10
 worker-2   Ready    <none>                 32s    v1.22.3   10.0.1.6      <none>        Ubuntu 20.04.3 LTS   5.11.0-40-generic   docker://20.10.10
-gusami@master:~$ kubectl get pods --all-namespaces
+gusami@master:~$kubectl get pods --all-namespaces
 NAMESPACE     NAME                             READY   STATUS    RESTARTS        AGE
 kube-system   coredns-78fcd69978-nz4fr         1/1     Running   0               52m
 kube-system   coredns-78fcd69978-vsnzh         1/1     Running   0               52m
@@ -566,7 +566,7 @@ $kubectl delete pod main
 - kubectl resource에 대한 약어 모음 보기
   - k8s 자동완성 기능을 설정한 후, ``<tab>`` 키를 사용하는 것도 좋은 방법
 ```bash
-gusami@master:~$ kubectl api-resources 
+gusami@master:~$kubectl api-resources 
 NAME                              SHORTNAMES   APIVERSION                             NAMESPACED   KIND
 bindings                                       v1                                     true         Binding
 componentstatuses                 cs           v1                                     false        ComponentStatus
@@ -628,7 +628,7 @@ volumeattachments                              storage.k8s.io/v1                
 - kubectl 도움말 보기
   - ``kubectl --help``
 ```bash
-gusami@master:~$ kubectl --help
+gusami@master:~$kubectl --help
 kubectl controls the Kubernetes cluster manager.
 
  Find more information at: https://kubernetes.io/docs/reference/kubectl/overview/
@@ -699,7 +699,7 @@ Use "kubectl options" for a list of global command-line options (applies to all 
 - kubectl 특정 명령어의 도움말 보기
   - ``kubectl <command> --help``
 ```bash
-gusami@master:~$ kubectl logs --help
+gusami@master:~$kubectl logs --help
 Print the logs for a container in a pod or specified resource. If the pod has only one container, the container name is
 optional.
 
@@ -768,7 +768,7 @@ Use "kubectl options" for a list of global command-line options (applies to all 
 - kubectl 전체 node 정보 보기
   - ``kubectl get nodes``
 ```bash
-gusami@master:~$ kubectl get nodes -o wide
+gusami@master:~$kubectl get nodes -o wide
 NAME       STATUS   ROLES                  AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
 master     Ready    control-plane,master   26h   v1.22.3   10.0.1.4      <none>        Ubuntu 20.04.3 LTS   5.11.0-40-generic   docker://20.10.10
 worker-1   Ready    <none>                 26h   v1.22.3   10.0.1.5      <none>        Ubuntu 20.04.3 LTS   5.11.0-40-generic   docker://20.10.10
@@ -777,7 +777,7 @@ worker-2   Ready    <none>                 26h   v1.22.3   10.0.1.6      <none> 
 - kubectl 특정 노드의 상세 정보 보기
   - ``kubectl describe node <node명>``
 ```bash
-gusami@master:~$ kubectl describe node master
+gusami@master:~$kubectl describe node master
 Name:               master
 Roles:              control-plane,master
 Labels:             beta.kubernetes.io/arch=amd64
@@ -877,14 +877,14 @@ Events:
 1. Worker node중 하나에서 docker hub에서 이미지를 다운받아 container 생성한 후, 실행
 ```bash
 # create nginx 1.14 version and open 80 port
-gusami@master:~$ kubectl run webserver --image=nginx:1.14 --port 80
+gusami@master:~$kubectl run webserver --image=nginx:1.14 --port 80
 pod/webserver created
 # worker-1 node에서 실행 중임, pod의 IP Address도 확인 가능
-gusami@master:~$ kubectl get pods -o wide
+gusami@master:~$kubectl get pods -o wide
 NAME        READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES
 webserver   1/1     Running   0          4m11s   10.44.0.1   worker-1   <none>           <none>
 # webserver pod의 상세 정보
-gusami@master:~$ kubectl describe pod webserver
+gusami@master:~$kubectl describe pod webserver
 Name:         webserver
 Namespace:    default
 Priority:     0
@@ -977,7 +977,7 @@ gusami@master:~$ elinks 10.44.0.1
 - 특정 pod의 정보만 보고 싶을 때
   - ``kubectl get pods <pod name>``
 ```bash
-gusami@master:~$ kubectl get pods webserver -o wide
+gusami@master:~$kubectl get pods webserver -o wide
 NAME        READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
 webserver   1/1     Running   0          17m   10.44.0.1   worker-1   <none>           <none>
 ```
@@ -986,21 +986,21 @@ webserver   1/1     Running   0          17m   10.44.0.1   worker-1   <none>    
 - ``mainui``라는 이름을 가진 apache webserver httpd를 3개 생성해 보자
   - ``kubectl create deployment mainui --image=httpd --replicas=3``
 ```bash
-gusami@master:~$ kubectl create deployment mainui --image=httpd --replicas=3
+gusami@master:~$kubectl create deployment mainui --image=httpd --replicas=3
 deployment.apps/mainui created
 
-gusami@master:~$ kubectl get deployments.apps 
+gusami@master:~$kubectl get deployments.apps 
 NAME     READY   UP-TO-DATE   AVAILABLE   AGE
 mainui   3/3     3            3           75s
 
-gusami@master:~$ kubectl get pods -o wide
+gusami@master:~$kubectl get pods -o wide
 NAME                     READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
 mainui-d77bf4d8f-ckrn6   1/1     Running   0          93s   10.44.0.2   worker-1   <none>           <none>
 mainui-d77bf4d8f-jgks8   1/1     Running   0          93s   10.36.0.1   worker-2   <none>           <none>
 mainui-d77bf4d8f-snb86   1/1     Running   0          93s   10.36.0.2   worker-2   <none>           <none>
 webserver                1/1     Running   0          25m   10.44.0.1   worker-1   <none>           <none>
 
-gusami@master:~$ kubectl describe deployments.apps mainui
+gusami@master:~$kubectl describe deployments.apps mainui
 Name:                   mainui
 Namespace:              default
 CreationTimestamp:      Sun, 14 Nov 2021 13:29:20 +0900
@@ -1034,7 +1034,7 @@ Events:
   Normal  ScalingReplicaSet  2m36s  deployment-controller  Scaled up replica set mainui-d77bf4d8f to 3  
 ```
 - mainui pod 개수를 4개로 늘려보자
-  - ``gusami@master:~$ kubectl edit deployments.apps mainui``
+  - ``gusami@master:~$kubectl edit deployments.apps mainui``
   - deployment.apps 구성 edit창에서 spec >> replicas의 개수를 수정한 후, 저장
   - 저장과 동시에 pod개수가 4개로 늘어남
 ```bash
@@ -1106,7 +1106,7 @@ status:
   updatedReplicas: 3
 ```
 ```bash
-gusami@master:~$ kubectl get pods
+gusami@master:~$kubectl get pods
 NAME                     READY   STATUS    RESTARTS   AGE
 mainui-d77bf4d8f-ckrn6   1/1     Running   0          58m
 mainui-d77bf4d8f-jgks8   1/1     Running   0          58m
@@ -1123,7 +1123,7 @@ gusami@master:~$ curl 10.44.0.2
   - ``kubectl get pods <pod name> -o yaml``
   - ``kubectl get pods <pod name> -o json``
 ```bash
-gusami@master:~$ kubectl get pods mainui-d77bf4d8f-ckrn6 -o yaml
+gusami@master:~$kubectl get pods mainui-d77bf4d8f-ckrn6 -o yaml
 apiVersion: v1
 kind: Pod
 metadata:
@@ -1237,7 +1237,7 @@ status:
 - ``exec``는 pod 또는 container 내부의 명령어를 수행
 ```bash
 # pod에 접속
-gusami@master:~$ kubectl exec webserver -it -- /bin/bash
+gusami@master:~$kubectl exec webserver -it -- /bin/bash
 # index.html 수정
 root@webserver:/#
 root@webserver:/# cd /usr/share/nginx/html/
@@ -1251,7 +1251,7 @@ gusami@master:~$ curl 10.44.0.1
 Welcome gusami world
 ```
 ```bash
-gusami@master:~$ kubectl exec --help
+gusami@master:~$kubectl exec --help
 Execute a command in a container.
 
 Examples:
@@ -1298,7 +1298,7 @@ Use "kubectl options" for a list of global command-line options (applies to all 
 - 특정 pod의 log 확인
   - ``kubectl logs <pod name>``  
 ```bash
-gusami@master:~$ kubectl logs webserver
+gusami@master:~$kubectl logs webserver
 10.32.0.1 - - [14/Nov/2021:04:16:28 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.68.0" "-"
 10.32.0.1 - - [14/Nov/2021:04:19:53 +0000] "GET / HTTP/1.1" 200 612 "-" "ELinks/0.13.1 (textmode; Linux 5.11.0-40-generic x86_64; 209x52-2)" "-"
 10.32.0.1 - - [14/Nov/2021:04:48:06 +0000] "GET / HTTP/1.1" 200 21 "-" "curl/7.68.0" "-"
@@ -1313,7 +1313,7 @@ Welcome gusami world
   - ``kubectl port-forward <pod name> <host port>:<guest port>``
 ```bash
 # master node의 8080 port를 webserver의 80포트로 port forward함
-gusami@master:~$ kubectl port-forward webserver 8080:80
+gusami@master:~$kubectl port-forward webserver 8080:80
 Forwarding from 127.0.0.1:8080 -> 80
 Forwarding from [::1]:8080 -> 80
 ```
@@ -1326,17 +1326,17 @@ Welcome gusami world
 - ``dry-run``옵션을 통해 실제 생성하지 않고, Pod의 생성가능 여부를 확인
 ```bash
 # 실제 생성을 하면 기존의 것과 충돌나서 실패
-gusami@master:~$ kubectl run webserver --image=nginx:1.14 --port 80
+gusami@master:~$kubectl run webserver --image=nginx:1.14 --port 80
 Error from server (AlreadyExists): pods "webserver" already exists
 # dry-run을 통해서 생성 가능 여부를 체크 가능
-gusami@master:~$ kubectl run webserver --image=nginx:1.14 --port 80 --dry-run=client
+gusami@master:~$kubectl run webserver --image=nginx:1.14 --port 80 --dry-run=client
 pod/webserver created (dry run)
 ```
 - yaml 파일 생성 방법
   - ``kubectl run <pod name> --image=<name:version> --dry-run=client -o yaml > **.yaml``
   - 생성 후, 편집에서 ``creationTimestamp``, ``resources``, ``dnsPolicy``, ``restartPolicy``, ``status`` 삭제
 ```bash
-gusami@master:~$ kubectl run webserver --image=nginx:1.14 --port 80 --dry-run=client -o yaml > webserver.yaml
+gusami@master:~$kubectl run webserver --image=nginx:1.14 --port 80 --dry-run=client -o yaml > webserver.yaml
 # 편집을 위해 VI로 Open
 gusami@master:~$ vi webserver.yaml
 ```
@@ -1344,19 +1344,19 @@ gusami@master:~$ vi webserver.yaml
   - yaml 파일 생성 후, 기존의 모든 pod들을 삭제하고 yaml파일을 이용해서 webserver 재생성
 ```bash
 # webserver pod 삭제(내부적인 것들은 모두 삭제됨)
-gusami@master:~$ kubectl delete pod webserver
+gusami@master:~$kubectl delete pod webserver
 pod "webserver" deleted
 # mainui deployments.apps를 삭제. 관련 pods들이 모두 삭제됨
-gusami@master:~$ kubectl delete deployments.apps mainui
+gusami@master:~$kubectl delete deployments.apps mainui
 deployment.apps "mainui" deleted
 # 삭제 확인
-gusami@master:~$ kubectl get pods
+gusami@master:~$kubectl get pods
 No resources found in default namespace.
 # yaml 파일을 이용해서 pod 생성
-gusami@master:~$ kubectl create -f webserver.yaml 
+gusami@master:~$kubectl create -f webserver.yaml 
 pod/webserver created
 # 확인
-gusami@master:~$ kubectl get pods -o wide
+gusami@master:~$kubectl get pods -o wide
 NAME        READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
 webserver   1/1     Running   0          13s   10.44.0.1   worker-1   <none>           <none
 ```
@@ -1513,7 +1513,7 @@ kube-proxy-ttzmh                           1/1     Running            0         
 kube-proxy-xpmf4                           1/1     Running            0          18m
 kube-scheduler-controlplane                1/1     Running            0          18m
 # 모든 namespace에서 작동 중인 pod를 확인
-controlplane $ kubectl get pods --all-namespaces
+controlplane $kubectl get pods --all-namespaces
 NAMESPACE     NAME                                       READY   STATUS    RESTARTS   AGE
 default       mypod                                      1/1     Running   0          9m1s
 kube-system   coredns-66bff467f8-2jmrx                   1/1     Running   0          22m
@@ -1554,7 +1554,7 @@ spec:
 controlplane $kubectl create -f nginx.yaml
 pod/mypod created
 # 생성된 pod 확인
-controlplane $ kubectl get pods -n orange
+controlplane $kubectl get pods -n orange
 NAME    READY   STATUS    RESTARTS   AGE
 mypod   1/1     Running   0          16s
 # blue namespace 삭제 (내부적으로 존재하는 pod들도 모두 삭제됨)
@@ -1595,7 +1595,7 @@ users:
 controlplane $kubectl config set-context blue@kubernetes --cluster=kubernetes --user=kubernetes-admin --namespace=blue
 Context "blue@kuberentes" created
 # 현재의 config 정보 전체 보기 (새로운 context가 생성됨)
-controlplane $ kubectl config view
+controlplane $kubectl config view
 apiVersion: v1
 clusters:
 - cluster:
@@ -1622,7 +1622,7 @@ users:
     client-key-data: REDACTED
        
 # 생성된 context와 등록된 namespace 정보 확인
-controlplane $ kubectl config get-contexts
+controlplane $kubectl config get-contexts
 CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
           blue@kubernetes               kubernetes   kubernetes-admin   blue
 *         kubernetes-admin@kubernetes   kubernetes   kubernetes-admin      
@@ -1636,12 +1636,12 @@ Switched to context "blue@kubernetes".
 controlplane $kubectl config current-context
 blue@kubernetes
 # default context를 확인
-controlplane $ kubectl config get-contexts
+controlplane $kubectl config get-contexts
 CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
 *         blue@kubernetes               kubernetes   kubernetes-admin   blue
           kubernetes-admin@kubernetes   kubernetes   kubernetes-admin
 # 현재 context의 pod 확인             
-controlplane $ kubectl get pods
+controlplane $kubectl get pods
 NAME    READY   STATUS    RESTARTS   AGE
 mypod   1/1     Running   0          46s
 
@@ -1649,7 +1649,7 @@ mypod   1/1     Running   0          46s
 controlplane $kubectl config set-context kubernetes-admin@kubernetes --namespace=default
 Context "kubernetes-admin@kubernetes" modified.
 # 확인
-controlplane $ kubectl config get-contexts
+controlplane $kubectl config get-contexts
 CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
 *         blue@kubernetes               kubernetes   kubernetes-admin   blue
           kubernetes-admin@kubernetes   kubernetes   kubernetes-admin   default
@@ -1694,7 +1694,7 @@ parent:
   - PersistentVolume: v1
 - `kubectl explain [오브젝트타입명]`: 리소스의 정보 출력, **api version도 확인 가능**
 ```bash
-controlplane $ kubectl explain pod
+controlplane $kubectl explain pod
 KIND:     Pod
 VERSION:  v1
 
@@ -1804,7 +1804,7 @@ webserver   1/1     Running   1 (17m ago)   5d21h   10.44.0.1   worker-1   <none
 # Pod에 접속해서 결과보기
 $curl <pod IP address>
 # grep을 이용하여 특정 정보만 추출
-$ kubectl get pods webserver -o json | grep -i podip
+$kubectl get pods webserver -o json | grep -i podip
         "podIP": "10.44.0.1",
         "podIPs": [
 ```
@@ -2058,7 +2058,7 @@ $kubectl describe pod nginx-pod
 ```
 - 앞에서 생성한 nginx-pod는 어느 node에 배치되었나?
 ```bash
-$ kubectl get pods -o wide
+$kubectl get pods -o wide
 NAME   READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
 web2   1/1     Running   0          9s    10.44.0.1   worker-1   <none>           <none>
 ```
@@ -2644,7 +2644,7 @@ gusami@master:~$kubectl get pods -o wide
 NAME                 READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
 nginx-pod-worker-2   1/1     Running   0          26s   10.36.0.1   worker-2   <none>           <none>
 # 파드 삭제 명으로 삭제
-gusami@master:~$ kubectl delete pods --all
+gusami@master:~$kubectl delete pods --all
 pod "nginx-pod-worker-2" deleted
 # 파드 삭제 후, 자동으로 재생성 됨
 gusami@master:~$kubectl get pods -o wide
@@ -2724,7 +2724,7 @@ spec:
 gusami@master:~$kubectl create -f pod-nginx-resources.yaml 
 pod/nginx-pod-env created
 # Pod 상태 확인
-gusami@master:~$ kubectl get pods -o wide
+gusami@master:~$kubectl get pods -o wide
 NAME            READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
 nginx-pod-env   1/1     Running   0          26s   10.36.0.1   worker-2   <none>           <none>
 # Pod 상세 정보 확인
@@ -2786,7 +2786,7 @@ Events:
   Normal  Created    101s  kubelet            Created container nginx-container
   Normal  Started    101s  kubelet            Started container nginx-container
 # 특정 Pod의 CPU와 메모리 사용량 확인하기
-gusami@master:~$ kubectl top pod nginx-pod-env --namespace=default
+gusami@master:~$kubectl top pod nginx-pod-env --namespace=default
 error: Metrics API not available
 # 기존의 모든 Pod 삭제
 gusami@master:~$kubectl delete pods --all
@@ -2820,7 +2820,7 @@ pod/nginx-pod-env created
 # Pod 상태 확인.
 # 기존의 물리적인 노드에서 사용하는 기본 양이 있으므로,
 # 리소스 부족으로 Pending 상태에 머무르고, Scheduler에 deploy가 안됨
-gusami@master:~$ kubectl get pods -o wide
+gusami@master:~$kubectl get pods -o wide
 NAME            READY   STATUS    RESTARTS   AGE     IP       NODE     NOMINATED NODE   READINESS GATES
 nginx-pod-env   0/1     Pending   0          2m14s   <none>   <none>   <none>           <none>          
 ```
@@ -2998,14 +2998,14 @@ spec:
         cpu: 1
 # product namespace내에서 pod 생성
 # pod의 yaml 파일에 namespace를 명시하는 것도 가능
-gusami@master:~$ kubectl create -f pod-nginx-exercise.yaml -n product
+gusami@master:~$kubectl create -f pod-nginx-exercise.yaml -n product
 pod/myweb created
 # product namespace내의 Pod 확인
-gusami@master:~$ kubectl get pods -n product -o wide
+gusami@master:~$kubectl get pods -n product -o wide
 NAME    READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
 myweb   1/1     Running   0          13s   10.44.0.1   worker-1   <none>           <none>
 # 현재의 cluster와 context 정보 확인
-gusami@master:~$ kubectl config view
+gusami@master:~$kubectl config view
 apiVersion: v1
 clusters:
 - cluster:
@@ -3270,7 +3270,7 @@ NAME             READY   STATUS    RESTARTS   AGE   IP          NODE       NOMIN
 rc-nginx-2g9st   1/1     Running   0          22m   10.44.0.1   worker-1   <none>           <none>
 rc-nginx-f65kv   1/1     Running   0          22m   10.44.0.2   worker-1   <none>           <none>
 # 만약에 kubectl edit 명령어로 container의 image verison을 "1.14"에서 "latest"로 수정한다면?
-gusami@master:~$ kubectl edit rc rc-nginx
+gusami@master:~$kubectl edit rc rc-nginx
 apiVersion: v1
 kind: ReplicationController
 metadata:
@@ -3338,9 +3338,10 @@ Containers:
 - Q2. 동작되는 ``httpd:2.2`` version의 Pod를 3개로 확장하는 명령어를 적고 실행하시오
 
 ### ReplicaSet Controller
-- ReplicationController와 동일한 역할을 하는 Controller
-  - 역할: Pod의 개수는 보장
-- ReplicationController보다 풍부한 ``selector``
+- ReplicastionControlller과 유사점과 차이점
+  - ReplicationController와 동일한 역할을 하는 Controller
+    - 역할: Pod의 개수는 보장
+  - ReplicationController보다 풍부한 ``selector``
 ```yaml
   selector:
     matchLabels:
@@ -3490,5 +3491,542 @@ $kubectl delete pod --all
 ```bash
 ```
 ### RollingUpdate를 위한 Deployment
+![Deployment](./images/Deployment.png)
 - Deployment란?
   - ReplicaSet를 제어해 주는 부모 역할을 수행
+  - Replicaset을 컨트롤해서 Pod 수를 조절
+  - ``Rolling Update & Rolling Back``을 위해 만들어 진 것
+- Deployment가 하나 생성되면, ReplicaSet도 하나가 자동으로 생성됨
+  - Deployment가 ReplicaSet을 컨트롤하고, ReplicaSet는 Pod들을 컨트롤해서 Pod들의 개수를 유지
+- Rolling Update란?
+  - Link: https://kubernetes.io/docs/tutorials/kubernetes-basics/update/update-intro/
+  - Rolling updates allow Deployments' update to take place with zero downtime by incrementally updating Pods instances with new ones. The new Pods will be scheduled on Nodes with available resources.  
+
+![RollingUpdate_1](./images/RollingUpdate_1.png)
+![RollingUpdate_2](./images/RollingUpdate_2.png)
+![RollingUpdate_3](./images/RollingUpdate_3.png)
+![RollingUpdate_4](./images/RollingUpdate_4.png)
+- Deployment Vs ReplicaSet Definition
+  - yaml definition이 거의 비슷
+![DeploymentVsReplicaSet](./images/DeploymentVsReplicaSet.png)
+- Deployment Example
+```bash
+# deployment yaml file generation
+gusami@master:~$cat > deploy-nginx.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webui
+  template:
+    metadata:
+      name: nginx-pod
+      labels:
+        app: webui
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.14
+# create deployment        
+gusami@master:~$kubectl create -f deploy-nginx.yaml 
+deployment.apps/deploy-nginx created
+# 생성된 Pod 확인
+# deployment가 replicaset를 생성하고, replicaset가 pod들을 생성한 것임
+gusami@master:~$kubectl get pods --show-labels -o wide
+NAME                            READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES   LABELS
+deploy-nginx-6d4c4cc4b8-kv5wd   1/1     Running   0          2m15s   10.36.0.1   worker-2   <none>           <none>            app=webui,pod-template-hash=6d4c4cc4b8
+deploy-nginx-6d4c4cc4b8-qp8bj   1/1     Running   0          2m15s   10.44.0.1   worker-1   <none>           <none>            app=webui,pod-template-hash=6d4c4cc4b8
+deploy-nginx-6d4c4cc4b8-vkbkk   1/1     Running   0          2m15s   10.36.0.2   worker-2   <none>           <none>            app=webui,pod-template-hash=6d4c4cc4b8
+# deployment가 자동으로 replicaset을 생성하고, replicaset에 의해 pod들이 생성된 것을 확인
+# pod의 이름을 보면, replicaset가 부모인 것을 알 수 있고, 
+# replicaset의 이름을 보면, deployment가 부모인 것을 알 수 있음
+gusami@master:~$kubectl get deployment,rs,pod
+NAME                           READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/deploy-nginx   3/3     3            3           3m41s
+
+NAME                                      DESIRED   CURRENT   READY   AGE
+replicaset.apps/deploy-nginx-6d4c4cc4b8   3         3         3       3m41s
+
+NAME                                READY   STATUS    RESTARTS   AGE
+pod/deploy-nginx-6d4c4cc4b8-kv5wd   1/1     Running   0          3m41s
+pod/deploy-nginx-6d4c4cc4b8-qp8bj   1/1     Running   0          3m41s
+pod/deploy-nginx-6d4c4cc4b8-vkbkk   1/1     Running   0          3m41s
+# 하나의 Pod를 없애면?
+gusami@master:~$kubectl delete pod deploy-nginx-6d4c4cc4b8-vkbkk
+pod "deploy-nginx-6d4c4cc4b8-vkbkk" deleted
+# replicaset이 하나를 다시 생성
+gusami@master:~$kubectl get pods --show-labels -o wide
+NAME                            READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES   LABELS
+deploy-nginx-6d4c4cc4b8-fprbd   1/1     Running   0          7s      10.44.0.2   worker-1   <none>           <none>            app=webui,pod-template-hash=6d4c4cc4b8
+deploy-nginx-6d4c4cc4b8-kv5wd   1/1     Running   0          8m26s   10.36.0.1   worker-2   <none>           <none>            app=webui,pod-template-hash=6d4c4cc4b8
+deploy-nginx-6d4c4cc4b8-qp8bj   1/1     Running   0          8m26s   10.44.0.1   worker-1   <none>           <none>            app=webui,pod-template-hash=6d4c4cc4b8
+# replicaset 정보 확인 (3개의 pod를 보장)
+gusami@master:~$kubectl get rs  deploy-nginx-6d4c4cc4b8
+NAME                      DESIRED   CURRENT   READY   AGE
+deploy-nginx-6d4c4cc4b8   3         3         3       10m
+# 만약, replicaset를 삭제하면?
+gusami@master:~$kubectl delete rs  deploy-nginx-6d4c4cc4b8
+replicaset.apps "deploy-nginx-6d4c4cc4b8" deleted
+# replicaset과 함께, pod가 지워지고, 다시 replicaset와 pod들이 생성됨
+gusami@master:~$kubectl get deployment,rs,pod
+NAME                           READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/deploy-nginx   3/3     3            3           11m
+
+NAME                                      DESIRED   CURRENT   READY   AGE
+replicaset.apps/deploy-nginx-6d4c4cc4b8   3         3         3       17s
+
+NAME                                READY   STATUS    RESTARTS   AGE
+pod/deploy-nginx-6d4c4cc4b8-pf4gt   1/1     Running   0          17s
+pod/deploy-nginx-6d4c4cc4b8-qxq5s   1/1     Running   0          17s
+pod/deploy-nginx-6d4c4cc4b8-vrzrg   1/1     Running   0          17s
+# delete deployment
+gusami@master:~$kubectl delete deployment deploy-nginx
+deployment.apps "deploy-nginx" deleted
+# 삭제 확인
+gusami@master:~$kubectl get deployment,rs,pod
+No resources found in product namespace.
+```
+#### Deployment Rolling Update & Rolling Back
+- Rolling Update command
+  - ``kubectl set image deployment <deploy_name> <container_name>=<new_version_image>``
+  - 새로운 버전의 Pod를 한 개 생성하고, 기존 버전을 한 개 없애는 방식으로 점진적으로 진행
+
+![Deployment_Mechanism](./images/Deployment_Mechanism.png)
+- Rolling Back command
+  - ``kubectl rollout history deployment <deploy_name>``
+  - ``kubectl rollout undo deployment <deploy_name>``
+
+- ``kubectl set`` command
+```bash
+gusami@master:~$kubectl set --help
+Configure application resources.
+
+ These commands help you make changes to existing application resources.
+
+Available Commands:
+  env            Update environment variables on a pod template
+  image          Update the image of a pod template
+  resources      Update resource requests/limits on objects with pod templates
+  selector       Set the selector on a resource
+  serviceaccount Update the service account of a resource
+  subject        Update the user, group, or service account in a role binding or cluster role binding
+
+Usage:
+  kubectl set SUBCOMMAND [options]
+
+Use "kubectl <command> --help" for more information about a given command.
+Use "kubectl options" for a list of global command-line options (applies to all commands).
+```
+- Deployment Example1
+```bash
+# define deployment in yaml file
+gusami@master:~$cat > deploy-exam1.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deploy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webui
+  template:
+    metadata:
+      name: nginx-webpod
+      labels:
+        app: webui
+    spec:
+      containers:
+      - name: nginx-web
+        image: nginx:1.14
+        ports:
+        - containerPort: 80
+# create deployment
+gusami@master:~$kubectl create -f deployment-exam1.yaml
+deployment.apps/app-deploy created
+# check deployment, replicaset, pod information
+gusami@master:~$kubectl get deploy,rs,pod -o wide
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES       SELECTOR
+deployment.apps/app-deploy   3/3     3            3           5s    nginx-web    nginx:1.14   app=webui
+
+NAME                                   DESIRED   CURRENT   READY   AGE   CONTAINERS   IMAGES       SELECTOR
+replicaset.apps/app-deploy-7b6dc7578   3         3         3       5s    nginx-web    nginx:1.14   app=webui,pod-template-hash=7b6dc7578
+
+NAME                             READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+pod/app-deploy-7b6dc7578-4rbvw   1/1     Running   0          5s    10.36.0.1   worker-2   <none>           <none>
+pod/app-deploy-7b6dc7578-d7k6n   1/1     Running   0          5s    10.44.0.1   worker-1   <none>           <none>
+pod/app-deploy-7b6dc7578-ngbfs   1/1     Running   0          5s    10.36.0.2   worker-2   <none>           <none>
+
+# apply application container rollingupdate to nginx:1.15
+gusami@master:~$kubectl set image deploy app-deploy nginx-web=nginx:1.15
+deployment.apps/app-deploy image updated
+# check deployment, replicaset, pod information
+gusami@master:~$kubectl get deploy,rs,pod -o wide
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES       SELECTOR
+deployment.apps/app-deploy   3/3     3            3           2m30s   nginx-web    nginx:1.15   app=webui
+
+NAME                                   DESIRED   CURRENT   READY   AGE     CONTAINERS   IMAGES       SELECTOR
+replicaset.apps/app-deploy-6d7449989   3         3         3       70s     nginx-web    nginx:1.15   app=webui,pod-template-hash=6d7449989
+replicaset.apps/app-deploy-7b6dc7578   0         0         0       2m30s   nginx-web    nginx:1.14   app=webui,pod-template-hash=7b6dc7578
+
+NAME                             READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+pod/app-deploy-6d7449989-d4pkb   1/1     Running   0          70s   10.44.0.2   worker-1   <none>           <none>
+pod/app-deploy-6d7449989-kvhg4   1/1     Running   0          68s   10.36.0.2   worker-2   <none>           <none>
+pod/app-deploy-6d7449989-ppjm8   1/1     Running   0          67s   10.44.0.3   worker-1   <none>           <none>
+# pod의 상세정보 확인. nginx:1.15로 업그레이드 되었음
+gusami@master:~$kubectl describe pod app-deploy-6d7449989-d4pkb
+Name:         app-deploy-6d7449989-d4pkb
+Namespace:    product
+Priority:     0
+Node:         worker-1/10.0.1.5
+Start Time:   Sun, 23 Jan 2022 19:36:31 +0900
+Labels:       app=webui
+              pod-template-hash=6d7449989
+Annotations:  <none>
+Status:       Running
+IP:           10.44.0.2
+IPs:
+  IP:           10.44.0.2
+Controlled By:  ReplicaSet/app-deploy-6d7449989
+Containers:
+  nginx-web:
+    Container ID:   docker://d46ca3e36d1676ce74913dee3249973168915ceac96d6ae7e3263e2e4c0dfc94
+    Image:          nginx:1.15
+    Image ID:       docker-pullable://nginx@sha256:23b4dcdf0d34d4a129755fc6f52e1c6e23bb34ea011b315d87e193033bcd1b68
+    Port:           80/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Sun, 23 Jan 2022 19:36:32 +0900
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-whxtj (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             True 
+  ContainersReady   True 
+  PodScheduled      True 
+Volumes:
+  kube-api-access-whxtj:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   BestEffort
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type    Reason     Age   From               Message
+  ----    ------     ----  ----               -------
+  Normal  Scheduled  10m   default-scheduler  Successfully assigned product/app-deploy-6d7449989-d4pkb to worker-1
+  Normal  Pulled     10m   kubelet            Container image "nginx:1.15" already present on machine
+  Normal  Created    10m   kubelet            Created container nginx-web
+  Normal  Started    10m   kubelet            Started container nginx-web  
+# check deployment history
+gusami@master:~$kubectl rollout history deployment app-deploy
+deployment.apps/app-deploy 
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+# apply application container rollingupdate to nginx:1.16
+gusami@master:~$kubectl set image deploy app-deploy nginx-web=nginx:1.16
+deployment.apps/app-deploy image updated
+# check deployment, replicaset, pod information
+# 하나의 Pod씩 차례 차례 업데이트 되는 것을 확인
+gusami@master:~$kubectl get deploy,rs,pod -o wide
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES       SELECTOR
+deployment.apps/app-deploy   3/3     1            3           15m   nginx-web    nginx:1.16   app=webui
+
+NAME                                    DESIRED   CURRENT   READY   AGE   CONTAINERS   IMAGES       SELECTOR
+replicaset.apps/app-deploy-6d7449989    3         3         3       13m   nginx-web    nginx:1.15   app=webui,pod-template-hash=6d7449989
+replicaset.apps/app-deploy-6ff5cfb7bd   1         1         0       9s    nginx-web    nginx:1.16   app=webui,pod-template-hash=6ff5cfb7bd
+replicaset.apps/app-deploy-7b6dc7578    0         0         0       15m   nginx-web    nginx:1.14   app=webui,pod-template-hash=7b6dc7578
+
+NAME                              READY   STATUS              RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+pod/app-deploy-6d7449989-d4pkb    1/1     Running             0          13m   10.44.0.2   worker-1   <none>           <none>
+pod/app-deploy-6d7449989-kvhg4    1/1     Running             0          13m   10.36.0.2   worker-2   <none>           <none>
+pod/app-deploy-6d7449989-ppjm8    1/1     Running             0          13m   10.44.0.3   worker-1   <none>           <none>
+pod/app-deploy-6ff5cfb7bd-wvptx   0/1     ContainerCreating   0          8s    <none>      worker-2   <none>           <none>
+# check deployment, replicaset, pod information
+# 하나의 Pod씩 차례 차례 업데이트 되는 것을 확인
+gusami@master:~$kubectl get deploy,rs,pod -o wide
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES       SELECTOR
+deployment.apps/app-deploy   3/3     2            3           15m   nginx-web    nginx:1.16   app=webui
+
+NAME                                    DESIRED   CURRENT   READY   AGE   CONTAINERS   IMAGES       SELECTOR
+replicaset.apps/app-deploy-6d7449989    2         2         2       13m   nginx-web    nginx:1.15   app=webui,pod-template-hash=6d7449989
+replicaset.apps/app-deploy-6ff5cfb7bd   2         2         1       14s   nginx-web    nginx:1.16   app=webui,pod-template-hash=6ff5cfb7bd
+replicaset.apps/app-deploy-7b6dc7578    0         0         0       15m   nginx-web    nginx:1.14   app=webui,pod-template-hash=7b6dc7578
+
+NAME                              READY   STATUS              RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+pod/app-deploy-6d7449989-d4pkb    1/1     Running             0          13m   10.44.0.2   worker-1   <none>           <none>
+pod/app-deploy-6d7449989-kvhg4    1/1     Running             0          13m   10.36.0.2   worker-2   <none>           <none>
+pod/app-deploy-6ff5cfb7bd-6dfgv   0/1     ContainerCreating   0          2s    <none>      worker-2   <none>           <none>
+pod/app-deploy-6ff5cfb7bd-wvptx   1/1     Running             0          13s   10.36.0.1   worker-2   <none>           <none>
+# check deployment, replicaset, pod information
+# 하나의 Pod씩 차례 차례 업데이트 되는 것을 확인
+gusami@master:~$kubectl get deploy,rs,pod -o wide
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES       SELECTOR
+deployment.apps/app-deploy   3/3     3            3           15m   nginx-web    nginx:1.16   app=webui
+
+NAME                                    DESIRED   CURRENT   READY   AGE   CONTAINERS   IMAGES       SELECTOR
+replicaset.apps/app-deploy-6d7449989    1         1         1       13m   nginx-web    nginx:1.15   app=webui,pod-template-hash=6d7449989
+replicaset.apps/app-deploy-6ff5cfb7bd   3         3         2       16s   nginx-web    nginx:1.16   app=webui,pod-template-hash=6ff5cfb7bd
+replicaset.apps/app-deploy-7b6dc7578    0         0         0       15m   nginx-web    nginx:1.14   app=webui,pod-template-hash=7b6dc7578
+
+NAME                              READY   STATUS              RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+pod/app-deploy-6d7449989-d4pkb    1/1     Running             0          13m   10.44.0.2   worker-1   <none>           <none>
+pod/app-deploy-6ff5cfb7bd-6dfgv   1/1     Running             0          4s    10.36.0.3   worker-2   <none>           <none>
+pod/app-deploy-6ff5cfb7bd-fvw6m   0/1     ContainerCreating   0          2s    <none>      worker-1   <none>           <none>
+pod/app-deploy-6ff5cfb7bd-wvptx   1/1     Running             0          15s   10.36.0.1   worker-2   <none>           <none>
+# check deployment, replicaset, pod information
+# 하나의 Pod씩 차례 차례 업데이트 되는 것을 확인
+gusami@master:~$kubectl get deploy,rs,pod -o wide
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES       SELECTOR
+deployment.apps/app-deploy   3/3     3            3           15m   nginx-web    nginx:1.16   app=webui
+
+NAME                                    DESIRED   CURRENT   READY   AGE   CONTAINERS   IMAGES       SELECTOR
+replicaset.apps/app-deploy-6d7449989    0         0         0       14m   nginx-web    nginx:1.15   app=webui,pod-template-hash=6d7449989
+replicaset.apps/app-deploy-6ff5cfb7bd   3         3         3       34s   nginx-web    nginx:1.16   app=webui,pod-template-hash=6ff5cfb7bd
+replicaset.apps/app-deploy-7b6dc7578    0         0         0       15m   nginx-web    nginx:1.14   app=webui,pod-template-hash=7b6dc7578
+
+NAME                              READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+pod/app-deploy-6ff5cfb7bd-6dfgv   1/1     Running   0          22s   10.36.0.3   worker-2   <none>           <none>
+pod/app-deploy-6ff5cfb7bd-fvw6m   1/1     Running   0          20s   10.44.0.1   worker-1   <none>           <none>
+pod/app-deploy-6ff5cfb7bd-wvptx   1/1     Running   0          33s   10.36.0.1   worker-2   <none>           <none>
+# apply application container rollingupdate to nginx:1.17
+gusami@master:~$kubectl set image deploy app-deploy nginx-web=nginx:1.17
+deployment.apps/app-deploy image updated
+# check rollingupdate status with "kubectl rollout status" command
+gusami@master:~$kubectl rollout status deployment app-deploy
+Waiting for deployment "app-deploy" rollout to finish: 1 out of 3 new replicas have been updated...
+Waiting for deployment "app-deploy" rollout to finish: 1 out of 3 new replicas have been updated...
+Waiting for deployment "app-deploy" rollout to finish: 1 out of 3 new replicas have been updated...
+Waiting for deployment "app-deploy" rollout to finish: 2 out of 3 new replicas have been updated...
+Waiting for deployment "app-deploy" rollout to finish: 2 out of 3 new replicas have been updated...
+Waiting for deployment "app-deploy" rollout to finish: 2 out of 3 new replicas have been updated...
+Waiting for deployment "app-deploy" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "app-deploy" rollout to finish: 1 old replicas are pending termination...
+deployment "app-deploy" successfully rolled out
+# apply application container rollingupdate to nginx:1.18
+gusami@master:~$kubectl set image deploy app-deploy nginx-web=nginx:1.18
+deployment.apps/app-deploy image updated
+# controlling rolling update
+# pause rollingupdate
+gusami@master:~$kubectl rollout pause deployment app-deploy
+deployment.apps/app-deploy paused
+# controlling rolling update
+# 현재 상황 체크. 1/3만 업데이트된 상황
+gusami@master:~$kubectl rollout status deployment app-deploy
+Waiting for deployment "app-deploy" rollout to finish: 1 out of 3 new replicas have been updated...
+Waiting for deployment "app-deploy" rollout to finish: 1 out of 3 new replicas have been updated...
+# controlling rolling update
+# resume rollingupdate
+gusami@master:~$kubectl rollout resume deployment app-deploy
+deployment.apps/app-deploy resumed
+# check deployment, replicaset, pod information 
+# 정상적으로 모든 Pod가 nginx:1.18로 업데이트된 것을 확인
+gusami@master:~$kubectl get deploy,rs,pod -o wide
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES       SELECTOR
+deployment.apps/app-deploy   3/3     3            3           26m   nginx-web    nginx:1.18   app=webui
+
+NAME                                    DESIRED   CURRENT   READY   AGE     CONTAINERS   IMAGES       SELECTOR
+replicaset.apps/app-deploy-5bbcc88b6c   0         0         0       5m47s   nginx-web    nginx:1.17   app=webui,pod-template-hash=5bbcc88b6c
+replicaset.apps/app-deploy-6d7449989    0         0         0       25m     nginx-web    nginx:1.15   app=webui,pod-template-hash=6d7449989
+replicaset.apps/app-deploy-6ff5cfb7bd   0         0         0       11m     nginx-web    nginx:1.16   app=webui,pod-template-hash=6ff5cfb7bd
+replicaset.apps/app-deploy-7b6dc7578    0         0         0       26m     nginx-web    nginx:1.14   app=webui,pod-template-hash=7b6dc7578
+replicaset.apps/app-deploy-7dd97cdc74   3         3         3       2m51s   nginx-web    nginx:1.18   app=webui,pod-template-hash=7dd97cdc74
+
+NAME                              READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+pod/app-deploy-7dd97cdc74-2wltg   1/1     Running   0          44s     10.36.0.2   worker-2   <none>           <none>
+pod/app-deploy-7dd97cdc74-gctzt   1/1     Running   0          2m51s   10.44.0.1   worker-1   <none>           <none>
+pod/app-deploy-7dd97cdc74-ttpkv   1/1     Running   0          46s     10.44.0.3   worker-1   <none>           <none>
+# check deployment history
+gusami@master:~$kubectl rollout history deployment app-deploy
+deployment.apps/app-deploy 
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+3         <none>
+4         <none>
+5         <none>
+# apply application container rollingupdate to nginx:1.19 with --record option
+gusami@master:~$kubectl set image deploy app-deploy nginx-web=nginx:1.19 --record
+Flag --record has been deprecated, --record will be removed in the future
+deployment.apps/app-deploy image updated
+gusami@master:~$kubectl set image deploy app-deploy nginx-web=nginx:1.20 --record
+Flag --record has been deprecated, --record will be removed in the future
+deployment.apps/app-deploy image updated
+gusami@master:~$kubectl set image deploy app-deploy nginx-web=nginx:1.21 --record
+Flag --record has been deprecated, --record will be removed in the future
+deployment.apps/app-deploy image updated
+# check deployment history
+gusami@master:~$kubectl rollout history deployment app-deploy
+deployment.apps/app-deploy 
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+3         <none>
+4         <none>
+5         <none>
+6         kubectl set image deploy app-deploy nginx-web=nginx:1.19 --record=true
+7         kubectl set image deploy app-deploy nginx-web=nginx:1.20 --record=true
+8         kubectl set image deploy app-deploy nginx-web=nginx:1.21 --record=true
+
+# application rollback
+# 바로 전 revision으로 Rolling Back
+gusami@master:~$kubectl rollout undo deployment app-deploy 
+deployment.apps/app-deploy rolled back
+gusami@master:~$kubectl rollout history deployment app-deploy
+deployment.apps/app-deploy 
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+3         <none>
+4         <none>
+5         <none>
+6         kubectl set image deploy app-deploy nginx-web=nginx:1.19 --record=true
+8         kubectl set image deploy app-deploy nginx-web=nginx:1.21 --record=true
+9         kubectl set image deploy app-deploy nginx-web=nginx:1.20 --record=true
+# 내가 원하는 revision으로 Rolling Back
+# --to-revision 옵션을 사용
+gusami@master:~$kubectl rollout undo deployment app-deploy --to-revision=6
+deployment.apps/app-deploy rolled back
+gusami@master:~$kubectl rollout history deployment app-deploy
+deployment.apps/app-deploy 
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+3         <none>
+4         <none>
+5         <none>
+8         kubectl set image deploy app-deploy nginx-web=nginx:1.21 --record=true
+9         kubectl set image deploy app-deploy nginx-web=nginx:1.20 --record=true
+10        kubectl set image deploy app-deploy nginx-web=nginx:1.19 --record=true
+# 바로 전 revision으로 Rolling Back
+gusami@master:~$kubectl rollout undo deployment app-deploy
+deployment.apps/app-deploy rolled back
+gusami@master:~$kubectl rollout history deployment app-deploy
+deployment.apps/app-deploy 
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+3         <none>
+4         <none>
+5         <none>
+8         kubectl set image deploy app-deploy nginx-web=nginx:1.21 --record=true
+10        kubectl set image deploy app-deploy nginx-web=nginx:1.19 --record=true
+11        kubectl set image deploy app-deploy nginx-web=nginx:1.20 --record=true
+```
+- Deployment Rolling Update & Rolling Back
+  - ``annotations``의 ``kubernetes.io/change-cause`` 항목을 통해 ``change-cause`` 내용을 yaml로 명시 가능
+  - ``revisionHistoryLimit``: 최대로 컨트롤 가능한 history 개수
+  - ``progressDeadlineSeconds``: 최대 Rollingupdate 진행 시간. 시간 초과 시, Rollingupdate를 취소시킴
+  - ``maxSurge``: rollingupdate되는 순간에 동작가능한 전체 Pod개수를 정함
+    - 예: ``replica=3 이고, maxSurge= 25%``라면, 3 * 0.25 = 0.75를 반올림하면 1 이 됨. 원래의 replica = 3이므로, 3 + 1 = 4. 결국, 4개의 Pod까지 동작하는 것을 임시적으로 허용하겠다는 뜻. 결국, 한 개씩 차례 차례 업데이트 한다는 뜻. maxSurge값이 올라가면 rollingupdate되는 속도가 올라감
+  - ``maxUnavailable``: ``maxSurge``와는 다르게 Termininating 되는 Pod의 개수를 조절할 때 사용
+  - ``type: RollingUpdate``: 당장 RollingUpdate를 수행하겠다는 뜻
+```bash
+# define deployment in yaml file
+gusami@master:~$cat > deployment-exam2.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-nginx
+  annotations:
+    kubernetes.io/change-cause: version 1.14
+spec:
+  progressDeadlineSeconds: 600
+  revisionHistoryLimit: 10
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate  
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web      
+  template:
+    metadata:
+      name: nginx-pod
+      labels:
+        app: web
+    spec:
+      containers:
+      - name: nginx-web
+        image: nginx:1.14
+        ports:
+        - containerPort: 80
+# create deployment
+# create option과의 차이점은?
+gusami@master:~$kubectl apply -f deployment-exam2.yaml 
+deployment.apps/deploy-nginx created
+# check deployment, replicaset, pod information
+gusami@master:~$kubectl get deploy,rs,pod -o wide
+NAME                           READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES       SELECTOR
+deployment.apps/deploy-nginx   3/3     3            3           34s   nginx-web    nginx:1.14   app=web
+
+NAME                                      DESIRED   CURRENT   READY   AGE   CONTAINERS   IMAGES       SELECTOR
+replicaset.apps/deploy-nginx-8694f79f4d   3         3         3       34s   nginx-web    nginx:1.14   app=web,pod-template-hash=8694f79f4d
+
+NAME                                READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+pod/deploy-nginx-8694f79f4d-gj6cb   1/1     Running   0          34s   10.44.0.1   worker-1   <none>           <none>
+pod/deploy-nginx-8694f79f4d-jhqc9   1/1     Running   0          34s   10.36.0.1   worker-2   <none>           <none>
+pod/deploy-nginx-8694f79f4d-xncmn   1/1     Running   0          34s   10.44.0.2   worker-1   <none>           <none>
+# 이미지 업데이트 for nginx 1.15
+# change-cause와 image version을 수정
+gusami@master:~$vi deployment-exam2.yaml
+...
+  annotations:
+    kubernetes.io/change-cause: version 1.15
+....
+    spec:
+      containers:
+      - name: nginx-web
+        image: nginx:1.15
+        ports:
+        - containerPort: 80
+# rolling update        
+gusami@master:~$kubectl apply -f deployment-exam2.yaml 
+deployment.apps/deploy-nginx configured
+# check deployment, replicaset, pod information
+# nginx:1.15로 업데이트 된 것을 확인
+gusami@master:~$kubectl get deploy,rs,pod -o wide
+NAME                           READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES       SELECTOR
+deployment.apps/deploy-nginx   3/3     3            3           3m35s   nginx-web    nginx:1.15   app=web
+
+NAME                                      DESIRED   CURRENT   READY   AGE     CONTAINERS   IMAGES       SELECTOR
+replicaset.apps/deploy-nginx-59c898b675   3         3         3       93s     nginx-web    nginx:1.15   app=web,pod-template-hash=59c898b675
+replicaset.apps/deploy-nginx-8694f79f4d   0         0         0       3m35s   nginx-web    nginx:1.14   app=web,pod-template-hash=8694f79f4d
+
+NAME                                READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+pod/deploy-nginx-59c898b675-p4gh7   1/1     Running   0          93s   10.36.0.2   worker-2   <none>           <none>
+pod/deploy-nginx-59c898b675-rpghq   1/1     Running   0          89s   10.36.0.1   worker-2   <none>           <none>
+pod/deploy-nginx-59c898b675-tlx7b   1/1     Running   0          91s   10.44.0.3   worker-1   <none>           <none>
+# history 확인
+gusami@master:~$kubectl rollout history deployment deploy-nginx 
+deployment.apps/deploy-nginx 
+REVISION  CHANGE-CAUSE
+1         version 1.14
+2         version 1.15
+```
+#### Question & Answer
+- Q1. 다음의 조건으로 Deployment을 사용하는 ``dep-lab.yaml`` 파일을 생성하고, apply 명령으로 동장시켜 보시오
+  - ``labels(name: apache, app: main, rel: stable)``를 가지는 ``httpd:2.2`` 버전의 Pod를 2개 history를 기록하며 운영하시오
+    - deployment name: ``dep-mainui``
+    - container: ``httpd: 2.2``
+- Q2. 동작되는 ``dep-lab.yaml``의 이미지를 ``httpd:2.4`` 버전으로 rolling update 하시오. 단, ``apply`` 명령을 통해 rolling update를 진행하시오
+- Q3. 현재의 ``dep-mainui`` 히스토리를 확인하고, rollback 시키시오
+- Q4. 현재 동작중인 Pod의 httpd 이미지 버전이 어떻게 되는지 확인하시오
+```bash
+```
+### DaemonSet + RollingUpdate
