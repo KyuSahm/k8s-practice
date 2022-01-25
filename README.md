@@ -297,6 +297,7 @@ $apt-cache madison docker-ce
 $sudo apt-get install docker-ce=<VERSION_STRING> docker-ce-cli=<VERSION_STRING> containerd.io  
 #3. Verify that Docker Engine is installed correctly by running the hello-world image.
 $sudo docker run hello-world
+```
 3. Upgrade Docker Engine(번외)
 - To upgrade Docker Engine, first run ``sudo apt-get update``, then follow the installation instructions, choosing the new version you want to install.
 
@@ -430,6 +431,29 @@ $kubectl get nodes
 #Then you can join any number of worker nodes by running the following on each as root:
 gusami@worker-2:~$sudo kubeadm join 10.0.1.4:6443 --token u9mrhu.g7n13qbgz67wg0kj \
 	--discovery-token-ca-cert-hash sha256:2fddaed3f956819bff808814053fe95c64b0b55612b430b65622a38b038dd3bd 
+```
+- 만약, 운영 중에 새로운 worker node를 추가하고 싶은 경우
+  - 예시: worker-3을 join하고 싶은 경우임
+```bash
+# 현재의 token list 검색. 24시간까지만 유효. 유효한 토큰이 없음
+gusami@master:~$ kubeadm token list
+# 새로운 토큰 생성
+gusami@master:~$ kubeadm token create --print-join-command
+kubeadm join 10.0.1.4:6443 --token ua2316.d77iymk23kqeod9i --discovery-token-ca-cert-hash sha256:2fddaed3f956819bff808814053fe95c64b0b55612b430b65622a38b038dd3bd
+# 생성된 token을 이용해서 master에 Join
+root@worker-3:~#kubeadm join 10.0.1.4:6443 --token ua2316.d77iymk23kqeod9i --discovery-token-ca-cert-hash sha256:2fddaed3f956819bff808814053fe95c64b0b55612b430b65622a38b038dd3bd
+[preflight] Running pre-flight checks
+[preflight] Reading configuration from the cluster...
+[preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+W0125 23:14:31.903657    2230 utils.go:69] The recommended value for "resolvConf" in "KubeletConfiguration" is: /run/systemd/resolve/resolv.conf; the provided value is: /run/systemd/resolve/resolv.conf
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Starting the kubelet
+[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap...
+
+This node has joined the cluster:
+* Certificate signing request was sent to apiserver and a response was received.
+* The Kubelet was informed of the new secure connection details.
 ```
 - 마지막으로, master 노드에서 정상적으로 조인 되었는지 확인
 ```bash
