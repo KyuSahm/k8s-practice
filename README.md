@@ -4312,3 +4312,186 @@ daemonset.apps "daemonset-nginx" deleted
 gusami@master:~$kubectl get pods -o wide
 No resources found in product namespace.
 ```
+### StatefulSet Controller
+- Pod의 상태를 유지해주는 Controller
+  - Pod 이름: 0, 1, 2, 3 ... 순서대로 매겨짐
+    - 만약, replica를 4개에서 3개로 줄이면, 3번 이름을 가지는 Pod가 삭제 됨
+    - 만약, pod 1이 문제가 생겨 삭제되면, pod 1로 다시 생성 됨
+  - Pod의 Volume(Storage)
+
+![StatefulSet](./images/StatefulSet.png) 
+![StatefulSet_1](./images/StatefulSet_1.png)
+```bash
+# replicaset의 경우, 생성되면 Pod의 이름이 random한 hash 값을 가짐
+gusami@master:~$cat rs-nginx.yaml 
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: rs-nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webui
+  template:
+    metadata:
+      name: nginx-pod
+      labels:
+        app: webui
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.14
+# replicaset 생성
+gusami@master:~$kubectl create -f rs-nginx.yaml 
+replicaset.apps/rs-nginx created
+# pod 확인
+gusami@master:~$kubectl get pods
+NAME             READY   STATUS    RESTARTS   AGE
+rs-nginx-9dpv4   1/1     Running   0          4s
+rs-nginx-slvln   1/1     Running   0          4s
+rs-nginx-vlrdj   1/1     Running   0          4s
+# pod를 강제로 삭제하면?
+gusami@master:~$ kubectl delete pod rs-nginx-slvln
+pod "rs-nginx-slvln" deleted
+# 다른 이름을 가지는 pod가 생성
+gusami@master:~$ kubectl get pod
+NAME             READY   STATUS    RESTARTS   AGE
+rs-nginx-9dpv4   1/1     Running   0          2m11s
+rs-nginx-tf5b8   1/1     Running   0          2s
+rs-nginx-vlrdj   1/1     Running   0          2m11s
+```
+- StatefulSet Vs ReplicaSet Definition
+  - serviceName을 명시하는 특징이 존재 (필수 사항)
+ 
+![StatefulSetVsReplicaSet](./images/StatefulSetVsReplicaSet.png)
+- ``podManagementPolicy``
+  - ``OrderedReady``: 기본값. 0번부터 순차적으로 생성
+  - ``Parallel``: 병렬적으로 여러 개의 Pod를 동시에 생성
+#### StatefulSet volume example
+- scale in/out 명령어
+  - ``kubectl scale <controller type> <controller name> --replicas=n``: object의 replica 수를 scale하는 명령어
+```bash
+# define statefulset controller yaml
+gusami@master:~$cat statefulset-exam.yaml 
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sf-nginx
+spec:
+  replicas: 3
+  serviceName: sf-service
+#  podManagementPolicy: OrderedReady
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: webui
+  template:
+    metadata:
+      name: nginx-pod
+      labels:
+        app: webui
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.14
+# create statefulset controller with yaml file        
+gusami@master:~$kubectl create -f statefulset-exam.yaml 
+statefulset.apps/sf-nginx created
+# 생성된 Pod 확인. 이름이 statefulset name에 순차적인 number가 붙는 것을 확인
+gusami@master:~$kubectl get pods -o wide
+NAME         READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+sf-nginx-0   1/1     Running   0          77s   10.44.0.2   worker-1   <none>           <none>
+sf-nginx-1   1/1     Running   0          77s   10.40.0.2   worker-3   <none>           <none>
+sf-nginx-2   1/1     Running   0          77s   10.36.0.2   worker-2   <none>           <none>
+# "sf-nginx-1" pod를 삭제한다면?
+gusami@master:~$ kubectl delete pod sf-nginx-1
+pod "sf-nginx-1" deleted
+# "sf-nginx-1" pod가 완전히 삭제되기를 기다렸다가 동일한 이름으로 Pod가 생성
+# 어느 node에 배치될지는 모름 
+gusami@master:~$ kubectl get pods -o wide
+NAME         READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+sf-nginx-0   1/1     Running   0          3m    10.44.0.2   worker-1   <none>           <none>
+sf-nginx-1   1/1     Running   0          2s    10.40.0.1   worker-3   <none>           <none>
+sf-nginx-2   1/1     Running   0          3m    10.36.0.2   worker-2   <none>           <none>
+# Scale Out: kubectl scale <controller type> <controller name> --replicas=n
+gusami@master:~$kubectl scale statefulset sf-nginx --replicas=4
+statefulset.apps/sf-nginx scaled
+# "sf-nginx-3" 이름을 가진 Pod가 생성되는 것을 확인. 순차적인 숫자의 Pod 이름이 생성
+gusami@master:~$kubectl get pods -o wide
+NAME         READY   STATUS    RESTARTS   AGE    IP          NODE       NOMINATED NODE   READINESS GATES
+sf-nginx-0   1/1     Running   0          8m7s   10.44.0.2   worker-1   <none>           <none>
+sf-nginx-1   1/1     Running   0          5m9s   10.40.0.1   worker-3   <none>           <none>
+sf-nginx-2   1/1     Running   0          8m7s   10.36.0.2   worker-2   <none>           <none>
+sf-nginx-3   1/1     Running   0          4s     10.40.0.2   worker-3   <none>           <none>
+# Scale In: kubectl scale <controller type> <controller name> --replicas=n
+gusami@master:~$kubectl scale statefulset sf-nginx --replicas=2
+statefulset.apps/sf-nginx scaled
+# "sf-nginx-4, sf-nginx-3" 이름을 가진 Pod가 삭제된 것을 확인 (역순으로 삭제됨)
+gusami@master:~$kubectl get pods -o wide
+NAME         READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+sf-nginx-0   1/1     Running   0          9m30s   10.44.0.2   worker-1   <none>           <none>
+sf-nginx-1   1/1     Running   0          6m32s   10.40.0.1   worker-3   <none>           <none>
+# RollingUpdate and Rolling Back
+# kubectl edit 명령어를 사용해서 가능. nginx image version을 1.15로 수정
+gusami@master:~$kubectl edit statefulset sf-nginx
+......
+  serviceName: sf-service
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: webui
+      name: nginx-pod
+    spec:
+      containers:
+      - image: nginx:1.15
+.....
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate
+status:
+.....
+# statefulset과 pod의 version이 nginx:1.15로 업데이트 된것을 확인
+gusami@master:~$kubectl get statefulset,pod -o wide
+NAME                        READY   AGE   CONTAINERS        IMAGES
+statefulset.apps/sf-nginx   2/2     14m   nginx-container   nginx:1.15
+
+NAME             READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+pod/sf-nginx-0   1/1     Running   0          42s   10.40.0.1   worker-3   <none>           <none>
+pod/sf-nginx-1   1/1     Running   0          45s   10.36.0.1   worker-2   <none>           <none>
+# kubectl describe pod 명령어로 container image version 확인
+gusami@master:~$kubectl describe pod sf-nginx-1
+Name:         sf-nginx-1
+Namespace:    product
+Priority:     0
+Node:         worker-2/10.0.1.6
+.......
+Containers:
+  nginx-container:
+    Container ID:   docker://12be32db3db01dfaebc4c1c25d88381079317c622ddcc365060ef9334c482475
+    Image:          nginx:1.15
+......
+# rollingupdate history 확인
+gusami@master:~$kubectl rollout history statefulset sf-nginx 
+statefulset.apps/sf-nginx 
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+# rolling back를 실행
+gusami@master:~$kubectl rollout undo statefulset sf-nginx 
+statefulset.apps/sf-nginx rolled back
+# history 재확인
+gusami@master:~$kubectl rollout history statefulset sf-nginx 
+statefulset.apps/sf-nginx 
+REVISION  CHANGE-CAUSE
+2         <none>
+3         <none>
+# statefulset 삭제
+gusami@master:~$kubectl delete statefulset sf-nginx 
+statefulset.apps "sf-nginx" deleted
+# Pod들이 정상 삭제된 것을 확인
+gusami@master:~$kubectl get pods
+No resources found in product namespace.
+```
