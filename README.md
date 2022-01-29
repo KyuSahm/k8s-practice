@@ -436,9 +436,9 @@ gusami@worker-2:~$sudo kubeadm join 10.0.1.4:6443 --token u9mrhu.g7n13qbgz67wg0k
   - 예시: worker-3을 join하고 싶은 경우임
 ```bash
 # 현재의 token list 검색. 24시간까지만 유효. 유효한 토큰이 없음
-gusami@master:~$ kubeadm token list
+gusami@master:~$kubeadm token list
 # 새로운 토큰 생성
-gusami@master:~$ kubeadm token create --print-join-command
+gusami@master:~$kubeadm token create --print-join-command
 kubeadm join 10.0.1.4:6443 --token ua2316.d77iymk23kqeod9i --discovery-token-ca-cert-hash sha256:2fddaed3f956819bff808814053fe95c64b0b55612b430b65622a38b038dd3bd
 # 생성된 token을 이용해서 master에 Join
 root@worker-3:~#kubeadm join 10.0.1.4:6443 --token ua2316.d77iymk23kqeod9i --discovery-token-ca-cert-hash sha256:2fddaed3f956819bff808814053fe95c64b0b55612b430b65622a38b038dd3bd
@@ -4054,3 +4054,261 @@ REVISION  CHANGE-CAUSE
 ```bash
 ```
 ### DaemonSet + RollingUpdate
+- DaemonSet
+  - 전체 노드에서 노드 당 Pod가 한 개씩 실행되도록 보장
+  - **로그 수집기, 모니터링 에이전트와 같은 프로그램에 적합한 Controller**
+  - 이미 kubeproxy, cni(container network interface) network가 내부적으로 Daemonset 형태로 실행하고 있음
+  - **Deployment처럼, RollingUpdate 기능도 가지고 있음**
+
+![DaemonSet](./images/DaemonSet.png)
+- DaemonSet Vs ReplicaSet Definition
+  - DaemonSet은 replica와 같은 Pod 개수를 명시 안함: 노드 당 1개씩 실행되기 때문
+
+![DaemonSetVsReplicaSet](./images/DaemonSetVsReplicaSet.png)
+- DaemonSet example
+```bash
+# 물리적인 Node 정보 확인
+gusami@master:~$kubectl get nodes
+NAME       STATUS   ROLES                  AGE   VERSION
+master     Ready    control-plane,master   75d   v1.22.3
+worker-1   Ready    <none>                 75d   v1.22.3
+worker-2   Ready    <none>                 75d   v1.22.3
+worker-3   Ready    <none>                 46h   v1.23.2
+# worker-3 node 삭제
+gusami@master:~$kubectl delete nodes worker-3 
+node "worker-3" deleted
+# 삭제 후, 물리적인 Node 정보 확인
+gusami@master:~$kubectl get nodes
+NAME       STATUS   ROLES                  AGE   VERSION
+master     Ready    control-plane,master   75d   v1.22.3
+worker-1   Ready    <none>                 75d   v1.22.3
+worker-2   Ready    <none>                 75d   v1.22.3
+# Define daemonset with yaml file
+gusami@master:~$cat > daemonset-exam.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: daemonset-nginx
+spec:
+  selector:
+    matchLabels:
+      app: webui
+  template:
+    metadata:
+      name: nginx-pod
+      labels:
+        app: webui
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.14
+# create daemonset with yaml file
+gusami@master:~$kubectl create -f daemonset-exam.yaml 
+daemonset.apps/daemonset-nginx created
+# worker node 별로 하나의 pod가 실행됨을 확인
+gusami@master:~$kubectl get pods -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+daemonset-nginx-2j8qp   1/1     Running   0          92s   10.36.0.1   worker-2   <none>           <none>
+daemonset-nginx-srscp   1/1     Running   0          92s   10.44.0.1   worker-1   <none>           <none>
+# worker-3 node를 다시 조인시키기
+# step 01: master node의 token list 확인: 24시간이 지나면 사라짐
+gusami@master:~$kubeadm token list
+# step 02: master node에서 bootstrap token 생성 및 Join 명령 생성
+gusami@master:~$kubeadm token create --print-join-command
+kubeadm join 10.0.1.4:6443 --token roztz4.oiepbi9fx0mias8c --discovery-token-ca-cert-hash sha256:2fddaed3f956819bff808814053fe95c64b0b55612b430b65622a38b038dd3bd
+# Step 03: woker-3 node에서 root로 로그인
+gusami@worker-3:~$su -
+암호:
+# Step 04: woker-3 node에서 kubeadm init 명령어 실행
+root@worker-3:~#kubeadm init
+[init] Using Kubernetes version: v1.23.3
+[preflight] Running pre-flight checks
+[preflight] Pulling images required for setting up a Kubernetes cluster
+[preflight] This might take a minute or two, depending on the speed of your internet connection
+[preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
+[certs] Using certificateDir folder "/etc/kubernetes/pki"
+[certs] Generating "ca" certificate and key
+[certs] Generating "apiserver" certificate and key
+[certs] apiserver serving cert is signed for DNS names [kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local worker-3] and IPs [10.96.0.1 10.0.1.7]
+[certs] Generating "apiserver-kubelet-client" certificate and key
+[certs] Generating "front-proxy-ca" certificate and key
+[certs] Generating "front-proxy-client" certificate and key
+[certs] Generating "etcd/ca" certificate and key
+[certs] Generating "etcd/server" certificate and key
+[certs] etcd/server serving cert is signed for DNS names [localhost worker-3] and IPs [10.0.1.7 127.0.0.1 ::1]
+[certs] Generating "etcd/peer" certificate and key
+[certs] etcd/peer serving cert is signed for DNS names [localhost worker-3] and IPs [10.0.1.7 127.0.0.1 ::1]
+[certs] Generating "etcd/healthcheck-client" certificate and key
+[certs] Generating "apiserver-etcd-client" certificate and key
+[certs] Generating "sa" key and public key
+[kubeconfig] Using kubeconfig folder "/etc/kubernetes"
+[kubeconfig] Writing "admin.conf" kubeconfig file
+[kubeconfig] Writing "kubelet.conf" kubeconfig file
+[kubeconfig] Writing "controller-manager.conf" kubeconfig file
+[kubeconfig] Writing "scheduler.conf" kubeconfig file
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Starting the kubelet
+[control-plane] Using manifest folder "/etc/kubernetes/manifests"
+[control-plane] Creating static Pod manifest for "kube-apiserver"
+[control-plane] Creating static Pod manifest for "kube-controller-manager"
+[control-plane] Creating static Pod manifest for "kube-scheduler"
+[etcd] Creating static Pod manifest for local etcd in "/etc/kubernetes/manifests"
+[wait-control-plane] Waiting for the kubelet to boot up the control plane as static Pods from directory "/etc/kubernetes/manifests". This can take up to 4m0s
+[apiclient] All control plane components are healthy after 8.003314 seconds
+[upload-config] Storing the configuration used in ConfigMap "kubeadm-config" in the "kube-system" Namespace
+[kubelet] Creating a ConfigMap "kubelet-config-1.23" in namespace kube-system with the configuration for the kubelets in the cluster
+NOTE: The "kubelet-config-1.23" naming of the kubelet ConfigMap is deprecated. Once the UnversionedKubeletConfigMap feature gate graduates to Beta the default name will become just "kubelet-config". Kubeadm upgrade will handle this transition transparently.
+[upload-certs] Skipping phase. Please see --upload-certs
+[mark-control-plane] Marking the node worker-3 as control-plane by adding the labels: [node-role.kubernetes.io/master(deprecated) node-role.kubernetes.io/control-plane node.kubernetes.io/exclude-from-external-load-balancers]
+[mark-control-plane] Marking the node worker-3 as control-plane by adding the taints [node-role.kubernetes.io/master:NoSchedule]
+[bootstrap-token] Using token: ux0zrm.3sa32ul1kiw09c4b
+[bootstrap-token] Configuring bootstrap tokens, cluster-info ConfigMap, RBAC Roles
+[bootstrap-token] configured RBAC rules to allow Node Bootstrap tokens to get nodes
+[bootstrap-token] configured RBAC rules to allow Node Bootstrap tokens to post CSRs in order for nodes to get long term certificate credentials
+[bootstrap-token] configured RBAC rules to allow the csrapprover controller automatically approve CSRs from a Node Bootstrap Token
+[bootstrap-token] configured RBAC rules to allow certificate rotation for all node client certificates in the cluster
+[bootstrap-token] Creating the "cluster-info" ConfigMap in the "kube-public" namespace
+[kubelet-finalize] Updating "/etc/kubernetes/kubelet.conf" to point to a rotatable kubelet client certificate and key
+[addons] Applied essential addon: CoreDNS
+[addons] Applied essential addon: kube-proxy
+
+Your Kubernetes control-plane has initialized successfully!
+# Step 05: woker-3 node에서 kubeadm reset 명령어를 실행하여 node 초기화
+root@worker-3:~#kubeadm reset
+[reset] Reading configuration from the cluster...
+[reset] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+W0127 22:40:01.840627    5597 utils.go:69] The recommended value for "resolvConf" in "KubeletConfiguration" is: /run/systemd/resolve/resolv.conf; the provided value is: /run/systemd/resolve/resolv.conf
+[reset] WARNING: Changes made to this host by 'kubeadm init' or 'kubeadm join' will be reverted.
+[reset] Are you sure you want to proceed? [y/N]: y
+[preflight] Running pre-flight checks
+[reset] Stopping the kubelet service
+[reset] Unmounting mounted directories in "/var/lib/kubelet"
+[reset] Deleting contents of config directories: [/etc/kubernetes/manifests /etc/kubernetes/pki]
+[reset] Deleting files: [/etc/kubernetes/admin.conf /etc/kubernetes/kubelet.conf /etc/kubernetes/bootstrap-kubelet.conf /etc/kubernetes/controller-manager.conf /etc/kubernetes/scheduler.conf]
+[reset] Deleting contents of stateful directories: [/var/lib/etcd /var/lib/kubelet /var/lib/dockershim /var/run/kubernetes /var/lib/cni]
+
+The reset process does not clean CNI configuration. To do so, you must remove /etc/cni/net.d
+
+The reset process does not reset or clean up iptables rules or IPVS tables.
+If you wish to reset iptables, you must do so manually by using the "iptables" command.
+
+If your cluster was setup to utilize IPVS, run ipvsadm --clear (or similar)
+to reset your system IPVS tables.
+
+The reset process does not clean your kubeconfig files and you must remove them manually.
+Please, check the contents of the $HOME/.kube/config file.
+# Step 06: Join with master node
+root@worker-3:~# kubeadm join 10.0.1.4:6443 --token 0v6w2u.2b6yreyqnc4grhtv --discovery-token-ca-cert-hash sha256:2fddaed3f956819bff808814053fe95c64b0b55612b430b65622a38b038dd3bd
+[preflight] Running pre-flight checks
+[preflight] Reading configuration from the cluster...
+[preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+W0127 23:29:51.828634    4424 utils.go:69] The recommended value for "resolvConf" in "KubeletConfiguration" is: /run/systemd/resolve/resolv.conf; the provided value is: /run/systemd/resolve/resolv.conf
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Starting the kubelet
+[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap...
+
+This node has joined the cluster:
+* Certificate signing request was sent to apiserver and a response was received.
+# worker-3 node가 join하면 daemonset에 의해서 pod가 한개 생성됨
+gusami@master:~$ kubectl get pods
+NAME                    READY   STATUS    RESTARTS   AGE
+daemonset-nginx-gnpss   1/1     Running   0          3m21s
+daemonset-nginx-md6x9   1/1     Running   0          30m
+daemonset-nginx-zxrmm   1/1     Running   0          30m
+# node 정보 확인
+gusami@master:~$kubectl get node
+NAME       STATUS   ROLES                  AGE   VERSION
+master     Ready    control-plane,master   77d   v1.22.3
+worker-1   Ready    <none>                 77d   v1.22.3
+worker-2   Ready    <none>                 77d   v1.22.3
+worker-3   Ready    <none>                 3m21s v1.23.3
+# 만약, 특정 노드의 Pod를 삭제한다면?
+gusami@master:~$kubectl delete pod daemonset-nginx-md6x9
+pod "daemonset-nginx-md6x9" deleted
+# 해당 노드에서 바로 Pod가 재 실행됨
+gusami@master:~$kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS        AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+daemonset-nginx-gnpss   1/1     Running   2 (5m2s ago)    45h   10.40.0.1   worker-3   <none>           <none>
+daemonset-nginx-kngx7   1/1     Running   0               2s    10.44.0.1   worker-1   <none>           <none>
+daemonset-nginx-zxrmm   1/1     Running   2 (5m19s ago)   46h   10.36.0.1   worker-2   <none>           <none>
+# Deployment처럼, RollingUpdate 기능도 제공
+# Step 01: daemonset 확인
+gusami@master:~$kubectl get daemonset
+NAME              DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+daemonset-nginx   3         3         3       3            3           <none>          46h
+# Step 02: kubectl edit daemonset 명령어를 이용해서 nginx version을 수정
+#          수정 후, 저장하면 바로 rollingupdate가 실행
+gusami@master:~$kubectl edit daemonset daemonset-nginx
+# Please edit the object below. Lines beginning with a '#' will be ignored,
+# and an empty file will abort the edit. If an error occurs while saving this file will be
+# reopened with the relevant failures.
+#
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations:
+    deprecated.daemonset.template.generation: "1"
+  creationTimestamp: "2022-01-27T14:02:44Z"
+  generation: 1
+  name: daemonset-nginx
+  namespace: product
+  resourceVersion: "133904"
+  uid: 586bdafa-a649-4271-98c8-79391c454eec
+spec:
+  revisionHistoryLimit: 10
+.....
+    spec:
+      containers:
+      - image: nginx:1.15
+.....
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+.....
+# Step 03: rollingupdate가 일어나는 것을 확인
+gusami@master:~$kubectl get pods -o wide
+NAME                    READY   STATUS              RESTARTS      AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+daemonset-nginx-kngx7   1/1     Running             0             8m44s   10.44.0.1   worker-1   <none>           <none>
+daemonset-nginx-mx9l2   0/1     ContainerCreating   0             6s      <none>      worker-3   <none>           <none>
+daemonset-nginx-zxrmm   1/1     Running             2 (14m ago)   46h     10.36.0.1   worker-2   <none>           <none>
+gusami@master:~$kubectl get pods -o wide
+NAME                    READY   STATUS              RESTARTS      AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+daemonset-nginx-fl5sm   0/1     ContainerCreating   0             1s    <none>      worker-1   <none>           <none>
+daemonset-nginx-mx9l2   1/1     Running             0             18s   10.40.0.1   worker-3   <none>           <none>
+daemonset-nginx-zxrmm   1/1     Running             2 (14m ago)   46h   10.36.0.1   worker-2   <none>           <none>
+gusami@master:~$kubectl get pods -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+daemonset-nginx-fl5sm   1/1     Running   0          5s    10.44.0.1   worker-1   <none>           <none>
+daemonset-nginx-gfkxd   1/1     Running   0          3s    10.36.0.1   worker-2   <none>           <none>
+daemonset-nginx-mx9l2   1/1     Running   0          22s   10.40.0.1   worker-3   <none>           <none>
+# daemonset history 확인
+gusami@master:~$kubectl rollout history daemonset daemonset-nginx 
+daemonset.apps/daemonset-nginx 
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+# daemonset undo (rollback)
+gusami@master:~$kubectl rollout undo daemonset daemonset-nginx 
+daemonset.apps/daemonset-nginx rolled back
+# daemonset rollback 되는 것을 확인
+gusami@master:~$kubectl get pods -o wide
+NAME                    READY   STATUS              RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+daemonset-nginx-5xdxr   0/1     ContainerCreating   0          1s    <none>      worker-2   <none>           <none>
+daemonset-nginx-grhrj   1/1     Running             0          3s    10.44.0.1   worker-1   <none>           <none>
+daemonset-nginx-nkd6p   1/1     Running             0          6s    10.40.0.1   worker-3   <none>           <none>
+# rollback가 완료된 것을 확인
+gusami@master:~$kubectl get pods -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+daemonset-nginx-5xdxr   1/1     Running   0          61s   10.36.0.1   worker-2   <none>           <none>
+daemonset-nginx-grhrj   1/1     Running   0          63s   10.44.0.1   worker-1   <none>           <none>
+daemonset-nginx-nkd6p   1/1     Running   0          66s   10.40.0.1   worker-3   <none>           <none>
+# daemonset 삭제
+gusami@master:~$kubectl delete daemonset daemonset-nginx 
+daemonset.apps "daemonset-nginx" deleted
+gusami@master:~$kubectl get pods -o wide
+No resources found in product namespace.
+```
