@@ -3532,7 +3532,7 @@ $kubectl delete pod --all
 ![RollingUpdate_4](./images/RollingUpdate_4.png)
 - Deployment Vs ReplicaSet Definition
   - yaml definition이 거의 비슷
-![DeploymentVsReplicaSet](./images/DeploymentVsReplicaSet.png)
+  ![DeploymentVsReplicaSet](./images/DeploymentVsReplicaSet.png)
 - Deployment Example
 ```bash
 # deployment yaml file generation
@@ -4363,7 +4363,7 @@ rs-nginx-vlrdj   1/1     Running   0          2m11s
 ```
 - StatefulSet Vs ReplicaSet Definition
   - serviceName을 명시하는 특징이 존재 (필수 사항)
- 
+
 ![StatefulSetVsReplicaSet](./images/StatefulSetVsReplicaSet.png)
 - ``podManagementPolicy``
   - ``OrderedReady``: 기본값. 0번부터 순차적으로 생성
@@ -4495,3 +4495,374 @@ statefulset.apps "sf-nginx" deleted
 gusami@master:~$kubectl get pods
 No resources found in product namespace.
 ```
+### Job Controller
+- kubernetes는 Pod를 running 중인 상태로 유지하기 위해 지속적으로 시도
+- 하지만, Batch 처리하는 Pod는 작업이 완료되면 종료
+- Batch 처리에 적합한 Controller로 Pod의 성공적인 완료를 보장
+  - 비정상 종료 시 다시 실행
+  - 정상 종료 시 완료
+- object의 replica수를 scale하는 명령어
+  - ``kubectl scale <object> <pod name> --replicas``
+
+![JobController](./images/JobController.png)
+```bash
+# 아래 명령어를 수행하면 어떻게 될까?
+# 5초 후에 종료되면, 다시 Pod를 Restart 시킴
+# k8s는 pod를 running 상태를 보장하려고 지속적으로 시도함
+gusami@master:~$kubectl run testpod --image=centos:7 --command sleep 5
+gusami@master:~$kubectl get pods --watch
+NAME      READY   STATUS    RESTARTS   AGE
+testpod   0/1     Pending   0          0s
+testpod   0/1     Pending   0          0s
+testpod   0/1     ContainerCreating   0          0s
+testpod   1/1     Running             0          2s
+testpod   0/1     Completed           0          7s
+testpod   1/1     Running             1 (2s ago)   8s
+testpod   0/1     Completed           1 (7s ago)   13s
+testpod   0/1     CrashLoopBackOff    1 (14s ago)   26s
+testpod   1/1     Running             2 (15s ago)   27s
+testpod   0/1     Completed           2 (20s ago)   32s
+testpod   0/1     CrashLoopBackOff    2 (15s ago)   46s
+gusami@master:~$kubectl delete pod testpod
+pod "testpod" deleted
+```
+- Job Definition
+  - ``completions``: 해당 Job의 실행 횟수를 지정
+  - ``parallelism``: 병렬성. 동시 running되는 job(pod)의 수
+  - ``activeDeadlineSeconds``: 지정 시간 내에 Job를 완료해야 함. 실패 시 종료 처리함
+  - ``restartPolicy``
+    - ``Never``: 비정상 종료 시, Pod를 Restart 시킴
+    - ``OnFailure``: 비정상 종료 시, container만을 Restart 시킴 
+  - ``backoffLimit``: 기본값 6. 비 정상 종료 시, Restart시 시도 횟수
+
+![JobDefinition](./images/JobDefinition.png)
+```bash
+gusami@master:~$cat > job-exam.yaml 
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: centos-job
+spec:
+#  completions: 5
+#  parallelism: 2
+#  activeDeadlineSeconds: 15 
+  template:
+    spec:
+      containers:
+      - name: centos-container
+        image: centos:7
+        command: ["bash"]
+        args:
+        - "-c"
+        - "echo 'Hello World'; sleep 50; echo 'Bye'"
+      restartPolicy: Never
+# Job controller 생성      
+gusami@master:~$kubectl create -f job-exam.yaml 
+job.batch/centos-job created
+# 50초 되기 전에 강제로 Pod 삭제
+gusami@master:~$kubectl delete pod centos-job--1-ks9vq 
+pod "centos-job--1-ks9vq" deleted
+# 비 정상 종료 시, 다시 실행 함
+# 재 실행 후, 50 초 후에 정상 종료
+gusami@master:~$kubectl get pods --watch
+NAME                  READY   STATUS    RESTARTS   AGE
+centos-job--1-ks9vq   0/1     Pending   0          0s
+centos-job--1-ks9vq   0/1     Pending   0          0s
+centos-job--1-ks9vq   0/1     ContainerCreating   0          0s
+centos-job--1-ks9vq   1/1     Running             0          3s
+centos-job--1-ks9vq   1/1     Terminating         0          15s
+centos-job--1-chdvj   0/1     Pending             0          0s
+centos-job--1-chdvj   0/1     Pending             0          0s
+centos-job--1-chdvj   0/1     ContainerCreating   0          0s
+centos-job--1-chdvj   1/1     Running             0          19s
+centos-job--1-ks9vq   0/1     Terminating         0          46s
+centos-job--1-ks9vq   0/1     Terminating         0          46s
+centos-job--1-ks9vq   0/1     Terminating         0          46s
+centos-job--1-chdvj   0/1     Completed           0          69s
+# Job과 Pod의 상태를 보면, Completed로 표시됨
+gusami@master:~$kubectl get job,pods -o wide
+NAME                   COMPLETIONS   DURATION   AGE     CONTAINERS         IMAGES     SELECTOR
+job.batch/centos-job   1/1           84s        3m20s   centos-container   centos:7   controller-uid=b47caa4d-2e2c-4a27-ad6c-9bcb515c06b9
+
+NAME                      READY   STATUS      RESTARTS   AGE    IP          NODE       NOMINATED NODE   READINESS GATES
+pod/centos-job--1-chdvj   0/1     Completed   0          3m5s   10.36.0.1   worker-2   <none>           <none>
+# Pod의 Status가 "Completed"로 표시
+# Pod가 지워진 상태가 아님. 
+# Pod가 삭제되면, Pod가 생성한 로그등을 확인할 방법 없음
+gusami@master:~$kubectl get pods -o wide
+NAME                  READY   STATUS      RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+centos-job--1-chdvj   0/1     Completed   0          4m16s   10.36.0.1   worker-2   <none>           <none>
+# Job 상태 상세 확인
+gusami@master:~$kubectl describe job centos-job 
+Name:             centos-job
+Namespace:        product
+Selector:         controller-uid=b47caa4d-2e2c-4a27-ad6c-9bcb515c06b9
+Labels:           controller-uid=b47caa4d-2e2c-4a27-ad6c-9bcb515c06b9
+                  job-name=centos-job
+Annotations:      <none>
+Parallelism:      1
+Completions:      1
+Completion Mode:  NonIndexed
+Start Time:       Thu, 03 Feb 2022 22:35:22 +0900
+Completed At:     Thu, 03 Feb 2022 22:36:46 +0900
+Duration:         84s
+Pods Statuses:    0 Running / 1 Succeeded / 0 Failed
+Pod Template:
+  Labels:  controller-uid=b47caa4d-2e2c-4a27-ad6c-9bcb515c06b9
+           job-name=centos-job
+  Containers:
+   centos-container:
+    Image:      centos:7
+    Port:       <none>
+    Host Port:  <none>
+    Command:
+      bash
+    Args:
+      -c
+      echo 'Hello World'; sleep 50; echo 'Bye'
+    Environment:  <none>
+    Mounts:       <none>
+  Volumes:        <none>
+Events:
+  Type    Reason            Age    From            Message
+  ----    ------            ----   ----            -------
+  Normal  SuccessfulCreate  6m49s  job-controller  Created pod: centos-job--1-ks9vq
+  Normal  SuccessfulCreate  6m34s  job-controller  Created pod: centos-job--1-chdvj
+  Normal  Completed         5m25s  job-controller  Job completed
+# restartPolicy와 backoffLimit 값을 수정
+# restartPolicy: OnFailure => container restart. (Pod는 그대로 둠)
+# backoffLimit: 최대 재시작 횟수
+# fail을 강제로 만들기 위해 command를 존재하지 않는 명령어인 "bashc"로 수정
+gusami@master:~$vi job-exam.yaml 
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: centos-job
+spec:
+#  completions: 5
+#  parallelism: 2
+#  activeDeadlineSeconds: 15 
+  template:
+    spec:
+      containers:
+      - name: centos-container
+        image: centos:7
+        command: ["bashc"]
+        args:
+        - "-c"
+        - "echo 'Hello World'; sleep 50; echo 'Bye'"
+      restartPolicy: OnFailure
+  backoffLimit: 3
+# Job Controller 삭제  
+gusami@master:~$kubectl delete job centos-job 
+job.batch "centos-job" deleted
+# 다시 생성
+gusami@master:~$kubectl create -f job-exam.yaml 
+job.batch/centos-job created
+# 관찰. 3번 Restart 시도 후, 종료
+# container가 restart하므로, Pod 명은 변하지 않음
+gusami@master:~$ kubectl get pods --watch
+NAME                  READY   STATUS    RESTARTS   AGE
+centos-job--1-pvlss   0/1     Pending   0          0s
+centos-job--1-pvlss   0/1     Pending   0          0s
+centos-job--1-pvlss   0/1     ContainerCreating   0          0s
+centos-job--1-pvlss   0/1     RunContainerError   0 (0s ago)   1s
+centos-job--1-pvlss   0/1     RunContainerError   1 (12s ago)   13s
+centos-job--1-pvlss   0/1     RunContainerError   2 (11s ago)   24s
+centos-job--1-pvlss   0/1     CrashLoopBackOff    2 (17s ago)   30s
+centos-job--1-pvlss   0/1     RunContainerError   3 (11s ago)   56s
+centos-job--1-pvlss   0/1     Terminating         3 (11s ago)   56s
+centos-job--1-pvlss   0/1     Terminating         3 (43s ago)   56s
+centos-job--1-pvlss   0/1     Terminating         3 (44s ago)   57s
+centos-job--1-pvlss   0/1     Terminating         3 (44s ago)   57s
+# restartPolicy를 Never로 다시 변경.
+# Pod 레벨에서 Restart
+gusami@master:~$vi job-exam.yaml 
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: centos-job
+spec:
+#  completions: 5
+#  parallelism: 2
+#  activeDeadlineSeconds: 15 
+  template:
+    spec:
+      containers:
+      - name: centos-container
+        image: centos:7
+        command: ["bashc"]
+        args:
+        - "-c"
+        - "echo 'Hello World'; sleep 50; echo 'Bye'"
+      restartPolicy: Never
+# Job Controller 생성
+gusami@master:~$kubectl create -f job-exam.yaml 
+job.batch/centos-job created
+# Restart할 때마다 Pod의 이름이 바뀜.
+# Pod 레벨에서 Restart 처리
+gusami@master:~$kubectl get pods --watch
+NAME                  READY   STATUS    RESTARTS   AGE
+centos-job--1-b6kjs   0/1     Pending   0          0s
+centos-job--1-b6kjs   0/1     Pending   0          0s
+centos-job--1-b6kjs   0/1     ContainerCreating   0          0s
+centos-job--1-b6kjs   0/1     ContainerCannotRun   0          2s
+centos-job--1-bvwc9   0/1     Pending              0          0s
+centos-job--1-bvwc9   0/1     Pending              0          0s
+centos-job--1-bvwc9   0/1     ContainerCreating    0          0s
+centos-job--1-bvwc9   0/1     ContainerCannotRun   0          1s
+centos-job--1-pbrc8   0/1     Pending              0          0s
+centos-job--1-pbrc8   0/1     Pending              0          0s
+centos-job--1-pbrc8   0/1     ContainerCreating    0          0s
+centos-job--1-pbrc8   0/1     ContainerCannotRun   0          1s
+centos-job--1-dqb8k   0/1     Pending              0          0s
+centos-job--1-dqb8k   0/1     Pending              0          0s
+centos-job--1-dqb8k   0/1     ContainerCreating    0          0s
+centos-job--1-dqb8k   0/1     ContainerCannotRun   0          1s
+centos-job--1-7jbhx   0/1     Pending              0          0s
+centos-job--1-7jbhx   0/1     Pending              0          0s
+centos-job--1-7jbhx   0/1     ContainerCreating    0          0s
+centos-job--1-7jbhx   0/1     ContainerCannotRun   0          2s
+# completitions 옵션을 켜서 해당 job을 3번 수행
+# 정상 실행 되도록 command를 "bash"로 수정
+# sleep도 10초로 수정
+gusami@master:~$vi job-exam.yaml 
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: centos-job
+spec:
+  completions: 3
+#  parallelism: 2
+#  activeDeadlineSeconds: 15 
+  template:
+    spec:
+      containers:
+      - name: centos-container
+        image: centos:7
+        command: ["bash"]
+        args:
+        - "-c"
+        - "echo 'Hello World'; sleep 10; echo 'Bye'"
+      restartPolicy: Never
+# job controller 생성      
+gusami@master:~$kubectl create -f job-exam.yaml 
+job.batch/centos-job created
+# job이 3번 sequential 하게 실행됨을 확인
+gusami@master:~$kubectl get pods --watch
+NAME                  READY   STATUS    RESTARTS   AGE
+centos-job--1-z4xr6   0/1     Pending   0          0s
+centos-job--1-z4xr6   0/1     Pending   0          0s
+centos-job--1-z4xr6   0/1     ContainerCreating   0          1s
+centos-job--1-z4xr6   1/1     Running             0          2s
+centos-job--1-z4xr6   0/1     Completed           0          12s
+centos-job--1-2v557   0/1     Pending             0          0s
+centos-job--1-2v557   0/1     Pending             0          0s
+centos-job--1-2v557   0/1     ContainerCreating   0          0s
+centos-job--1-2v557   1/1     Running             0          1s
+centos-job--1-2v557   0/1     Completed           0          12s
+centos-job--1-zz6kb   0/1     Pending             0          0s
+centos-job--1-zz6kb   0/1     Pending             0          0s
+centos-job--1-zz6kb   0/1     ContainerCreating   0          0s
+centos-job--1-zz6kb   1/1     Running             0          1s
+centos-job--1-zz6kb   0/1     Completed           0          11s
+# job 실행 횟수를 5로 늘리고, 병렬 실행을 2로 수정
+gusami@master:~$vi job-exam.yaml 
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: centos-job
+spec:
+  completions: 5
+  parallelism: 2
+#  activeDeadlineSeconds: 15 
+  template:
+    spec:
+      containers:
+      - name: centos-container
+        image: centos:7
+        command: ["bash"]
+        args:
+        - "-c"
+        - "echo 'Hello World'; sleep 10; echo 'Bye'"
+      restartPolicy: Never
+# job controller 생성
+gusami@master:~$kubectl create -f job-exam.yaml 
+job.batch/centos-job created
+# 2개의 Job(Pod)이 동시에 실행
+gusami@master:~$kubectl get pods --watch
+NAME                  READY   STATUS    RESTARTS   AGE
+centos-job--1-4rqkz   0/1     Pending   0          0s
+centos-job--1-f8dzx   0/1     Pending   0          0s
+centos-job--1-4rqkz   0/1     Pending   0          0s
+centos-job--1-f8dzx   0/1     Pending   0          0s
+centos-job--1-4rqkz   0/1     ContainerCreating   0          0s
+centos-job--1-f8dzx   0/1     ContainerCreating   0          0s
+centos-job--1-4rqkz   1/1     Running             0          1s
+centos-job--1-f8dzx   1/1     Running             0          2s
+centos-job--1-4rqkz   0/1     Completed           0          11s
+centos-job--1-4wzlg   0/1     Pending             0          0s
+centos-job--1-4wzlg   0/1     Pending             0          0s
+centos-job--1-4wzlg   0/1     ContainerCreating   0          0s
+centos-job--1-4wzlg   1/1     Running             0          1s
+centos-job--1-f8dzx   0/1     Completed           0          12s
+centos-job--1-nw54w   0/1     Pending             0          0s
+centos-job--1-nw54w   0/1     Pending             0          0s
+centos-job--1-nw54w   0/1     ContainerCreating   0          0s
+centos-job--1-nw54w   1/1     Running             0          1s
+centos-job--1-4wzlg   0/1     Completed           0          12s
+centos-job--1-6grxt   0/1     Pending             0          0s
+centos-job--1-6grxt   0/1     Pending             0          0s
+centos-job--1-6grxt   0/1     ContainerCreating   0          0s
+centos-job--1-nw54w   0/1     Completed           0          12s
+centos-job--1-6grxt   1/1     Running             0          1s
+centos-job--1-6grxt   0/1     Completed           0          11s
+# activeDeadlineSeconds를 5초로 설정
+# 특정 job이 너무 오래동안 실행 되는 것을 방지할 수 있음
+# 5초 안에 끝나지 않으면 강제 종료 시킴
+gusami@master:~$cat job-exam.yaml 
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: centos-job
+spec:
+  completions: 5
+  parallelism: 2
+  activeDeadlineSeconds: 5 
+  template:
+    spec:
+      containers:
+      - name: centos-container
+        image: centos:7
+        command: ["bash"]
+        args:
+        - "-c"
+        - "echo 'Hello World'; sleep 10; echo 'Bye'"
+      restartPolicy: Never
+# job controller 생성
+gusami@master:~$kubectl create -f job-exam.yaml 
+job.batch/centos-job created
+# 두개의 job을 실행한 후, 5초 후 강제 종료됨
+gusami@master:~$kubectl get pods --watch
+NAME                  READY   STATUS    RESTARTS   AGE
+centos-job--1-84xj7   0/1     Pending   0          0s
+centos-job--1-84xj7   0/1     Pending   0          0s
+centos-job--1-vw72c   0/1     Pending   0          0s
+centos-job--1-vw72c   0/1     Pending   0          0s
+centos-job--1-84xj7   0/1     ContainerCreating   0          0s
+centos-job--1-vw72c   0/1     ContainerCreating   0          0s
+centos-job--1-84xj7   1/1     Running             0          1s
+centos-job--1-vw72c   1/1     Running             0          2s
+centos-job--1-vw72c   1/1     Terminating         0          5s
+centos-job--1-84xj7   1/1     Terminating         0          5s
+centos-job--1-vw72c   0/1     Terminating         0          12s
+centos-job--1-vw72c   0/1     Terminating         0          12s
+centos-job--1-vw72c   0/1     Terminating         0          12s
+centos-job--1-84xj7   0/1     Terminating         0          12s
+centos-job--1-84xj7   0/1     Terminating         0          12s
+centos-job--1-84xj7   0/1     Terminating         0          12s
+# job controller 제거
+gusami@master:~$ kubectl delete jobs.batch centos-job 
+job.batch "centos-job" deleted
+```
+### CronJob Controller
