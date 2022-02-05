@@ -1,0 +1,744 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      auth.istio.io/8089: NONE
+    creationTimestamp: "2021-12-15T07:59:48Z"
+    generateName: cm-acme-http-solver-
+    labels:
+      acme.cert-manager.io/http-domain: "2032142703"
+      acme.cert-manager.io/http-token: "959516257"
+      acme.cert-manager.io/http01-solver: "true"
+    name: cm-acme-http-solver-7gsw5
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: acme.cert-manager.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Challenge
+      name: sm-test-fe3.moimstone.com-tls-qrgnr-1827183278-3624775563
+      uid: 217ce419-87e0-4229-bcae-5a34ed009e30
+    resourceVersion: "114878409"
+    selfLink: /api/v1/namespaces/smartwork-test/services/cm-acme-http-solver-7gsw5
+    uid: 6d66475d-7704-4423-87fc-27c49da3e7cc
+  spec:
+    clusterIP: 10.96.83.26
+    externalTrafficPolicy: Cluster
+    ports:
+    - name: http
+      nodePort: 31154
+      port: 8089
+      protocol: TCP
+      targetPort: 8089
+    selector:
+      acme.cert-manager.io/http-domain: "2032142703"
+      acme.cert-manager.io/http-token: "959516257"
+      acme.cert-manager.io/http01-solver: "true"
+    sessionAffinity: None
+    type: NodePort
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-apns-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"apns-service-port","port":4103,"targetPort":4103}],"selector":{"app":"apns-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-05-18T09:24:40Z"
+    name: service-apns-service
+    namespace: smartwork-test
+    resourceVersion: "28204402"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-apns-service
+    uid: 967d4db5-3e31-4352-a439-0c75f37a690e
+  spec:
+    clusterIP: 10.96.165.16
+    ports:
+    - name: apns-service-port
+      port: 4103
+      protocol: TCP
+      targetPort: 4103
+    selector:
+      app: apns-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-auth-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"auth-service-port","port":4100,"targetPort":4100}],"selector":{"app":"auth-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-11T07:36:38Z"
+    name: service-auth-service
+    namespace: smartwork-test
+    resourceVersion: "84276"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-auth-service
+    uid: 58b903f3-1fd4-47eb-a9f4-092a09ca47ca
+  spec:
+    clusterIP: 10.96.7.218
+    ports:
+    - name: auth-service-port
+      port: 4100
+      protocol: TCP
+      targetPort: 4100
+    selector:
+      app: auth-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-conference-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"conference-service-port","port":4040,"targetPort":4040}],"selector":{"app":"conference-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-11T04:56:23Z"
+    name: service-conference-service
+    namespace: smartwork-test
+    resourceVersion: "37553"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-conference-service
+    uid: 6c9c582d-15d8-454b-9433-ee2b835edbe6
+  spec:
+    clusterIP: 10.96.58.196
+    ports:
+    - name: conference-service-port
+      port: 4040
+      protocol: TCP
+      targetPort: 4040
+    selector:
+      app: conference-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-conferencefilemgmt-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"conferencefilemgmt-service-port","port":4020,"targetPort":4020}],"selector":{"app":"conferencefilemgmt-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-04-01T09:11:28Z"
+    name: service-conferencefilemgmt-service
+    namespace: smartwork-test
+    resourceVersion: "8795481"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-conferencefilemgmt-service
+    uid: ad8d941a-cc40-4077-b154-47b174d4057c
+  spec:
+    clusterIP: 10.96.82.242
+    ports:
+    - name: conferencefilemgmt-service-port
+      port: 4020
+      protocol: TCP
+      targetPort: 4020
+    selector:
+      app: conferencefilemgmt-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-contact-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"contact-service-port","port":4020,"targetPort":4020}],"selector":{"app":"contact-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-11T09:23:39Z"
+    name: service-contact-service
+    namespace: smartwork-test
+    resourceVersion: "115365"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-contact-service
+    uid: 7f374cc0-b52c-4022-983d-0ecb38907213
+  spec:
+    clusterIP: 10.96.8.241
+    ports:
+    - name: contact-service-port
+      port: 4020
+      protocol: TCP
+      targetPort: 4020
+    selector:
+      app: contact-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-devicemgmt-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"devicemgmt-service-port","port":4020,"targetPort":4020}],"selector":{"app":"devicemgmt-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-12T01:30:17Z"
+    name: service-devicemgmt-service
+    namespace: smartwork-test
+    resourceVersion: "393790"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-devicemgmt-service
+    uid: 81ead828-d13d-4dde-9ca7-646bdbdfe2d7
+  spec:
+    clusterIP: 10.96.139.158
+    ports:
+    - name: devicemgmt-service-port
+      port: 4020
+      protocol: TCP
+      targetPort: 4020
+    selector:
+      app: devicemgmt-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-firebase-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"firebase-service-port","port":4103,"targetPort":4103}],"selector":{"app":"firebase-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-11T08:15:54Z"
+    name: service-firebase-service
+    namespace: smartwork-test
+    resourceVersion: "95654"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-firebase-service
+    uid: c00422c5-b87a-48b4-9003-6f2372a086f2
+  spec:
+    clusterIP: 10.96.56.61
+    ports:
+    - name: firebase-service-port
+      port: 4103
+      protocol: TCP
+      targetPort: 4103
+    selector:
+      app: firebase-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-forum-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"forum-service-port","port":4102,"targetPort":4102}],"selector":{"app":"forum-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-11T07:46:09Z"
+    name: service-forum-service
+    namespace: smartwork-test
+    resourceVersion: "87028"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-forum-service
+    uid: 1feccb9e-e147-4ece-bdb8-56868262c063
+  spec:
+    clusterIP: 10.96.37.30
+    ports:
+    - name: forum-service-port
+      port: 4102
+      protocol: TCP
+      targetPort: 4102
+    selector:
+      app: forum-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-invitation-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"invitation-service-port","port":4020,"targetPort":4020}],"selector":{"app":"invitation-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-12T01:18:30Z"
+    name: service-invitation-service
+    namespace: smartwork-test
+    resourceVersion: "390370"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-invitation-service
+    uid: a98a6a24-d1a5-4eab-a9a7-85058bdc559d
+  spec:
+    clusterIP: 10.96.152.121
+    ports:
+    - name: invitation-service-port
+      port: 4020
+      protocol: TCP
+      targetPort: 4020
+    selector:
+      app: invitation-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-ippevent-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"ippevent-service-port","port":4020,"targetPort":4020}],"selector":{"app":"ippevent-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-12T01:34:31Z"
+    name: service-ippevent-service
+    namespace: smartwork-test
+    resourceVersion: "7986703"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-ippevent-service
+    uid: c3d07213-1724-464a-a068-f6431aa9cf46
+  spec:
+    clusterIP: 10.96.152.46
+    ports:
+    - name: ippevent-service-port
+      port: 4020
+      protocol: TCP
+      targetPort: 4020
+    selector:
+      app: ippevent-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-ippsynccl-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"ippsynccl-service-port","port":4020,"targetPort":4020}],"selector":{"app":"ippsynccl-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-12T00:16:24Z"
+    name: service-ippsynccl-service
+    namespace: smartwork-test
+    resourceVersion: "372436"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-ippsynccl-service
+    uid: b510a94f-9306-40bd-8b6a-d47108d92c47
+  spec:
+    clusterIP: 10.96.97.40
+    ports:
+    - name: ippsynccl-service-port
+      port: 4020
+      protocol: TCP
+      targetPort: 4020
+    selector:
+      app: ippsynccl-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-ippsyncpb-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"ippsyncpb-service-port","port":4020,"targetPort":4020}],"selector":{"app":"ippsyncpb-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-11T09:31:37Z"
+    name: service-ippsyncpb-service
+    namespace: smartwork-test
+    resourceVersion: "117690"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-ippsyncpb-service
+    uid: ef15a052-4885-4f1d-accc-efda5316363d
+  spec:
+    clusterIP: 10.96.8.244
+    ports:
+    - name: ippsyncpb-service-port
+      port: 4020
+      protocol: TCP
+      targetPort: 4020
+    selector:
+      app: ippsyncpb-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-ippsyncsms-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"ippsyncsms-service-port","port":4020,"targetPort":4020}],"selector":{"app":"ippsyncsms-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-12T00:22:58Z"
+    name: service-ippsyncsms-service
+    namespace: smartwork-test
+    resourceVersion: "374355"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-ippsyncsms-service
+    uid: 84dfbaf9-689a-492e-897c-44e7303e4064
+  spec:
+    clusterIP: 10.96.14.114
+    ports:
+    - name: ippsyncsms-service-port
+      port: 4020
+      protocol: TCP
+      targetPort: 4020
+    selector:
+      app: ippsyncsms-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-log-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"log-service-port","port":4030,"targetPort":4030}],"selector":{"app":"log-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-06-29T03:10:41Z"
+    name: service-log-service
+    namespace: smartwork-test
+    resourceVersion: "45385394"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-log-service
+    uid: 9e73e6d0-19f1-4829-93d5-6b232aba9a82
+  spec:
+    clusterIP: 10.96.146.6
+    ports:
+    - name: log-service-port
+      port: 4030
+      protocol: TCP
+      targetPort: 4030
+    selector:
+      app: log-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-mcuc-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"mcuc-service-port","port":4020,"targetPort":4020}],"selector":{"app":"mcuc-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-12T01:37:00Z"
+    name: service-mcuc-service
+    namespace: smartwork-test
+    resourceVersion: "395780"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-mcuc-service
+    uid: d8887d2c-3476-4267-9bbf-e6d9fbba0247
+  spec:
+    clusterIP: 10.96.213.79
+    ports:
+    - name: mcuc-service-port
+      port: 4020
+      protocol: TCP
+      targetPort: 4020
+    selector:
+      app: mcuc-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-notification-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"notification-service-port","port":4102,"targetPort":4102}],"selector":{"app":"notification-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-12T01:38:10Z"
+    name: service-notification-service
+    namespace: smartwork-test
+    resourceVersion: "396163"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-notification-service
+    uid: 322bb855-8ee8-4a35-b39d-9ae563e584f1
+  spec:
+    clusterIP: 10.96.189.51
+    ports:
+    - name: notification-service-port
+      port: 4102
+      protocol: TCP
+      targetPort: 4102
+    selector:
+      app: notification-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-project-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"project-service-port","port":4020,"targetPort":4020}],"selector":{"app":"project-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-11T08:23:56Z"
+    name: service-project-service
+    namespace: smartwork-test
+    resourceVersion: "98087"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-project-service
+    uid: ced61e38-28e5-4258-850f-a48fc156658a
+  spec:
+    clusterIP: 10.96.100.233
+    ports:
+    - name: project-service-port
+      port: 4020
+      protocol: TCP
+      targetPort: 4020
+    selector:
+      app: project-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-scheduler-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"scheduler-service-port","port":8081,"targetPort":8081}],"selector":{"app":"scheduler-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-11T08:17:14Z"
+    name: service-scheduler-service
+    namespace: smartwork-test
+    resourceVersion: "96056"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-scheduler-service
+    uid: 0dc786da-86c8-431c-89a1-32c987c1682e
+  spec:
+    clusterIP: 10.96.110.181
+    ports:
+    - name: scheduler-service-port
+      port: 8081
+      protocol: TCP
+      targetPort: 8081
+    selector:
+      app: scheduler-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-storagemgmt-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"storagemgmt-service-port","port":4020,"targetPort":4020}],"selector":{"app":"storagemgmt-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-11T08:15:43Z"
+    name: service-storagemgmt-service
+    namespace: smartwork-test
+    resourceVersion: "95583"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-storagemgmt-service
+    uid: b5597ffd-2e41-4adf-a661-2b4b5960ef75
+  spec:
+    clusterIP: 10.96.141.245
+    ports:
+    - name: storagemgmt-service-port
+      port: 4020
+      protocol: TCP
+      targetPort: 4020
+    selector:
+      app: storagemgmt-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-ums-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"ums-service-port","port":8081,"targetPort":8081}],"selector":{"app":"ums-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-11T07:49:27Z"
+    name: service-ums-service
+    namespace: smartwork-test
+    resourceVersion: "87998"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-ums-service
+    uid: 8d170cb5-8881-4572-b20d-85be7fc7494c
+  spec:
+    clusterIP: 10.96.226.191
+    ports:
+    - name: ums-service-port
+      port: 8081
+      protocol: TCP
+      targetPort: 8081
+    selector:
+      app: ums-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-umsemail-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"umsemail-service-port","port":8081,"targetPort":8081}],"selector":{"app":"umsemail-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-11T08:03:04Z"
+    name: service-umsemail-service
+    namespace: smartwork-test
+    resourceVersion: "91917"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-umsemail-service
+    uid: b2efb50f-622a-4b6b-a923-04d7facbe2fa
+  spec:
+    clusterIP: 10.96.197.158
+    ports:
+    - name: umsemail-service-port
+      port: 8081
+      protocol: TCP
+      targetPort: 8081
+    selector:
+      app: umsemail-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-user-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"user-service-port","port":8081,"targetPort":8081}],"selector":{"app":"user-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-11T06:09:18Z"
+    name: service-user-service
+    namespace: smartwork-test
+    resourceVersion: "58716"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-user-service
+    uid: 656756a2-c440-43ef-ba4c-43ef40284fce
+  spec:
+    clusterIP: 10.96.30.233
+    ports:
+    - name: user-service-port
+      port: 8081
+      protocol: TCP
+      targetPort: 8081
+    selector:
+      app: user-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-usersettings-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"usersettings-service-port","port":4020,"targetPort":4020}],"selector":{"app":"usersettings-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-04-05T09:24:12Z"
+    name: service-usersettings-service
+    namespace: smartwork-test
+    resourceVersion: "10447294"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-usersettings-service
+    uid: 8250f5fe-4e19-4108-856c-67a58bf37536
+  spec:
+    clusterIP: 10.96.153.169
+    ports:
+    - name: usersettings-service-port
+      port: 4020
+      protocol: TCP
+      targetPort: 4020
+    selector:
+      app: usersettings-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-vendor-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"vendor-service-port","port":4030,"targetPort":4030}],"selector":{"app":"vendor-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-11T08:27:37Z"
+    name: service-vendor-service
+    namespace: smartwork-test
+    resourceVersion: "99180"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-vendor-service
+    uid: 29886d22-c210-4c77-8b97-ba53c606a8f1
+  spec:
+    clusterIP: 10.96.54.0
+    ports:
+    - name: vendor-service-port
+      port: 4030
+      protocol: TCP
+      targetPort: 4030
+    selector:
+      app: vendor-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-web-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"web-service-port","port":3000,"targetPort":3000}],"selector":{"app":"web-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-03-22T09:25:39Z"
+    name: service-web-service
+    namespace: smartwork-test
+    resourceVersion: "4675533"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-web-service
+    uid: 6da32584-06d5-4cf7-bef9-e5a7e9a5c4df
+  spec:
+    clusterIP: 10.96.223.99
+    ports:
+    - name: web-service-port
+      port: 3000
+      protocol: TCP
+      targetPort: 3000
+    selector:
+      app: web-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-web2-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"web2-service-port","port":3000,"targetPort":3000}],"selector":{"app":"web2-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-06-24T06:27:37Z"
+    name: service-web2-service
+    namespace: smartwork-test
+    resourceVersion: "43389949"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-web2-service
+    uid: ec17340b-6e5a-4150-a9f5-7553c9f645e2
+  spec:
+    clusterIP: 10.96.221.24
+    ports:
+    - name: web2-service-port
+      port: 3000
+      protocol: TCP
+      targetPort: 3000
+    selector:
+      app: web2-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"service-weblanding-service","namespace":"smartwork-test"},"spec":{"ports":[{"name":"weblanding-service-port","port":3000,"targetPort":3000}],"selector":{"app":"weblanding-service"},"type":"ClusterIP"}}
+    creationTimestamp: "2021-12-13T06:09:22Z"
+    name: service-weblanding-service
+    namespace: smartwork-test
+    resourceVersion: "114018896"
+    selfLink: /api/v1/namespaces/smartwork-test/services/service-weblanding-service
+    uid: 55567001-7838-4460-a9ed-bf407e4bf4f6
+  spec:
+    clusterIP: 10.96.159.40
+    ports:
+    - name: weblanding-service-port
+      port: 3000
+      protocol: TCP
+      targetPort: 3000
+    selector:
+      app: weblanding-service
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: "2021-03-11T05:29:56Z"
+    labels:
+      app: web
+    name: web
+    namespace: smartwork-test
+    resourceVersion: "47359"
+    selfLink: /api/v1/namespaces/smartwork-test/services/web
+    uid: a258408a-419b-4291-ae27-0b8708a6d38d
+  spec:
+    clusterIP: 10.96.199.106
+    ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: web
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""

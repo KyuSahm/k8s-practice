@@ -1,0 +1,2018 @@
+apiVersion: v1
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "23"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-apns-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"apns-service"}},"template":{"metadata":{"labels":{"app":"apns-service"},"name":"apns-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/apnsservice:1277","imagePullPolicy":"Always","name":"container-apns-service","ports":[{"containerPort":4103}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-05-18T09:24:40Z"
+    generation: 23
+    name: deployment-apns-service
+    namespace: smartwork-test
+    resourceVersion: "129341383"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-apns-service
+    uid: 8545a75c-38da-4d1a-b226-e84dbca05961
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: apns-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2022-01-18T17:22:29+09:00"
+        creationTimestamp: null
+        labels:
+          app: apns-service
+        name: apns-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/apnsservice:1277
+          imagePullPolicy: Always
+          name: container-apns-service
+          ports:
+          - containerPort: 4103
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2022-01-18T08:16:29Z"
+      lastUpdateTime: "2022-01-18T08:16:29Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-05-18T09:24:40Z"
+      lastUpdateTime: "2022-01-19T06:52:25Z"
+      message: ReplicaSet "deployment-apns-service-84d4497897" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 23
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "30"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-auth-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"auth-service"}},"template":{"metadata":{"labels":{"app":"auth-service"},"name":"auth-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/authservice:497","imagePullPolicy":"Always","name":"container-auth-service","ports":[{"containerPort":4100}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-03-11T07:36:38Z"
+    generation: 30
+    name: deployment-auth-service
+    namespace: smartwork-test
+    resourceVersion: "106196721"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-auth-service
+    uid: f1bb323a-1f49-4c4b-a6d3-abf81e174bda
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: auth-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: auth-service
+        name: auth-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/authservice:497
+          imagePullPolicy: Always
+          name: container-auth-service
+          ports:
+          - containerPort: 4100
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-03-11T07:37:17Z"
+      lastUpdateTime: "2021-03-11T07:37:17Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-11T07:36:38Z"
+      lastUpdateTime: "2021-11-24T06:40:38Z"
+      message: ReplicaSet "deployment-auth-service-7b94bffbf4" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 30
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "51"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-conference-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"conference-service"}},"template":{"metadata":{"labels":{"app":"conference-service"},"name":"conference-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/conferenceservice:819","imagePullPolicy":"Always","name":"container-conference-service","ports":[{"containerPort":4040}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-03-11T04:56:23Z"
+    generation: 51
+    name: deployment-conference-service
+    namespace: smartwork-test
+    resourceVersion: "106196879"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-conference-service
+    uid: 33b57a13-b0ce-4a6d-9f93-40a6e453d61b
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: conference-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: conference-service
+        name: conference-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/conferenceservice:819
+          imagePullPolicy: Always
+          name: container-conference-service
+          ports:
+          - containerPort: 4040
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-03-11T04:59:30Z"
+      lastUpdateTime: "2021-03-11T04:59:30Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-11T04:56:23Z"
+      lastUpdateTime: "2021-11-24T06:40:40Z"
+      message: ReplicaSet "deployment-conference-service-74cd64cc65" has successfully
+        progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 51
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "47"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-contact-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"contact-service"}},"template":{"metadata":{"labels":{"app":"contact-service"},"name":"contact-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/contactservice:1224","imagePullPolicy":"Always","name":"container-contact-service","ports":[{"containerPort":4020}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-03-11T09:23:39Z"
+    generation: 47
+    name: deployment-contact-service
+    namespace: smartwork-test
+    resourceVersion: "126462869"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-contact-service
+    uid: 91facfac-3cd2-4031-b0cd-7e468ac3aa91
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: contact-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: contact-service
+        name: contact-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/contactservice:1224
+          imagePullPolicy: Always
+          name: container-contact-service
+          ports:
+          - containerPort: 4020
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-03-11T09:24:29Z"
+      lastUpdateTime: "2021-03-11T09:24:29Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-23T07:24:34Z"
+      lastUpdateTime: "2022-01-12T07:51:37Z"
+      message: ReplicaSet "deployment-contact-service-7b7f8f59f6" has successfully
+        progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 47
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "59"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-devicemgmt-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"devicemgmt-service"}},"template":{"metadata":{"labels":{"app":"devicemgmt-service"},"name":"devicemgmt-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/devicemgmtservice:1274","imagePullPolicy":"Always","name":"container-devicemgmt-service","ports":[{"containerPort":4020}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-03-12T01:30:17Z"
+    generation: 59
+    name: deployment-devicemgmt-service
+    namespace: smartwork-test
+    resourceVersion: "128949521"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-devicemgmt-service
+    uid: 21929e80-8b68-4394-8b48-26ab45b4a882
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: devicemgmt-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2022-01-18T17:09:51+09:00"
+        creationTimestamp: null
+        labels:
+          app: devicemgmt-service
+        name: devicemgmt-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/devicemgmtservice:1274
+          imagePullPolicy: Always
+          name: container-devicemgmt-service
+          ports:
+          - containerPort: 4020
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-04-27T00:25:34Z"
+      lastUpdateTime: "2021-04-27T00:25:34Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-23T07:30:31Z"
+      lastUpdateTime: "2022-01-18T08:09:52Z"
+      message: ReplicaSet "deployment-devicemgmt-service-77dcfd987b" has successfully
+        progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 59
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "31"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-firebase-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"firebase-service"}},"template":{"metadata":{"labels":{"app":"firebase-service"},"name":"firebase-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/firebaseservice:773","imagePullPolicy":"Always","name":"container-firebase-service","ports":[{"containerPort":4103}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-03-11T08:15:54Z"
+    generation: 31
+    name: deployment-firebase-service
+    namespace: smartwork-test
+    resourceVersion: "106196806"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-firebase-service
+    uid: f74f1009-858a-4d5f-b5f7-813d5630b21c
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: firebase-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: firebase-service
+        name: firebase-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/firebaseservice:773
+          imagePullPolicy: Always
+          name: container-firebase-service
+          ports:
+          - containerPort: 4103
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-03-11T08:17:47Z"
+      lastUpdateTime: "2021-03-11T08:17:47Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-11T08:15:54Z"
+      lastUpdateTime: "2021-11-24T06:40:39Z"
+      message: ReplicaSet "deployment-firebase-service-696cc58764" has successfully
+        progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 31
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "36"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-forum-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"forum-service"}},"template":{"metadata":{"labels":{"app":"forum-service"},"name":"forum-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/forumservice:814","imagePullPolicy":"Always","name":"container-forum-service","ports":[{"containerPort":4102}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-03-11T07:46:09Z"
+    generation: 36
+    name: deployment-forum-service
+    namespace: smartwork-test
+    resourceVersion: "106196829"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-forum-service
+    uid: 54488d37-0b32-42b0-bffd-73c3ab1b8623
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: forum-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: forum-service
+        name: forum-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/forumservice:814
+          imagePullPolicy: Always
+          name: container-forum-service
+          ports:
+          - containerPort: 4102
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-03-11T07:48:52Z"
+      lastUpdateTime: "2021-03-11T07:48:52Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-23T07:21:19Z"
+      lastUpdateTime: "2021-11-24T06:40:40Z"
+      message: ReplicaSet "deployment-forum-service-bc478477c" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 36
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "48"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-invitation-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"invitation-service"}},"template":{"metadata":{"labels":{"app":"invitation-service"},"name":"invitation-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/invitationservice:792","imagePullPolicy":"Always","name":"container-invitation-service","ports":[{"containerPort":4020}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-03-12T01:18:30Z"
+    generation: 48
+    name: deployment-invitation-service
+    namespace: smartwork-test
+    resourceVersion: "126063886"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-invitation-service
+    uid: d84cf6b2-18ec-4be1-b8dc-82f00e2c19ab
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: invitation-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2022-01-11T17:43:29+09:00"
+        creationTimestamp: null
+        labels:
+          app: invitation-service
+        name: invitation-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/invitationservice:792
+          imagePullPolicy: Always
+          name: container-invitation-service
+          ports:
+          - containerPort: 4020
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-03-12T01:19:18Z"
+      lastUpdateTime: "2021-03-12T01:19:18Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-23T07:21:57Z"
+      lastUpdateTime: "2022-01-11T08:43:31Z"
+      message: ReplicaSet "deployment-invitation-service-6788b4fb66" has successfully
+        progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 48
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "41"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-ippsynccl-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"ippsynccl-service"}},"template":{"metadata":{"labels":{"app":"ippsynccl-service"},"name":"ippsynccl-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/ippsyncclservice:528","imagePullPolicy":"Always","name":"container-ippsynccl-service","ports":[{"containerPort":4020}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-03-12T00:16:23Z"
+    generation: 41
+    name: deployment-ippsynccl-service
+    namespace: smartwork-test
+    resourceVersion: "106196841"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-ippsynccl-service
+    uid: 360390d6-9fe9-4c5f-80e1-72c4ab65d729
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: ippsynccl-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: ippsynccl-service
+        name: ippsynccl-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/ippsyncclservice:528
+          imagePullPolicy: Always
+          name: container-ippsynccl-service
+          ports:
+          - containerPort: 4020
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-05-11T10:50:49Z"
+      lastUpdateTime: "2021-05-11T10:50:49Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-23T07:30:31Z"
+      lastUpdateTime: "2021-11-24T06:40:40Z"
+      message: ReplicaSet "deployment-ippsynccl-service-cb8847bc6" has successfully
+        progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 41
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "27"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-ippsyncpb-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"ippsyncpb-service"}},"template":{"metadata":{"labels":{"app":"ippsyncpb-service"},"name":"ippsyncpb-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/ippsyncpbservice:541","imagePullPolicy":"Always","name":"container-ippsyncpb-service","ports":[{"containerPort":4020}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-04-02T02:25:42Z"
+    generation: 27
+    name: deployment-ippsyncpb-service
+    namespace: smartwork-test
+    resourceVersion: "106196772"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-ippsyncpb-service
+    uid: 7f8c9f4d-6c9f-47b8-af15-584970cb5749
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: ippsyncpb-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: ippsyncpb-service
+        name: ippsyncpb-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/ippsyncpbservice:541
+          imagePullPolicy: Always
+          name: container-ippsyncpb-service
+          ports:
+          - containerPort: 4020
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-05-11T10:53:15Z"
+      lastUpdateTime: "2021-05-11T10:53:15Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-04-02T02:25:42Z"
+      lastUpdateTime: "2021-11-24T06:40:39Z"
+      message: ReplicaSet "deployment-ippsyncpb-service-5bccf65475" has successfully
+        progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 27
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "72"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-ippsyncsms-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"ippsyncsms-service"}},"template":{"metadata":{"labels":{"app":"ippsyncsms-service"},"name":"ippsyncsms-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/ippsyncsmsservice:629","imagePullPolicy":"Always","name":"container-ippsyncsms-service","ports":[{"containerPort":4020}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-03-12T00:22:58Z"
+    generation: 72
+    name: deployment-ippsyncsms-service
+    namespace: smartwork-test
+    resourceVersion: "106196960"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-ippsyncsms-service
+    uid: 4432d70d-dafe-4433-ac6e-84bf2797d519
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: ippsyncsms-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: ippsyncsms-service
+        name: ippsyncsms-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/ippsyncsmsservice:629
+          imagePullPolicy: Always
+          name: container-ippsyncsms-service
+          ports:
+          - containerPort: 4020
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-05-11T10:53:26Z"
+      lastUpdateTime: "2021-05-11T10:53:26Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-23T07:29:45Z"
+      lastUpdateTime: "2021-11-24T06:40:42Z"
+      message: ReplicaSet "deployment-ippsyncsms-service-8c8c8f664" has successfully
+        progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 72
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "13"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-log-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"log-service"}},"template":{"metadata":{"labels":{"app":"log-service"},"name":"log-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/logservice:478","imagePullPolicy":"Always","name":"container-log-service","ports":[{"containerPort":4030}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-06-29T03:10:41Z"
+    generation: 13
+    name: deployment-log-service
+    namespace: smartwork-test
+    resourceVersion: "106196918"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-log-service
+    uid: 0dc979a9-5ab3-406c-9811-d123ea430f63
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: log-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: log-service
+        name: log-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/logservice:478
+          imagePullPolicy: Always
+          name: container-log-service
+          ports:
+          - containerPort: 4030
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-06-29T04:28:39Z"
+      lastUpdateTime: "2021-06-29T04:28:39Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-06-29T03:10:41Z"
+      lastUpdateTime: "2021-11-24T06:40:41Z"
+      message: ReplicaSet "deployment-log-service-6cdfc595b7" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 13
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "70"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-mcuc-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"mcuc-service"}},"template":{"metadata":{"labels":{"app":"mcuc-service"},"name":"mcuc-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/mcucservice:1219","imagePullPolicy":"Always","name":"container-mcuc-service","ports":[{"containerPort":4020}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-03-12T01:37:00Z"
+    generation: 70
+    name: deployment-mcuc-service
+    namespace: smartwork-test
+    resourceVersion: "126399734"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-mcuc-service
+    uid: c448f879-8a6b-4de4-80a3-13fa4935272a
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: mcuc-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-12-14T09:43:34+09:00"
+        creationTimestamp: null
+        labels:
+          app: mcuc-service
+        name: mcuc-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/mcucservice:1219
+          imagePullPolicy: Always
+          name: container-mcuc-service
+          ports:
+          - containerPort: 4020
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-03-12T08:14:54Z"
+      lastUpdateTime: "2021-03-12T08:14:54Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-23T07:25:34Z"
+      lastUpdateTime: "2022-01-12T04:12:15Z"
+      message: ReplicaSet "deployment-mcuc-service-5b6f7d5994" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 70
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "53"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-notification-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"notification-service"}},"template":{"metadata":{"labels":{"app":"notification-service"},"name":"notification-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/notificationservice:1276","imagePullPolicy":"Always","name":"container-notification-service","ports":[{"containerPort":4102}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-03-12T01:38:10Z"
+    generation: 53
+    name: deployment-notification-service
+    namespace: smartwork-test
+    resourceVersion: "128955358"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-notification-service
+    uid: 418b1071-76e8-41ed-9bb5-ee55564ec0d3
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: notification-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2022-01-18T17:22:29+09:00"
+        creationTimestamp: null
+        labels:
+          app: notification-service
+        name: notification-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/notificationservice:1276
+          imagePullPolicy: Always
+          name: container-notification-service
+          ports:
+          - containerPort: 4102
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-03-12T01:38:54Z"
+      lastUpdateTime: "2021-03-12T01:38:54Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-23T07:26:28Z"
+      lastUpdateTime: "2022-01-18T08:28:42Z"
+      message: ReplicaSet "deployment-notification-service-b68d4c889" has successfully
+        progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 53
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "30"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-project-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"project-service"}},"template":{"metadata":{"labels":{"app":"project-service"},"name":"project-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/projectservice:1102","imagePullPolicy":"Always","name":"container-project-service","ports":[{"containerPort":4020}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-03-11T08:23:56Z"
+    generation: 30
+    name: deployment-project-service
+    namespace: smartwork-test
+    resourceVersion: "118620688"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-project-service
+    uid: b75561d9-23c6-4388-b7ef-9b5edbfe4a7b
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: project-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: project-service
+        name: project-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/projectservice:1102
+          imagePullPolicy: Always
+          name: container-project-service
+          ports:
+          - containerPort: 4020
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-07-13T08:57:07Z"
+      lastUpdateTime: "2021-07-13T08:57:07Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-23T07:26:28Z"
+      lastUpdateTime: "2021-12-24T09:01:32Z"
+      message: ReplicaSet "deployment-project-service-7b6479d967" has successfully
+        progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 30
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "25"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-scheduler-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"scheduler-service"}},"template":{"metadata":{"labels":{"app":"scheduler-service"},"name":"scheduler-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/schedulerservice:82","imagePullPolicy":"Always","name":"container-scheduler-service","ports":[{"containerPort":8081}]}],"imagePullSecrets":[{"name":"regcred"}],"nodeSelector":{"iptype":"private"}}}}}
+    creationTimestamp: "2021-04-19T02:53:06Z"
+    generation: 25
+    name: deployment-scheduler-service
+    namespace: smartwork-test
+    resourceVersion: "106196998"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-scheduler-service
+    uid: c2549901-3e2e-4b9b-9984-32f101a95a20
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: scheduler-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: scheduler-service
+        name: scheduler-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/schedulerservice:82
+          imagePullPolicy: Always
+          name: container-scheduler-service
+          ports:
+          - containerPort: 8081
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        nodeSelector:
+          iptype: private
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-05-07T06:36:19Z"
+      lastUpdateTime: "2021-05-07T06:36:19Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-04-19T02:53:06Z"
+      lastUpdateTime: "2021-11-24T06:40:42Z"
+      message: ReplicaSet "deployment-scheduler-service-79b8c858dc" has successfully
+        progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 25
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "31"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-storagemgmt-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"storagemgmt-service"}},"template":{"metadata":{"labels":{"app":"storagemgmt-service"},"name":"storagemgmt-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/storagemgmtservice:452","imagePullPolicy":"Always","name":"container-storagemgmt-service","ports":[{"containerPort":4020}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-03-11T08:15:43Z"
+    generation: 31
+    name: deployment-storagemgmt-service
+    namespace: smartwork-test
+    resourceVersion: "106196985"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-storagemgmt-service
+    uid: 50137ba2-bfa0-40a5-93f7-b2613c242fad
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: storagemgmt-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: storagemgmt-service
+        name: storagemgmt-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/storagemgmtservice:452
+          imagePullPolicy: Always
+          name: container-storagemgmt-service
+          ports:
+          - containerPort: 4020
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-03-11T08:19:44Z"
+      lastUpdateTime: "2021-03-11T08:19:44Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-23T07:24:47Z"
+      lastUpdateTime: "2021-11-24T06:40:42Z"
+      message: ReplicaSet "deployment-storagemgmt-service-59c6b784b4" has successfully
+        progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 31
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "22"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-ums-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"ums-service"}},"template":{"metadata":{"labels":{"app":"ums-service"},"name":"ums-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/umsservice:84","imagePullPolicy":"Always","name":"container-ums-service","ports":[{"containerPort":8081}]}],"imagePullSecrets":[{"name":"regcred"}],"nodeSelector":{"iptype":"private"}}}}}
+    creationTimestamp: "2021-03-11T07:49:27Z"
+    generation: 22
+    name: deployment-ums-service
+    namespace: smartwork-test
+    resourceVersion: "106197158"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-ums-service
+    uid: ef52325c-c177-4096-8ade-bafd081b5ed0
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: ums-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: ums-service
+        name: ums-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/umsservice:84
+          imagePullPolicy: Always
+          name: container-ums-service
+          ports:
+          - containerPort: 8081
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        nodeSelector:
+          iptype: private
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-03-11T07:51:34Z"
+      lastUpdateTime: "2021-03-11T07:51:34Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-23T07:27:54Z"
+      lastUpdateTime: "2021-11-24T06:40:48Z"
+      message: ReplicaSet "deployment-ums-service-5d9bb8c485" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 22
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "22"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-umsemail-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"umsemail-service"}},"template":{"metadata":{"labels":{"app":"umsemail-service"},"name":"umsemail-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/umsemailservice:297","imagePullPolicy":"Always","name":"container-umsemail-service","ports":[{"containerPort":8081}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-03-11T08:03:04Z"
+    generation: 22
+    name: deployment-umsemail-service
+    namespace: smartwork-test
+    resourceVersion: "106197084"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-umsemail-service
+    uid: b6b29470-f008-47a1-8128-6a5b29df9d56
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: umsemail-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: umsemail-service
+        name: umsemail-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/umsemailservice:297
+          imagePullPolicy: Always
+          name: container-umsemail-service
+          ports:
+          - containerPort: 8081
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-03-11T08:04:47Z"
+      lastUpdateTime: "2021-03-11T08:04:47Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-23T07:24:45Z"
+      lastUpdateTime: "2021-11-24T06:40:44Z"
+      message: ReplicaSet "deployment-umsemail-service-79fc469986" has successfully
+        progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 22
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "51"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-user-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"user-service"}},"template":{"metadata":{"labels":{"app":"user-service"},"name":"user-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/userservice:1028","imagePullPolicy":"Always","name":"container-user-service","ports":[{"containerPort":8081}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-03-11T06:09:18Z"
+    generation: 51
+    name: deployment-user-service
+    namespace: smartwork-test
+    resourceVersion: "117003327"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-user-service
+    uid: 6fe7dd82-647d-4991-bf74-f9105b14c9a6
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: user-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: user-service
+        name: user-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/userservice:1028
+          imagePullPolicy: Always
+          name: container-user-service
+          ports:
+          - containerPort: 8081
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-03-11T07:19:33Z"
+      lastUpdateTime: "2021-03-11T07:19:33Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-23T07:27:34Z"
+      lastUpdateTime: "2021-12-20T11:14:10Z"
+      message: ReplicaSet "deployment-user-service-7f84984469" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 51
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "31"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-usersettings-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"usersettings-service"}},"template":{"metadata":{"labels":{"app":"usersettings-service"},"name":"usersettings-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/usersettingsservice:796","imagePullPolicy":"Always","name":"container-usersettings-service","ports":[{"containerPort":4020}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-04-05T09:24:12Z"
+    generation: 31
+    name: deployment-usersettings-service
+    namespace: smartwork-test
+    resourceVersion: "106196969"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-usersettings-service
+    uid: 416cb218-6383-4fe2-8047-a6e78988129d
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: usersettings-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: usersettings-service
+        name: usersettings-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/usersettingsservice:796
+          imagePullPolicy: Always
+          name: container-usersettings-service
+          ports:
+          - containerPort: 4020
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-04-05T09:25:25Z"
+      lastUpdateTime: "2021-04-05T09:25:25Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-04-05T09:24:12Z"
+      lastUpdateTime: "2021-11-24T06:40:42Z"
+      message: ReplicaSet "deployment-usersettings-service-5bb9b48b8c" has successfully
+        progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 31
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "20"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-vendor-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"vendor-service"}},"template":{"metadata":{"labels":{"app":"vendor-service"},"name":"vendor-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}}],"image":"icn.ocir.io/cndxe828mdvf/vendorservice:363","imagePullPolicy":"Always","name":"container-vendor-service","ports":[{"containerPort":4030}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-03-11T08:27:37Z"
+    generation: 20
+    name: deployment-vendor-service
+    namespace: smartwork-test
+    resourceVersion: "106197040"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-vendor-service
+    uid: fab6b587-c6ca-4a0f-9783-23acad3d0d0d
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: vendor-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: vendor-service
+        name: vendor-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          image: icn.ocir.io/cndxe828mdvf/vendorservice:363
+          imagePullPolicy: Always
+          name: container-vendor-service
+          ports:
+          - containerPort: 4030
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-03-11T08:28:27Z"
+      lastUpdateTime: "2021-03-11T08:28:27Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-23T07:23:40Z"
+      lastUpdateTime: "2021-11-24T06:40:43Z"
+      message: ReplicaSet "deployment-vendor-service-99c56cb8d" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 20
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "169"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-web-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"web-service"}},"template":{"metadata":{"labels":{"app":"web-service"},"name":"web-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}},{"name":"MOIMSTONE_ENDPOINT","value":"https://sm-test.moimstone.com"}],"image":"icn.ocir.io/cndxe828mdvf/web:3290","imagePullPolicy":"Always","name":"container-web-service","ports":[{"containerPort":80}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-03-22T09:25:39Z"
+    generation: 173
+    name: deployment-web-service
+    namespace: smartwork-test
+    resourceVersion: "106221384"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-web-service
+    uid: f8a13719-d20b-4dd0-ab72-a97287c83392
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: web-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: web-service
+        name: web-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          - name: MOIMSTONE_ENDPOINT
+            value: https://sm-test.moimstone.com
+          image: icn.ocir.io/cndxe828mdvf/web:3290
+          imagePullPolicy: Always
+          name: container-web-service
+          ports:
+          - containerPort: 80
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-06-24T07:33:45Z"
+      lastUpdateTime: "2021-06-24T07:33:45Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-09-14T08:57:24Z"
+      lastUpdateTime: "2021-11-24T08:05:15Z"
+      message: ReplicaSet "deployment-web-service-5fdc67c8b" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 173
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "60"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-web2-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"web2-service"}},"template":{"metadata":{"labels":{"app":"web2-service"},"name":"web2-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}},{"name":"MOIMSTONE_ENDPOINT","value":"https://sm-test.moimstone.com"}],"image":"icn.ocir.io/cndxe828mdvf/web:3263","imagePullPolicy":"Always","name":"container-web2-service","ports":[{"containerPort":80}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-06-24T06:27:37Z"
+    generation: 62
+    name: deployment-web2-service
+    namespace: smartwork-test
+    resourceVersion: "106197022"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-web2-service
+    uid: 1e37bc3a-2b28-46fc-bd98-dd8ccd5c1ac0
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: web2-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: web2-service
+        name: web2-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          - name: MOIMSTONE_ENDPOINT
+            value: https://sm-test.moimstone.com
+          image: icn.ocir.io/cndxe828mdvf/web:3263
+          imagePullPolicy: Always
+          name: container-web2-service
+          ports:
+          - containerPort: 80
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-09-01T06:36:01Z"
+      lastUpdateTime: "2021-09-01T06:36:01Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-06-24T06:27:37Z"
+      lastUpdateTime: "2021-11-24T06:40:42Z"
+      message: ReplicaSet "deployment-web2-service-86cdbd9f96" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 62
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "2"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"deployment-weblanding-service","namespace":"smartwork-test"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"weblanding-service"}},"template":{"metadata":{"labels":{"app":"weblanding-service"},"name":"weblanding-service-pod"},"spec":{"containers":[{"env":[{"name":"NM_CLOUD_CONFIG","valueFrom":{"configMapKeyRef":{"key":"encryptedvalue","name":"deploy-env"}}},{"name":"MOIMSTONE_ENDPOINT","value":"https://sm-test.moimstone.com"}],"image":"icn.ocir.io/cndxe828mdvf/web:921","imagePullPolicy":"Always","name":"container-weblanding-service","ports":[{"containerPort":80}]}],"imagePullSecrets":[{"name":"regcred"}]}}}}
+    creationTimestamp: "2021-12-13T06:09:22Z"
+    generation: 2
+    name: deployment-weblanding-service
+    namespace: smartwork-test
+    resourceVersion: "114048912"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/deployment-weblanding-service
+    uid: 2882776a-93d2-4284-98bb-abc6b0d44cc5
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: weblanding-service
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: weblanding-service
+        name: weblanding-service-pod
+      spec:
+        containers:
+        - env:
+          - name: NM_CLOUD_CONFIG
+            valueFrom:
+              configMapKeyRef:
+                key: encryptedvalue
+                name: deploy-env
+          - name: MOIMSTONE_ENDPOINT
+            value: https://sm-test.moimstone.com
+          image: icn.ocir.io/cndxe828mdvf/web:924
+          imagePullPolicy: Always
+          name: container-weblanding-service
+          ports:
+          - containerPort: 80
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: regcred
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    conditions:
+    - lastTransitionTime: "2021-12-13T06:09:22Z"
+      lastUpdateTime: "2021-12-13T06:09:22Z"
+      message: Deployment does not have minimum availability.
+      reason: MinimumReplicasUnavailable
+      status: "False"
+      type: Available
+    - lastTransitionTime: "2021-12-13T07:53:41Z"
+      lastUpdateTime: "2021-12-13T07:53:41Z"
+      message: ReplicaSet "deployment-weblanding-service-67676c9b55" has timed out
+        progressing.
+      reason: ProgressDeadlineExceeded
+      status: "False"
+      type: Progressing
+    observedGeneration: 2
+    replicas: 2
+    unavailableReplicas: 2
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "18"
+    creationTimestamp: "2021-03-11T05:29:20Z"
+    generation: 18
+    labels:
+      app: web
+    name: web
+    namespace: smartwork-test
+    resourceVersion: "106197067"
+    selfLink: /apis/apps/v1/namespaces/smartwork-test/deployments/web
+    uid: dbc11dfc-7776-4c68-83f8-f71f65594aed
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: web
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+        creationTimestamp: null
+        labels:
+          app: web
+      spec:
+        containers:
+        - image: gcr.io/google-samples/hello-app:1.0
+          imagePullPolicy: IfNotPresent
+          name: hello-app
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2021-03-11T05:29:22Z"
+      lastUpdateTime: "2021-03-11T05:29:22Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2021-03-11T05:29:20Z"
+      lastUpdateTime: "2021-11-24T06:40:44Z"
+      message: ReplicaSet "web-7794f48c84" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 18
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""

@@ -5041,3 +5041,50 @@ cronjob.batch "cronjob-exam" deleted
 - StatefulSet: Pod의 이름을 보장!
 - Job: Batch 처리를 위한 controller (Pod의 정상적인 종료를 관리!)
 - CronJob: Job을 스케줄링 예약 사용 지원
+
+## Service
+### Service Concept
+- 동일한 서비스를 제공하는 **Pod 그룹의 단일 진입점(Virtual IP)**을 제공 (ClusterIP 기준으로 설명)
+  - Pod들이 각기 다른 IP를 가지고 서비스를 제공하지만, 하나의 IP로 묶어서 단일 진입점 제공
+  - 동일한 서비스에 대한 기준은 Pod들의 Label이 같다면 동일하다고 판단
+  - 동일한 진입점(Virtual IP)로 연결하면, 동일한 서비스를 제공하는 Pod들 중 하나의 IP로 연결해 줌
+    - 동일한 진입점(Virtual IP)는 Load Balancer IP로서의 역할 수행(균등배분)
+    - Virtual IP(LoadBalancer IP)와 대응되는 Pod들의 IP의 정보를 etcd에 저장하고 있음    
+- etcd
+  - 쿠버네티스에서 필요한 모든 데이터를 키-값 형태로 저장하는 데이터베이스 역할 수행   
+- 서비스는 쿠버네티스 네트워크를 의미
+
+![Service_Concept](./images/Service_Concept.png)
+- Service Definition
+  - ``clusterIP``: 보통은 생략. Virtual IP
+  - ``selector``: 동일한 label을 가진 Pod들을 묶어라. Deployment definition에서 label로 Pod를 찾음
+  - ``port``: clusterIP의 Port
+  - ``targetPort``: Pod들이 제공하는 서비스 Port
+
+![Service_Definition](./images/Service_Definition.png)
+### Service Type
+- 4가지 Type을 지원
+- Type 1. ClusterIP(default)
+  - Pod 그룹의 단일 진입점(Virtual IP) 생성
+- Type 2. NodePort
+  - ClusterIP가 기본적으로 생성한 후, 모든 Worker Node에 외부에서 접속가능한 Port가 Open
+  - ClusterIP + External Port Open on Worker Node
+  - 사용자가 특정 Worker node의 Port로 접속하면, 서비스로 등록된 Pod들로 균일하게 연결
+![Service_Type_NodePort](./images/Service_Type_NodePort.png)  
+- Type 3. LoadBalancer
+  - ClusterIP가 기본적으로 생성한 후, 모든 Worker Node에 외부에서 접속가능한 Port가 Open하고, 외부에 존재하는 LoadBalancer(실제 장비)와 연결
+  - LoadBalancer를 통하면 Worker node들에 Open된 Port에 균일하게 분배되어 접속
+  - ClusterIP + External Port Open on Worker Node + External LoadBalancer
+  - LoadBalancer는 Cloud Infrastructer(AWS, Azure etc)나 Open Stack Cloud에서만 사용 가능
+![Service_Type_LoadBalancer](./images/Service_Type_LoadBalancer.png)  
+- Type 4. ExternalName  
+  - Cluster 안에서 외부로 접속 시, 사용할 도메인을 등록해서 사용
+  - Cluster Domain이 실제 외부 Domain으로 치환되어 동작
+  - Pod 내부에서 등록된 Cluster Domain 정보와 대응하는 외부 Domain 정보를 이용해서 외부로 접속
+  - 만약, ExternalName을 이용해서 서비스를 생성하고, External IP를 ``google.com``이라고 등록하면?
+    - Pod의 Container 내부에서 Cluster Domain을 사용하면, 외부 Domain으로 바뀌어서 외부로 접속 가능
+    - 마치, Cluster 내부의 DNS 서비스 역할을 제공
+
+### Service 사용하기
+### Headless Service
+### kube-proxy

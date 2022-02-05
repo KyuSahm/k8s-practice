@@ -1,0 +1,3105 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.149/32
+      sidecar.istio.io/inject: "false"
+    creationTimestamp: "2021-12-15T07:59:48Z"
+    generateName: cm-acme-http-solver-
+    labels:
+      acme.cert-manager.io/http-domain: "2032142703"
+      acme.cert-manager.io/http-token: "959516257"
+      acme.cert-manager.io/http01-solver: "true"
+    name: cm-acme-http-solver-dnhjb
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: acme.cert-manager.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Challenge
+      name: sm-test-fe3.moimstone.com-tls-qrgnr-1827183278-3624775563
+      uid: 217ce419-87e0-4229-bcae-5a34ed009e30
+    resourceVersion: "114878434"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/cm-acme-http-solver-dnhjb
+    uid: f7dd3458-fd63-4ec8-bc27-82f75d959546
+  spec:
+    containers:
+    - args:
+      - --listen-port=8089
+      - --domain=sm-test-fe3.moimstone.com
+      - --token=6x97WmvfuzE4b87V3heef931il64NiUyIsik_yF-SBw
+      - --key=6x97WmvfuzE4b87V3heef931il64NiUyIsik_yF-SBw.Ze1JLWOrhl9QZBF-56hBSSxYcdkaf4uNiNeNcPZqZG4
+      image: quay.io/jetstack/cert-manager-acmesolver:v1.1.1
+      imagePullPolicy: IfNotPresent
+      name: acmesolver
+      ports:
+      - containerPort: 8089
+        name: http
+        protocol: TCP
+      resources:
+        limits:
+          cpu: 100m
+          memory: 64Mi
+        requests:
+          cpu: 10m
+          memory: 64Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.1.10.8
+    priority: 0
+    restartPolicy: OnFailure
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-15T07:59:48Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-15T07:59:50Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-15T07:59:50Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-15T07:59:48Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://2b4d45c8f44418614c0304491c445f83f9cd2d564a21425d1a6ff75a68b6c371
+      image: quay.io/jetstack/cert-manager-acmesolver:v1.1.1
+      imageID: docker-pullable://quay.io/jetstack/cert-manager-acmesolver@sha256:3ebed74f534229624945d1ccb63da2c3a5f9c4a7aa8fa165691373f5f789b604
+      lastState: {}
+      name: acmesolver
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-12-15T07:59:49Z"
+    hostIP: 10.1.10.8
+    phase: Running
+    podIP: 10.244.0.149
+    podIPs:
+    - ip: 10.244.0.149
+    qosClass: Burstable
+    startTime: "2021-12-15T07:59:48Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.168/32
+      kubectl.kubernetes.io/restartedAt: "2022-01-18T17:22:29+09:00"
+    creationTimestamp: "2022-01-19T06:52:16Z"
+    generateName: deployment-apns-service-84d4497897-
+    labels:
+      app: apns-service
+      pod-template-hash: 84d4497897
+    name: deployment-apns-service-84d4497897-qkjj2
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-apns-service-84d4497897
+      uid: f7a1e717-b559-4b7b-b93a-71e5a1e5ebbd
+    resourceVersion: "129341369"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-apns-service-84d4497897-qkjj2
+    uid: aad18353-62be-4103-b376-0bc9446e565d
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/apnsservice:1277
+      imagePullPolicy: Always
+      name: container-apns-service
+      ports:
+      - containerPort: 4103
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.10.8
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-19T06:52:16Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-19T06:52:25Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-19T06:52:25Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-19T06:52:16Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://f2d7fb0c11ffa0cd16d8cf16c7c0657998aa5e1bfa373a674a1d7d1253f6a120
+      image: icn.ocir.io/cndxe828mdvf/apnsservice:1277
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/apnsservice@sha256:dace791542c18063df3cdfb39c09cc5d903912419fbb15bace5576cf9e03c66f
+      lastState: {}
+      name: container-apns-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2022-01-19T06:52:24Z"
+    hostIP: 10.1.10.8
+    phase: Running
+    podIP: 10.244.0.168
+    podIPs:
+    - ip: 10.244.0.168
+    qosClass: BestEffort
+    startTime: "2022-01-19T06:52:16Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.136/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-11-24T06:40:32Z"
+    generateName: deployment-auth-service-7b94bffbf4-
+    labels:
+      app: auth-service
+      pod-template-hash: 7b94bffbf4
+    name: deployment-auth-service-7b94bffbf4-8wrtc
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-auth-service-7b94bffbf4
+      uid: 02d65397-1e93-4580-b9dc-88716ac8ec3c
+    resourceVersion: "106196425"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-auth-service-7b94bffbf4-8wrtc
+    uid: f9247928-a122-46b5-9470-42c507814c4a
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/authservice:497
+      imagePullPolicy: Always
+      name: container-auth-service
+      ports:
+      - containerPort: 4100
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.10.8
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:33Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:34Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:34Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:33Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://e12d2d819b1b00c788161a014083473ef8e1c77c0a466f857cb59150e7b30559
+      image: icn.ocir.io/cndxe828mdvf/authservice:497
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/authservice@sha256:2876a4d1f7521e4b72b9734bf27df5d3f7f442e846f7b0eb5f1f1e801d517f05
+      lastState: {}
+      name: container-auth-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-11-24T06:40:34Z"
+    hostIP: 10.1.10.8
+    phase: Running
+    podIP: 10.244.0.136
+    podIPs:
+    - ip: 10.244.0.136
+    qosClass: BestEffort
+    startTime: "2021-11-24T06:40:33Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.79/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-11-24T06:40:33Z"
+    generateName: deployment-conference-service-74cd64cc65-
+    labels:
+      app: conference-service
+      pod-template-hash: 74cd64cc65
+    name: deployment-conference-service-74cd64cc65-tpnjj
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-conference-service-74cd64cc65
+      uid: 54572fa4-ba8f-4ad5-b626-ae4a32e05ddd
+    resourceVersion: "106196692"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-conference-service-74cd64cc65-tpnjj
+    uid: 0fea20e8-fb73-451a-8540-da9ecd13514b
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/conferenceservice:819
+      imagePullPolicy: Always
+      name: container-conference-service
+      ports:
+      - containerPort: 4040
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.20.26
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:33Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:37Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:37Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:33Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://39e4067d9d8743bd587f815b28f396ee54af281585a8a889646fd02f5bd9a686
+      image: icn.ocir.io/cndxe828mdvf/conferenceservice:819
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/conferenceservice@sha256:eaf4c9df9704a36e64c6ee048a430d9e712b28cceb6e00ddd7636023bec4b565
+      lastState: {}
+      name: container-conference-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-11-24T06:40:34Z"
+    hostIP: 10.1.20.26
+    phase: Running
+    podIP: 10.244.0.79
+    podIPs:
+    - ip: 10.244.0.79
+    qosClass: BestEffort
+    startTime: "2021-11-24T06:40:33Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.103/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2022-01-12T07:51:14Z"
+    generateName: deployment-contact-service-7b7f8f59f6-
+    labels:
+      app: contact-service
+      pod-template-hash: 7b7f8f59f6
+    name: deployment-contact-service-7b7f8f59f6-cjjdr
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-contact-service-7b7f8f59f6
+      uid: bbb6b5de-7b10-4b77-938d-c27127a42639
+    resourceVersion: "126462855"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-contact-service-7b7f8f59f6-cjjdr
+    uid: 4119f2b3-f941-41ab-8717-152c4fd8c68a
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/contactservice:1224
+      imagePullPolicy: Always
+      name: container-contact-service
+      ports:
+      - containerPort: 4020
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.20.26
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-12T07:51:14Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-12T07:51:37Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-12T07:51:37Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-12T07:51:14Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://b7b072ddf724b216f021164ab1d938629859318ec7ed9bd072ca94bb184e2a56
+      image: icn.ocir.io/cndxe828mdvf/contactservice:1224
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/contactservice@sha256:8fac5833fc0a9d95303814358d2b981f79ef507d3c37ec8ee6e68d75980f9e07
+      lastState: {}
+      name: container-contact-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2022-01-12T07:51:36Z"
+    hostIP: 10.1.20.26
+    phase: Running
+    podIP: 10.244.0.103
+    podIPs:
+    - ip: 10.244.0.103
+    qosClass: BestEffort
+    startTime: "2022-01-12T07:51:14Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.164/32
+      kubectl.kubernetes.io/restartedAt: "2022-01-18T17:09:51+09:00"
+    creationTimestamp: "2022-01-18T08:09:50Z"
+    generateName: deployment-devicemgmt-service-77dcfd987b-
+    labels:
+      app: devicemgmt-service
+      pod-template-hash: 77dcfd987b
+    name: deployment-devicemgmt-service-77dcfd987b-xw59z
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-devicemgmt-service-77dcfd987b
+      uid: 9f615837-ff13-4e5e-a2ee-77645b41ee69
+    resourceVersion: "128949498"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-devicemgmt-service-77dcfd987b-xw59z
+    uid: ac456d94-7508-4cf3-ba58-efa97e58f82f
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/devicemgmtservice:1274
+      imagePullPolicy: Always
+      name: container-devicemgmt-service
+      ports:
+      - containerPort: 4020
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.10.8
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-18T08:09:50Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-18T08:09:52Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-18T08:09:52Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-18T08:09:50Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://3a1536a5f975fcf83398d38f52a1e7a72978fe663fc492f573656a5bfc1a9e1a
+      image: icn.ocir.io/cndxe828mdvf/devicemgmtservice:1274
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/devicemgmtservice@sha256:bdb9cfcbadfb7a35796ccb54b6bae4982a180919ea8ef3c0dcb40fd97abfa72e
+      lastState: {}
+      name: container-devicemgmt-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2022-01-18T08:09:52Z"
+    hostIP: 10.1.10.8
+    phase: Running
+    podIP: 10.244.0.164
+    podIPs:
+    - ip: 10.244.0.164
+    qosClass: BestEffort
+    startTime: "2022-01-18T08:09:50Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.139/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-11-24T06:40:33Z"
+    generateName: deployment-firebase-service-696cc58764-
+    labels:
+      app: firebase-service
+      pod-template-hash: 696cc58764
+    name: deployment-firebase-service-696cc58764-hqkfw
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-firebase-service-696cc58764
+      uid: 59515a4f-02a6-4076-a959-3130db15fe77
+    resourceVersion: "106196545"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-firebase-service-696cc58764-hqkfw
+    uid: 52d8af46-5542-420b-bda6-c3511b601ad9
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/firebaseservice:773
+      imagePullPolicy: Always
+      name: container-firebase-service
+      ports:
+      - containerPort: 4103
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.10.8
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:33Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:36Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:36Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:33Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://c7c4188290695ddab2ec15693c11b60d2a68f2325b81756dbaa17250d00c1bc4
+      image: icn.ocir.io/cndxe828mdvf/firebaseservice:773
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/firebaseservice@sha256:bbeade007fc92b9298e8d2b6c345111d8b70cbc4fe8a140a80c31109cdd07fc2
+      lastState: {}
+      name: container-firebase-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-11-24T06:40:35Z"
+    hostIP: 10.1.10.8
+    phase: Running
+    podIP: 10.244.0.139
+    podIPs:
+    - ip: 10.244.0.139
+    qosClass: BestEffort
+    startTime: "2021-11-24T06:40:33Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.80/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-11-24T06:40:33Z"
+    generateName: deployment-forum-service-bc478477c-
+    labels:
+      app: forum-service
+      pod-template-hash: bc478477c
+    name: deployment-forum-service-bc478477c-kzs2x
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-forum-service-bc478477c
+      uid: 732d2d8f-ced9-4253-98c7-14fed3a7e4e7
+    resourceVersion: "106196628"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-forum-service-bc478477c-kzs2x
+    uid: c7d42340-6ad1-4485-b400-9d9507be6367
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/forumservice:814
+      imagePullPolicy: Always
+      name: container-forum-service
+      ports:
+      - containerPort: 4102
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.20.26
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:33Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:36Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:36Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:33Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://90cc69e992b026ed31add3824871c0b4d2377c76ca2bf1d5ca0a7b8af2438ad6
+      image: icn.ocir.io/cndxe828mdvf/forumservice:814
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/forumservice@sha256:ed300ace260fbba18dc6dc60f650a8cbb085020f9e3f4a2b08a51c9c34dc3c93
+      lastState: {}
+      name: container-forum-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-11-24T06:40:35Z"
+    hostIP: 10.1.20.26
+    phase: Running
+    podIP: 10.244.0.80
+    podIPs:
+    - ip: 10.244.0.80
+    qosClass: BestEffort
+    startTime: "2021-11-24T06:40:33Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.101/32
+      kubectl.kubernetes.io/restartedAt: "2022-01-11T17:43:29+09:00"
+    creationTimestamp: "2022-01-11T08:43:29Z"
+    generateName: deployment-invitation-service-6788b4fb66-
+    labels:
+      app: invitation-service
+      pod-template-hash: 6788b4fb66
+    name: deployment-invitation-service-6788b4fb66-px7fz
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-invitation-service-6788b4fb66
+      uid: f203d5c7-ed7b-4565-923d-8334d0e9f665
+    resourceVersion: "126063872"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-invitation-service-6788b4fb66-px7fz
+    uid: fded8275-b96f-43ee-a4a8-f51e45d9d1bc
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/invitationservice:792
+      imagePullPolicy: Always
+      name: container-invitation-service
+      ports:
+      - containerPort: 4020
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.20.26
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-11T08:43:29Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-11T08:43:31Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-11T08:43:31Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-11T08:43:29Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://008213c08ec85ae8905ef058558e3d7ca5b8c791d66795eb2e0298dd7237b57f
+      image: icn.ocir.io/cndxe828mdvf/invitationservice:792
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/invitationservice@sha256:ee7ec03c8858619ab6e552f5b1934d4f8c1a787b2196079bc3196c34e2ab4871
+      lastState: {}
+      name: container-invitation-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2022-01-11T08:43:31Z"
+    hostIP: 10.1.20.26
+    phase: Running
+    podIP: 10.244.0.101
+    podIPs:
+    - ip: 10.244.0.101
+    qosClass: BestEffort
+    startTime: "2022-01-11T08:43:29Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.82/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-11-24T06:40:33Z"
+    generateName: deployment-ippsynccl-service-cb8847bc6-
+    labels:
+      app: ippsynccl-service
+      pod-template-hash: cb8847bc6
+    name: deployment-ippsynccl-service-cb8847bc6-dv5zc
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-ippsynccl-service-cb8847bc6
+      uid: 5442da4e-e8b7-442d-aa9a-80a10ad3fe53
+    resourceVersion: "106196661"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-ippsynccl-service-cb8847bc6-dv5zc
+    uid: fc6e2404-9a3d-4258-b42d-c91bd185d003
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/ippsyncclservice:528
+      imagePullPolicy: Always
+      name: container-ippsynccl-service
+      ports:
+      - containerPort: 4020
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.20.26
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:33Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:37Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:37Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:33Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://3a35625b68122903ec121c8be07ac9d170579a8ed670fba85b7dd2b2e0a78dfe
+      image: icn.ocir.io/cndxe828mdvf/ippsyncclservice:528
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/ippsyncclservice@sha256:eafb5144d2809ef860bffe87694503868ccf6f3a0894b43593ef9bcbb88eeb68
+      lastState: {}
+      name: container-ippsynccl-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-11-24T06:40:35Z"
+    hostIP: 10.1.20.26
+    phase: Running
+    podIP: 10.244.0.82
+    podIPs:
+    - ip: 10.244.0.82
+    qosClass: BestEffort
+    startTime: "2021-11-24T06:40:33Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.140/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-11-24T06:40:34Z"
+    generateName: deployment-ippsyncpb-service-5bccf65475-
+    labels:
+      app: ippsyncpb-service
+      pod-template-hash: 5bccf65475
+    name: deployment-ippsyncpb-service-5bccf65475-q4rm5
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-ippsyncpb-service-5bccf65475
+      uid: 1de2d44e-d630-413b-beef-b837872382ee
+    resourceVersion: "106196530"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-ippsyncpb-service-5bccf65475-q4rm5
+    uid: 47140111-0bcd-4142-bf74-f0a12c37e68e
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/ippsyncpbservice:541
+      imagePullPolicy: Always
+      name: container-ippsyncpb-service
+      ports:
+      - containerPort: 4020
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.10.8
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:34Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:36Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:36Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:34Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://7aee60178405cc776871ba130fe647d6d4a38a5383af2a7aaf7ed244f4b69972
+      image: icn.ocir.io/cndxe828mdvf/ippsyncpbservice:541
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/ippsyncpbservice@sha256:fa768e609c31580b35efb82962a7a5516af7c24f4d3ef13d65bc40491f00ec3c
+      lastState: {}
+      name: container-ippsyncpb-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-11-24T06:40:35Z"
+    hostIP: 10.1.10.8
+    phase: Running
+    podIP: 10.244.0.140
+    podIPs:
+    - ip: 10.244.0.140
+    qosClass: BestEffort
+    startTime: "2021-11-24T06:40:34Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.84/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-11-24T06:40:34Z"
+    generateName: deployment-ippsyncsms-service-8c8c8f664-
+    labels:
+      app: ippsyncsms-service
+      pod-template-hash: 8c8c8f664
+    name: deployment-ippsyncsms-service-8c8c8f664-n7fkl
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-ippsyncsms-service-8c8c8f664
+      uid: 1ae8213a-db60-4e97-8217-190441f33ac9
+    resourceVersion: "106196795"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-ippsyncsms-service-8c8c8f664-n7fkl
+    uid: feb3c317-a13c-4182-964e-88d79bc83354
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/ippsyncsmsservice:629
+      imagePullPolicy: Always
+      name: container-ippsyncsms-service
+      ports:
+      - containerPort: 4020
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.20.26
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:34Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:38Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:38Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:34Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://747b95ea36573a20d618701596261084eb41d19c1a8f0212c19731fdd03d3163
+      image: icn.ocir.io/cndxe828mdvf/ippsyncsmsservice:629
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/ippsyncsmsservice@sha256:a5ac558b61f333f6053e39b0e489a6eae7aec31f34f62c3a82b4b2c55a7bc677
+      lastState: {}
+      name: container-ippsyncsms-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-11-24T06:40:37Z"
+    hostIP: 10.1.20.26
+    phase: Running
+    podIP: 10.244.0.84
+    podIPs:
+    - ip: 10.244.0.84
+    qosClass: BestEffort
+    startTime: "2021-11-24T06:40:34Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.83/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-11-24T06:40:34Z"
+    generateName: deployment-log-service-6cdfc595b7-
+    labels:
+      app: log-service
+      pod-template-hash: 6cdfc595b7
+    name: deployment-log-service-6cdfc595b7-gtghq
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-log-service-6cdfc595b7
+      uid: c04bc1f9-8f36-43a8-8ba4-d1ac27c472be
+    resourceVersion: "106196755"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-log-service-6cdfc595b7-gtghq
+    uid: 3027fa4e-949a-442b-b73f-1c54881cf415
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/logservice:478
+      imagePullPolicy: Always
+      name: container-log-service
+      ports:
+      - containerPort: 4030
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.20.26
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:34Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:37Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:37Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:34Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://87bf73f345624edd0ae27a81889e8aebc025a38106e61ff9f7fa108f71eb4782
+      image: icn.ocir.io/cndxe828mdvf/logservice:478
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/logservice@sha256:1b757e594c05ef033bed644d14e132bfc1ee47f1db1e82efd41ed08181e88eb1
+      lastState: {}
+      name: container-log-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-11-24T06:40:36Z"
+    hostIP: 10.1.20.26
+    phase: Running
+    podIP: 10.244.0.83
+    podIPs:
+    - ip: 10.244.0.83
+    qosClass: BestEffort
+    startTime: "2021-11-24T06:40:34Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.160/32
+      kubectl.kubernetes.io/restartedAt: "2021-12-14T09:43:34+09:00"
+    creationTimestamp: "2022-01-12T04:11:45Z"
+    generateName: deployment-mcuc-service-5b6f7d5994-
+    labels:
+      app: mcuc-service
+      pod-template-hash: 5b6f7d5994
+    name: deployment-mcuc-service-5b6f7d5994-s4kdh
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-mcuc-service-5b6f7d5994
+      uid: 06f3de15-eb24-4e5f-9ac1-64fc256d090c
+    resourceVersion: "126399720"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-mcuc-service-5b6f7d5994-s4kdh
+    uid: b57fe0eb-2507-49fa-824a-060277eab602
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/mcucservice:1219
+      imagePullPolicy: Always
+      name: container-mcuc-service
+      ports:
+      - containerPort: 4020
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.10.8
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-12T04:11:45Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-12T04:12:15Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-12T04:12:15Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-12T04:11:45Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://ec2421cb746ae1d2ac50adde9cddc73bd193365f090ccd64bd019ec4ebb7cd1e
+      image: icn.ocir.io/cndxe828mdvf/mcucservice:1219
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/mcucservice@sha256:72f4f3f4fb7b14db9d914d6c7aed96cb442f27ad6923b3f482f8afca3ad1416e
+      lastState: {}
+      name: container-mcuc-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2022-01-12T04:12:14Z"
+    hostIP: 10.1.10.8
+    phase: Running
+    podIP: 10.244.0.160
+    podIPs:
+    - ip: 10.244.0.160
+    qosClass: BestEffort
+    startTime: "2022-01-12T04:11:45Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.109/32
+      kubectl.kubernetes.io/restartedAt: "2022-01-18T17:22:29+09:00"
+    creationTimestamp: "2022-01-18T08:28:34Z"
+    generateName: deployment-notification-service-b68d4c889-
+    labels:
+      app: notification-service
+      pod-template-hash: b68d4c889
+    name: deployment-notification-service-b68d4c889-bspmh
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-notification-service-b68d4c889
+      uid: d7f0c690-4957-4588-921a-7f36c34b656d
+    resourceVersion: "128955344"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-notification-service-b68d4c889-bspmh
+    uid: 9fdce566-5dd0-4f42-a4b6-3f2fa50e14e2
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/notificationservice:1276
+      imagePullPolicy: Always
+      name: container-notification-service
+      ports:
+      - containerPort: 4102
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.20.26
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-18T08:28:34Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-18T08:28:42Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-18T08:28:42Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2022-01-18T08:28:34Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://4808562f2ec96294baa9ced406a65165e99849ef1e258763a47bb8b17a74866d
+      image: icn.ocir.io/cndxe828mdvf/notificationservice:1276
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/notificationservice@sha256:9a44558997c3ac4d8c1828be7c3f6db56ba4dd579b1d5010d66cd95f17cbc173
+      lastState: {}
+      name: container-notification-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2022-01-18T08:28:41Z"
+    hostIP: 10.1.20.26
+    phase: Running
+    podIP: 10.244.0.109
+    podIPs:
+    - ip: 10.244.0.109
+    qosClass: BestEffort
+    startTime: "2022-01-18T08:28:34Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.155/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-12-24T09:00:52Z"
+    generateName: deployment-project-service-7b6479d967-
+    labels:
+      app: project-service
+      pod-template-hash: 7b6479d967
+    name: deployment-project-service-7b6479d967-9mww9
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-project-service-7b6479d967
+      uid: f10d6252-31da-4f77-835d-9e7ea1e78f23
+    resourceVersion: "118620674"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-project-service-7b6479d967-9mww9
+    uid: bc8c6d20-e0df-4608-9d7c-4643ce5595e3
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/projectservice:1102
+      imagePullPolicy: Always
+      name: container-project-service
+      ports:
+      - containerPort: 4020
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.10.8
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-24T09:00:52Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-24T09:01:32Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-24T09:01:32Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-24T09:00:52Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://f80ac3d5d3ed98fc7609a3882df55ed19966fb1a7b6309779ffddf083363c1ba
+      image: icn.ocir.io/cndxe828mdvf/projectservice:1102
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/projectservice@sha256:1a9b4b35e54bc26d96aa62543c6448dc577496c7e80404b1bf5d625d55db64e6
+      lastState: {}
+      name: container-project-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-12-24T09:01:16Z"
+    hostIP: 10.1.10.8
+    phase: Running
+    podIP: 10.244.0.155
+    podIPs:
+    - ip: 10.244.0.155
+    qosClass: BestEffort
+    startTime: "2021-12-24T09:00:52Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.86/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-11-24T06:40:35Z"
+    generateName: deployment-scheduler-service-79b8c858dc-
+    labels:
+      app: scheduler-service
+      pod-template-hash: 79b8c858dc
+    name: deployment-scheduler-service-79b8c858dc-gwmwg
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-scheduler-service-79b8c858dc
+      uid: eb5856f4-0ccc-440b-b8a4-743b12a87ee8
+    resourceVersion: "106196823"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-scheduler-service-79b8c858dc-gwmwg
+    uid: 50168024-affe-4ce7-9406-2396d4c305a2
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/schedulerservice:82
+      imagePullPolicy: Always
+      name: container-scheduler-service
+      ports:
+      - containerPort: 8081
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.20.26
+    nodeSelector:
+      iptype: private
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:35Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:38Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:38Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:35Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://ea9b3dfd1ef15b0077808abb366dee1c98e6e4a6cae165657863ce5d532f05e5
+      image: icn.ocir.io/cndxe828mdvf/schedulerservice:82
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/schedulerservice@sha256:3cc2f66bd01df802c58405f77b3e241077c68c0b7c313e9e39690d072d761e0f
+      lastState: {}
+      name: container-scheduler-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-11-24T06:40:37Z"
+    hostIP: 10.1.20.26
+    phase: Running
+    podIP: 10.244.0.86
+    podIPs:
+    - ip: 10.244.0.86
+    qosClass: BestEffort
+    startTime: "2021-11-24T06:40:35Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.87/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-11-24T06:40:35Z"
+    generateName: deployment-storagemgmt-service-59c6b784b4-
+    labels:
+      app: storagemgmt-service
+      pod-template-hash: 59c6b784b4
+    name: deployment-storagemgmt-service-59c6b784b4-dcj5w
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-storagemgmt-service-59c6b784b4
+      uid: 46686a11-7bcb-4163-b945-075e3c124844
+    resourceVersion: "106196853"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-storagemgmt-service-59c6b784b4-dcj5w
+    uid: b667e2a0-070e-42ab-9b05-e82d99ce0808
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/storagemgmtservice:452
+      imagePullPolicy: Always
+      name: container-storagemgmt-service
+      ports:
+      - containerPort: 4020
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.20.26
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:35Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:38Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:38Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:35Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://5f44edbed7f302b6a5472e0b82c613d31e0dc72e14b5f0dd67d62f69936e9022
+      image: icn.ocir.io/cndxe828mdvf/storagemgmtservice:452
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/storagemgmtservice@sha256:477576a34c313dfb9821060bb5a7a44c953e298d5d37ac70458ad83212c965f0
+      lastState: {}
+      name: container-storagemgmt-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-11-24T06:40:38Z"
+    hostIP: 10.1.20.26
+    phase: Running
+    podIP: 10.244.0.87
+    podIPs:
+    - ip: 10.244.0.87
+    qosClass: BestEffort
+    startTime: "2021-11-24T06:40:35Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.88/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-11-24T06:40:35Z"
+    generateName: deployment-ums-service-5d9bb8c485-
+    labels:
+      app: ums-service
+      pod-template-hash: 5d9bb8c485
+    name: deployment-ums-service-5d9bb8c485-xwplb
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-ums-service-5d9bb8c485
+      uid: 3a0f2125-ce7f-4929-9dc5-850d337ba358
+    resourceVersion: "106197143"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-ums-service-5d9bb8c485-xwplb
+    uid: 482748ea-7f7d-4104-8a56-8343c0303c83
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/umsservice:84
+      imagePullPolicy: Always
+      name: container-ums-service
+      ports:
+      - containerPort: 8081
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.20.26
+    nodeSelector:
+      iptype: private
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:35Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:40Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:40Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:35Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://bb7e027d1adaca9e6e864d20ef0399238054c82d0445ae1f477f49815bd1ed12
+      image: icn.ocir.io/cndxe828mdvf/umsservice:84
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/umsservice@sha256:8acf0de6b9f2890919d4aa82666b8c3ee2a4ff76e5569f3996510334022cc5f9
+      lastState: {}
+      name: container-ums-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-11-24T06:40:38Z"
+    hostIP: 10.1.20.26
+    phase: Running
+    podIP: 10.244.0.88
+    podIPs:
+    - ip: 10.244.0.88
+    qosClass: BestEffort
+    startTime: "2021-11-24T06:40:35Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.89/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-11-24T06:40:36Z"
+    generateName: deployment-umsemail-service-79fc469986-
+    labels:
+      app: umsemail-service
+      pod-template-hash: 79fc469986
+    name: deployment-umsemail-service-79fc469986-mnr88
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-umsemail-service-79fc469986
+      uid: 5acec075-95df-4b89-9ed2-fc569835c3e5
+    resourceVersion: "106197070"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-umsemail-service-79fc469986-mnr88
+    uid: c9461021-64c1-4609-9617-3ba03855ef69
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/umsemailservice:297
+      imagePullPolicy: Always
+      name: container-umsemail-service
+      ports:
+      - containerPort: 8081
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.20.26
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:36Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:40Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:40Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:36Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://f351a84abc3d374c558a33c14aaf6c955c3cc580a3cdc665392f53416e62a8e1
+      image: icn.ocir.io/cndxe828mdvf/umsemailservice:297
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/umsemailservice@sha256:d863e3b9732b067cd33ec72441ec31b36404d99ae8fcfb1659b34db88cba222f
+      lastState: {}
+      name: container-umsemail-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-11-24T06:40:38Z"
+    hostIP: 10.1.20.26
+    phase: Running
+    podIP: 10.244.0.89
+    podIPs:
+    - ip: 10.244.0.89
+    qosClass: BestEffort
+    startTime: "2021-11-24T06:40:36Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.154/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-12-20T11:14:01Z"
+    generateName: deployment-user-service-7f84984469-
+    labels:
+      app: user-service
+      pod-template-hash: 7f84984469
+    name: deployment-user-service-7f84984469-tcx9n
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-user-service-7f84984469
+      uid: 0d02b7ec-4478-4804-b797-df4340324a48
+    resourceVersion: "117003313"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-user-service-7f84984469-tcx9n
+    uid: bb7907b7-c82b-4188-8c5c-15733ab5d9d9
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/userservice:1028
+      imagePullPolicy: Always
+      name: container-user-service
+      ports:
+      - containerPort: 8081
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.10.8
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-20T11:14:01Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-20T11:14:10Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-20T11:14:10Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-20T11:14:01Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://25937704be6be113812aaaaa2adbe4610ddcf322ab13b0c6a0e1ecef94d14a82
+      image: icn.ocir.io/cndxe828mdvf/userservice:1028
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/userservice@sha256:f996f46261e97d6a8c08a5a5c816fae3d5175978034a5f8d833eccf9c91b45d8
+      lastState: {}
+      name: container-user-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-12-20T11:14:09Z"
+    hostIP: 10.1.10.8
+    phase: Running
+    podIP: 10.244.0.154
+    podIPs:
+    - ip: 10.244.0.154
+    qosClass: BestEffort
+    startTime: "2021-12-20T11:14:01Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.144/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-11-24T06:40:36Z"
+    generateName: deployment-usersettings-service-5bb9b48b8c-
+    labels:
+      app: usersettings-service
+      pod-template-hash: 5bb9b48b8c
+    name: deployment-usersettings-service-5bb9b48b8c-9pmw2
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-usersettings-service-5bb9b48b8c
+      uid: cd3f1d92-cb46-4ddc-a9fd-5bf1d2599ba9
+    resourceVersion: "106196840"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-usersettings-service-5bb9b48b8c-9pmw2
+    uid: e900b5dd-b418-4044-8040-3d2517b813ce
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/usersettingsservice:796
+      imagePullPolicy: Always
+      name: container-usersettings-service
+      ports:
+      - containerPort: 4020
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.10.8
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:36Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:40Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:40Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:36Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://63bd9ac67ca634011cb788e5e9b0d230ca319ca81843eb32d089d0ea88176b19
+      image: icn.ocir.io/cndxe828mdvf/usersettingsservice:796
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/usersettingsservice@sha256:97433f59f0025c4ed8d0f74bcdd9f1b79d9afa3bc3eb05d80555e44d53511b80
+      lastState: {}
+      name: container-usersettings-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-11-24T06:40:39Z"
+    hostIP: 10.1.10.8
+    phase: Running
+    podIP: 10.244.0.144
+    podIPs:
+    - ip: 10.244.0.144
+    qosClass: BestEffort
+    startTime: "2021-11-24T06:40:36Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.90/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-11-24T06:40:36Z"
+    generateName: deployment-vendor-service-99c56cb8d-
+    labels:
+      app: vendor-service
+      pod-template-hash: 99c56cb8d
+    name: deployment-vendor-service-99c56cb8d-d426s
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-vendor-service-99c56cb8d
+      uid: d215ab11-80e1-4880-ab3c-91a9d0aa1f54
+    resourceVersion: "106196986"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-vendor-service-99c56cb8d-d426s
+    uid: 7795cc3c-214f-4e1a-a8c3-7979a0d2004c
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      image: icn.ocir.io/cndxe828mdvf/vendorservice:363
+      imagePullPolicy: Always
+      name: container-vendor-service
+      ports:
+      - containerPort: 4030
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.20.26
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:36Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:40Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:40Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:36Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://63608d1e6dc0ac7c72b489e2934c24b2da43b771dc1925db7055de28327673df
+      image: icn.ocir.io/cndxe828mdvf/vendorservice:363
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/vendorservice@sha256:6f780a5d42a8d975180c28a8ba19b388cd0bcc3b07222058624273fc54d9498b
+      lastState: {}
+      name: container-vendor-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-11-24T06:40:39Z"
+    hostIP: 10.1.20.26
+    phase: Running
+    podIP: 10.244.0.90
+    podIPs:
+    - ip: 10.244.0.90
+    qosClass: BestEffort
+    startTime: "2021-11-24T06:40:36Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.147/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-11-24T08:03:50Z"
+    generateName: deployment-web-service-5fdc67c8b-
+    labels:
+      app: web-service
+      pod-template-hash: 5fdc67c8b
+    name: deployment-web-service-5fdc67c8b-n28x8
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-web-service-5fdc67c8b
+      uid: 87520278-3ea4-48ce-b579-23550af2271c
+    resourceVersion: "106221369"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-web-service-5fdc67c8b-n28x8
+    uid: 62f721ad-43a0-48f7-aa72-589b875d30e7
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      - name: MOIMSTONE_ENDPOINT
+        value: https://sm-test.moimstone.com
+      image: icn.ocir.io/cndxe828mdvf/web:3290
+      imagePullPolicy: Always
+      name: container-web-service
+      ports:
+      - containerPort: 80
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.10.8
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T08:03:50Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T08:05:15Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T08:05:15Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T08:03:50Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://7ff984ad6a319bd956f048a0027121c3ff3ff0a17974e9530f48c7b5c1623f13
+      image: icn.ocir.io/cndxe828mdvf/web:3290
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/web@sha256:c5edd9722052e1d5966685710ab36cf0595c1acdfcd0ba9cef410c9253595abb
+      lastState: {}
+      name: container-web-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-11-24T08:05:15Z"
+    hostIP: 10.1.10.8
+    phase: Running
+    podIP: 10.244.0.147
+    podIPs:
+    - ip: 10.244.0.147
+    qosClass: BestEffort
+    startTime: "2021-11-24T08:03:50Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.145/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-11-24T06:40:36Z"
+    generateName: deployment-web2-service-86cdbd9f96-
+    labels:
+      app: web2-service
+      pod-template-hash: 86cdbd9f96
+    name: deployment-web2-service-86cdbd9f96-l2x2l
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-web2-service-86cdbd9f96
+      uid: 9f855de5-9be9-4959-9570-0368df9f7f9e
+    resourceVersion: "106196874"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-web2-service-86cdbd9f96-l2x2l
+    uid: 610b6cb1-9945-49c1-9476-0d79646754b5
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      - name: MOIMSTONE_ENDPOINT
+        value: https://sm-test.moimstone.com
+      image: icn.ocir.io/cndxe828mdvf/web:3263
+      imagePullPolicy: Always
+      name: container-web2-service
+      ports:
+      - containerPort: 80
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.10.8
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:37Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:40Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:40Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:37Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://fb962ecf989e246f5db177463a2666d3c7e99b65baac049f9414ebce3a74e385
+      image: icn.ocir.io/cndxe828mdvf/web:3263
+      imageID: docker-pullable://icn.ocir.io/cndxe828mdvf/web@sha256:95991d1b87ec9941882ac3b821d497010f718eda15c77232215a2b9f2f0b298b
+      lastState: {}
+      name: container-web2-service
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-11-24T06:40:39Z"
+    hostIP: 10.1.10.8
+    phase: Running
+    podIP: 10.244.0.145
+    podIPs:
+    - ip: 10.244.0.145
+    qosClass: BestEffort
+    startTime: "2021-11-24T06:40:37Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.94/32
+    creationTimestamp: "2021-12-13T06:09:22Z"
+    generateName: deployment-weblanding-service-5fb868f8cb-
+    labels:
+      app: weblanding-service
+      pod-template-hash: 5fb868f8cb
+    name: deployment-weblanding-service-5fb868f8cb-8wb29
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-weblanding-service-5fb868f8cb
+      uid: 7ac062ed-ff22-4d19-9080-a61c63183ee6
+    resourceVersion: "129361320"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-weblanding-service-5fb868f8cb-8wb29
+    uid: d360a6af-ea40-4268-b947-2ff1f3b8578a
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      - name: MOIMSTONE_ENDPOINT
+        value: https://sm-test.moimstone.com
+      image: icn.ocir.io/cndxe828mdvf/web:921
+      imagePullPolicy: Always
+      name: container-weblanding-service
+      ports:
+      - containerPort: 80
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.20.26
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-13T06:09:22Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-13T06:09:22Z"
+      message: 'containers with unready status: [container-weblanding-service]'
+      reason: ContainersNotReady
+      status: "False"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-13T06:09:22Z"
+      message: 'containers with unready status: [container-weblanding-service]'
+      reason: ContainersNotReady
+      status: "False"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-13T06:09:22Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - image: icn.ocir.io/cndxe828mdvf/web:921
+      imageID: ""
+      lastState: {}
+      name: container-weblanding-service
+      ready: false
+      restartCount: 0
+      started: false
+      state:
+        waiting:
+          message: Back-off pulling image "icn.ocir.io/cndxe828mdvf/web:921"
+          reason: ImagePullBackOff
+    hostIP: 10.1.20.26
+    phase: Pending
+    podIP: 10.244.0.94
+    podIPs:
+    - ip: 10.244.0.94
+    qosClass: BestEffort
+    startTime: "2021-12-13T06:09:22Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.96/32
+    creationTimestamp: "2021-12-13T07:43:40Z"
+    generateName: deployment-weblanding-service-67676c9b55-
+    labels:
+      app: weblanding-service
+      pod-template-hash: 67676c9b55
+    name: deployment-weblanding-service-67676c9b55-g9p5t
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: deployment-weblanding-service-67676c9b55
+      uid: 4b38faa0-9c59-4f3a-babe-7ed7d74d4087
+    resourceVersion: "129360086"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/deployment-weblanding-service-67676c9b55-g9p5t
+    uid: 2bdb8b82-f527-40ed-bdcd-a45bc11ce99d
+  spec:
+    containers:
+    - env:
+      - name: NM_CLOUD_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            key: encryptedvalue
+            name: deploy-env
+      - name: MOIMSTONE_ENDPOINT
+        value: https://sm-test.moimstone.com
+      image: icn.ocir.io/cndxe828mdvf/web:924
+      imagePullPolicy: Always
+      name: container-weblanding-service
+      ports:
+      - containerPort: 80
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: regcred
+    nodeName: 10.1.20.26
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-13T07:43:40Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-13T07:43:40Z"
+      message: 'containers with unready status: [container-weblanding-service]'
+      reason: ContainersNotReady
+      status: "False"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-13T07:43:40Z"
+      message: 'containers with unready status: [container-weblanding-service]'
+      reason: ContainersNotReady
+      status: "False"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-12-13T07:43:40Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - image: icn.ocir.io/cndxe828mdvf/web:924
+      imageID: ""
+      lastState: {}
+      name: container-weblanding-service
+      ready: false
+      restartCount: 0
+      started: false
+      state:
+        waiting:
+          message: Back-off pulling image "icn.ocir.io/cndxe828mdvf/web:924"
+          reason: ImagePullBackOff
+    hostIP: 10.1.20.26
+    phase: Pending
+    podIP: 10.244.0.96
+    podIPs:
+    - ip: 10.244.0.96
+    qosClass: BestEffort
+    startTime: "2021-12-13T07:43:40Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.243/32
+    creationTimestamp: "2021-03-29T06:39:05Z"
+    labels:
+      run: my-release-mariadb-client
+    name: my-release-mariadb-client
+    namespace: smartwork-test
+    resourceVersion: "7514934"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/my-release-mariadb-client
+    uid: 85242751-df24-47d0-a934-3e38a418f6e0
+  spec:
+    containers:
+    - command:
+      - bash
+      image: docker.io/bitnami/mariadb:10.5.8-debian-10-r21
+      imagePullPolicy: IfNotPresent
+      name: my-release-mariadb-client
+      resources: {}
+      stdin: true
+      stdinOnce: true
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      tty: true
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.1.10.8
+    priority: 0
+    restartPolicy: Never
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-03-29T06:39:06Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-03-29T06:39:07Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-03-29T06:39:07Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-03-29T06:39:06Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://11272cf97f70365bf4837526fdb70fbf8b4044b11447e7b7f6009e045f9571a0
+      image: bitnami/mariadb:10.5.8-debian-10-r21
+      imageID: docker-pullable://bitnami/mariadb@sha256:0b127a13fcf11925312a42890103f7bcce06e9c57c2090691e725ceb1bf4e072
+      lastState: {}
+      name: my-release-mariadb-client
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-03-29T06:39:07Z"
+    hostIP: 10.1.10.8
+    phase: Running
+    podIP: 10.244.0.243
+    podIPs:
+    - ip: 10.244.0.243
+    qosClass: BestEffort
+    startTime: "2021-03-29T06:39:06Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/podIP: 10.244.0.146/32
+      kubectl.kubernetes.io/restartedAt: "2021-11-24T15:40:32+09:00"
+    creationTimestamp: "2021-11-24T06:40:37Z"
+    generateName: web-7794f48c84-
+    labels:
+      app: web
+      pod-template-hash: 7794f48c84
+    name: web-7794f48c84-m5wwl
+    namespace: smartwork-test
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: web-7794f48c84
+      uid: 2ce49f75-8459-4a0a-8382-59b001056298
+    resourceVersion: "106197053"
+    selfLink: /api/v1/namespaces/smartwork-test/pods/web-7794f48c84-m5wwl
+    uid: cd23637f-3296-49a7-b32f-ab37523ef2dd
+  spec:
+    containers:
+    - image: gcr.io/google-samples/hello-app:1.0
+      imagePullPolicy: IfNotPresent
+      name: hello-app
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-vqmxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.1.10.8
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: default-token-vqmxp
+      secret:
+        defaultMode: 420
+        secretName: default-token-vqmxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:37Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:40Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:40Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-11-24T06:40:37Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://0e7aca72b60a2f6fc6655e14c6aae2c25d9bf4635258643807987df8c42b2a8d
+      image: gcr.io/google-samples/hello-app:1.0
+      imageID: docker-pullable://gcr.io/google-samples/hello-app@sha256:c62ead5b8c15c231f9e786250b07909daf6c266d0fcddd93fea882eb722c3be4
+      lastState: {}
+      name: hello-app
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-11-24T06:40:39Z"
+    hostIP: 10.1.10.8
+    phase: Running
+    podIP: 10.244.0.146
+    podIPs:
+    - ip: 10.244.0.146
+    qosClass: BestEffort
+    startTime: "2021-11-24T06:40:37Z"
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""
