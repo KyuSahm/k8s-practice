@@ -4866,3 +4866,178 @@ gusami@master:~$ kubectl delete jobs.batch centos-job
 job.batch "centos-job" deleted
 ```
 ### CronJob Controller
+- **CronJob Controller 안에는 Job Controller 기능이 포함이 됨**
+- CronJob Controller는 사용자가 원하는 시간에 Job Controller가 실행되도록 함(예약 지원)
+- Job Controller로 실행 할 Application Pod를 주기적으로 반복해서 실행되도록 함
+- Linux의 cronjob의 스케줄링 기능을 Job Controller에 추가한 API
+- 다음과 같이 반복해서 실행하는 Job를 운영해야 할 때 사용
+  - Data Backup
+  - Send email
+  - Cleaning tasks
+
+![CronJobController](./images/CronJobController.png)  
+- Cronjob Schedule: " 0 23 31 * *" (5개의 숫자로 구성 - 분 시 일 달 요일)
+  - Minutes (from 0 to 59)
+  - Hours (from 0 to 23)
+  - Day of the month (from 1 to 31)
+  - Month (from 1 to 12)
+  - Day of the week (from 0 to 6)
+    - ``1-5``: 월요일 ~ 금요일 (주중)
+    - ``0,6``: 일요일,토요일 (주말)
+  - ``*``는 전체를 의미
+  - ``*/step``는 매 step 마다 반복 설정
+
+![CronJobSchedule_1](./images/CronJobSchedule_1.png)
+![CronJobSchedule_2](./images/CronJobSchedule_2.png)
+![CronJobSchedule_3](./images/CronJobSchedule_3.png)
+![CronJobSchedule_4](./images/CronJobSchedule_4.png)
+![CronJobSchedule_5](./images/CronJobSchedule_5.png)
+- CronJob Definition Vs Job Definition
+
+![CronJobVsJob](./images/CronJobVsJob.png)
+- CronJob Example
+  - 옵션 관련 링크: https://waspro.tistory.com/644
+  - ``concurrencyPolicy``
+    - ``Allow``: 기본값. 한번에 여러 개의 Job이 동시 실행 가능
+    - ``Forbid``: 한번에 하나의 Job이 동시 실행 가능
+    - 예를 들어, 1분마다 실행하는 Job이 80초 걸리면, 두 개의 Job이 겹칠 수 있음
+      - ``Allow``: 새로운 Job이 실행한 후, 1분이 지나면 새로운 Job이 실행
+      - ``Forbid``: 새로운 Job이 실행한 후, 1분이 지나도 새로운 Job이 실행 불가 (동시성 발생 불가)
+  - ``startingDeadlineSeconds``: 어떤 이유로든 스케줄된 시간을 놓친 경우, Job의 시작 기한을 초 단위로 표현    
+    - 기본값: 기본 값은 startingDeadlineSeconds가 구성되어 있지 않고 concurrencyPolicy가 Allow 상태. CronJob Controller는 LAST SCHEDULE로부터 지금까지 얼마나 많이 Job이 누락되었는지 확인. 만약, 100회 이상의 일정이 누락되었다면, 더이상 Job을 실행하지 않고 에러 로그를 남김 (로그: Cannot determine if job needs to be started. Too many missed start time (> 100). Set or decrease .spec.startingDeadlineSeconds or check clock skew.)
+    - ``startingDeadlineSeconds: 200``: startingDeadlineSeconds 필드가 설정이 되면, 컨트롤러는 LAST SCHEDULE부터 지금까지를 기준으로 하지 않고, startingDeadlineSeconds 값을 기준으로 몇 개의 Job이 누락되었는지 카운팅. (startingDeadlineSeconds 가 200 이면, 컨트롤러는 최근 200초 내 몇 개의 Job이 누락되었는지 카운팅)
+    - 예시: 기본 설정 상태에서 CronJob은 08:30:00 에 시작하여 매 분마다 새로운 Job을 실행하도록 설정이 되었고, startingDeadlineSeconds 값이 설정되어 있지 않는다고 가정해 보자. 만약, CronJob Controller가 08:29:00 부터 10:21:00 까지 장애가 발생했다면, 일정을 놓친 작업 수가 100개를 초과하여 더 이상 Job이 실행되지 않을 것이다. 반대로, CronJob이 08:30:00 부터 매 분 실행되는 일정으로 설정되고, startingDeadlineSeconds 이 200이라고 가정했을때, 동일한 장애가 발생했다면 (08:29:00 부터 10:21:00 까지), Job은 10:22:00 부터 재 시작될 것이다. 이 경우, 컨트롤러가 마지막 일정부터 지금까지가 아니라, 최근 200초 안에 얼마나 Job을 놓쳤는지 체크하기 때문이다. (3분 20초 이므로 여기서는 3번 놓쳤다고 체크함.) 이 두가지 조합을 기반으로 CronJob의 Fail 상태를 관리할 수 있다.
+```bash
+# define cron job controller
+gusami@master:~$cat cronjob-exam.yaml 
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cronjob-exam
+spec:
+  schedule: "* * * * *"
+  startingDeadlineSeconds: 500
+#  concurrencyPolicy: Allow
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: hello
+            image: busybox
+            args:
+            - /bin/sh
+            - -c
+            - echo Hello; sleep 10; echo Bye
+          restartPolicy: Never
+# create cron job          
+gusami@master:~$kubectl create -f cronjob-exam.yaml 
+cronjob.batch/cronjob-exam created
+# 매분마다 새로운 job이 실행되고, Completed되는 것을 확인할 수 있음
+gusami@master:~$kubectl get pods -o wide
+NAME                             READY   STATUS              RESTARTS   AGE   IP       NODE       NOMINATED NODE   READINESS GATES
+cronjob-exam-27400937--1-qs4f6   0/1     ContainerCreating   0          0s    <none>   worker-2   <none>           <none>
+gusami@master:~$kubectl get pods -o wide
+NAME                             READY   STATUS      RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+cronjob-exam-27400937--1-qs4f6   0/1     Completed   0          26s   10.36.0.1   worker-2   <none>           <none>
+gusami@master:~$kubectl get pods -o wide
+NAME                             READY   STATUS      RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+cronjob-exam-27400937--1-qs4f6   0/1     Completed   0          72s   10.36.0.1   worker-2   <none>           <none>
+cronjob-exam-27400938--1-d9csn   1/1     Running     0          12s   10.40.0.1   worker-3   <none>           <none>
+gusami@master:~$kubectl get pods -o wide
+NAME                             READY   STATUS      RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+cronjob-exam-27400937--1-qs4f6   0/1     Completed   0          2m16s   10.36.0.1   worker-2   <none>           <none>
+cronjob-exam-27400938--1-d9csn   0/1     Completed   0          76s     10.40.0.1   worker-3   <none>           <none>
+cronjob-exam-27400939--1-7x4st   1/1     Running     0          16s     10.36.0.1   worker-2   <none>           <none>
+# 현재 등록된 cron job 확인
+gusami@master:~$kubectl get cronjobs.batch
+NAME           SCHEDULE    SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+cronjob-exam   * * * * *   False     0        33s             5m38s
+# 현재 등록된 cron job 확인 (yaml format)
+# successfulJobsHistoryLimit의 기본값이 3이므로, 매분마다 실행되고, 관련된 history는 최근 3회까지만 남음
+gusami@master:~$kubectl get cronjobs.batch -o yaml
+apiVersion: v1
+items:
+- apiVersion: batch/v1
+  kind: CronJob
+  metadata:
+    creationTimestamp: "2022-02-05T10:16:55Z"
+    generation: 1
+    name: cronjob-exam
+    namespace: product
+    resourceVersion: "160238"
+    uid: 25c00e27-a3ff-4a83-8c94-5566703bbdc6
+  spec:
+    concurrencyPolicy: Forbid
+    failedJobsHistoryLimit: 1
+    jobTemplate:
+      metadata:
+        creationTimestamp: null
+      spec:
+        template:
+          metadata:
+            creationTimestamp: null
+          spec:
+            containers:
+            - args:
+              - /bin/sh
+              - -c
+              - echo Hello; sleep 10; echo Bye
+              image: busybox
+              imagePullPolicy: Always
+              name: hello
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+            dnsPolicy: ClusterFirst
+            restartPolicy: Never
+            schedulerName: default-scheduler
+            securityContext: {}
+            terminationGracePeriodSeconds: 30
+    schedule: '* * * * *'
+    startingDeadlineSeconds: 500
+    successfulJobsHistoryLimit: 3
+    suspend: false
+  status:
+    active:
+    - apiVersion: batch/v1
+      kind: Job
+      name: cronjob-exam-27400941
+      namespace: product
+      resourceVersion: "160237"
+      uid: 5fd9e272-113e-41e7-b702-353e4c7ae8c3
+    lastScheduleTime: "2022-02-05T10:21:00Z"
+    lastSuccessfulTime: "2022-02-05T10:20:17Z"
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""
+# 성공한 Job(Pod)에 대한 정보가 최근 3회까지만 남는 것을 확인
+gusami@master:~$kubectl get pods -o wide
+NAME                             READY   STATUS      RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+cronjob-exam-27400938--1-d9csn   0/1     Completed   0          2m46s   10.40.0.1   worker-3   <none>           <none>
+cronjob-exam-27400939--1-7x4st   0/1     Completed   0          106s    10.36.0.1   worker-2   <none>           <none>
+cronjob-exam-27400940--1-7xtfx   0/1     Completed   0          46s     10.44.0.1   worker-1   <none>           <none>
+gusami@master:~$kubectl get pods -o wide
+NAME                             READY   STATUS      RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+cronjob-exam-27400941--1-btmv2   0/1     Completed   0          2m38s   10.36.0.1   worker-2   <none>           <none>
+cronjob-exam-27400942--1-vjwcj   0/1     Completed   0          98s     10.40.0.1   worker-3   <none>           <none>
+cronjob-exam-27400943--1-8l9lj   0/1     Completed   0          38s     10.40.0.1   worker-3   <none>           <none>
+gusami@master:~$kubectl get pods -o wide
+NAME                             READY   STATUS      RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+cronjob-exam-27400942--1-vjwcj   0/1     Completed   0          2m56s   10.40.0.1   worker-3   <none>           <none>
+cronjob-exam-27400943--1-8l9lj   0/1     Completed   0          116s    10.40.0.1   worker-3   <none>           <none>
+cronjob-exam-27400944--1-7fw2s   0/1     Completed   0          56s     10.44.0.1   worker-1   <none>           <none>
+# cron job 삭제
+gusami@master:~$kubectl delete cronjob cronjob-exam 
+cronjob.batch "cronjob-exam" deleted
+```
+### Controller 총정리
+- Replication Controller
+- ReplicaSet: Replication Controller + 풍부한 Label 지원
+- Deployment: ReplicaSet을 제어해서 Rolling Update/Rolling Back를 지원 
+- DaemonSet: Node당 1개씩 실행되도록 보장! (log agent, Monitoring application)
+- StatefulSet: Pod의 이름을 보장!
+- Job: Batch 처리를 위한 controller (Pod의 정상적인 종료를 관리!)
+- CronJob: Job을 스케줄링 예약 사용 지원
