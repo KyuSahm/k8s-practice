@@ -5043,6 +5043,8 @@ cronjob.batch "cronjob-exam" deleted
 - CronJob: Job을 스케줄링 예약 사용 지원
 
 ## Service
+- **Services, Load Balancing, and Networking 링크 (정말 중요)**
+  - https://kubernetes.io/docs/concepts/services-networking/
 ### Service Concept
 - 동일한 서비스를 제공하는 **Pod 그룹의 단일 진입점(Virtual IP)**을 제공 (ClusterIP 기준으로 설명)
   - Pod들이 각기 다른 IP를 가지고 서비스를 제공하지만, 하나의 IP로 묶어서 단일 진입점 제공
@@ -5070,13 +5072,13 @@ cronjob.batch "cronjob-exam" deleted
   - ClusterIP가 기본적으로 생성한 후, 모든 Worker Node에 외부에서 접속가능한 Port가 Open
   - ClusterIP + External Port Open on Worker Node
   - 사용자가 특정 Worker node의 Port로 접속하면, 서비스로 등록된 Pod들로 균일하게 연결
-![Service_Type_NodePort](./images/Service_Type_NodePort.png)  
+  ![Service_Type_NodePort](./images/Service_Type_NodePort.png)  
 - Type 3. LoadBalancer
   - ClusterIP가 기본적으로 생성한 후, 모든 Worker Node에 외부에서 접속가능한 Port가 Open하고, 외부에 존재하는 LoadBalancer(실제 장비)와 연결
   - LoadBalancer를 통하면 Worker node들에 Open된 Port에 균일하게 분배되어 접속
   - ClusterIP + External Port Open on Worker Node + External LoadBalancer
   - LoadBalancer는 Cloud Infrastructer(AWS, Azure etc)나 Open Stack Cloud에서만 사용 가능
-![Service_Type_LoadBalancer](./images/Service_Type_LoadBalancer.png)  
+  ![Service_Type_LoadBalancer](./images/Service_Type_LoadBalancer.png)  
 - Type 4. ExternalName  
   - Cluster 안에서 외부로 접속 시, 사용할 도메인을 등록해서 사용
   - Cluster Domain이 실제 외부 Domain으로 치환되어 동작
@@ -5085,6 +5087,305 @@ cronjob.batch "cronjob-exam" deleted
     - Pod의 Container 내부에서 Cluster Domain을 사용하면, 외부 Domain으로 바뀌어서 외부로 접속 가능
     - 마치, Cluster 내부의 DNS 서비스 역할을 제공
 
-### Service 사용하기
+### Service 4가지 Type 사용하기
+#### Service Type1: ClusterIP
+- selector의 label이 동일한 Pod들을 그룹으로 묶어 내부에서 단일 진입점(Virtual IP)을 생성
+- Cluster 내부에서만 사용 가능 (외부로 노출 안됨)
+- service type 생략시 default값으로 할당
+- Virtual IP는 10.96.0.0/12 범위에서 랜덤하게 할당됨. 고정할 수도 있음
+  - 일반적으로 고정시키지 않는 않는 이유: 충돌을 예방하기 위해!
+
+![Service_Type_ClusterIP](./images/Service_Type_ClusterIP.png)
+- Service Example: ClusterIP
+  - **Service를 생성하기 전에 Application Pod가 먼저 동작하고 있어야 함**
+
+![ClusterIP_Example](./images/ClusterIP_Example.png)
+```bash
+# define deployment controller
+gusami@master:~$cat > deploy-nginx.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webui
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webui
+  template:
+    metadata:
+      name: nginx-pod
+      labels:
+        app: webui
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.14
+# create deployment controller        
+gusami@master:~$kubectl create -f deploy-nginx.yaml 
+deployment.apps/webui created
+# Deployment controller로 생성된 Pod 확인
+# Pod의 IP는 Weave Net works에 의해 결정됨        
+gusami@master:~$kubectl get pods -o wide
+NAME                     READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+webui-6d4c4cc4b8-6b882   1/1     Running   0          17s   10.40.0.1   worker-3   <none>           <none>
+webui-6d4c4cc4b8-8pblz   1/1     Running   0          17s   10.36.0.1   worker-2   <none>           <none>
+webui-6d4c4cc4b8-rx69q   1/1     Running   0          17s   10.44.0.1   worker-1   <none>           <none>
+# Define clusterIP Service Type 
+gusami@master:~$cat > clusterip-nginx.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: clusterip-service
+spec:
+  type: ClusterIP
+  clusterIP: 10.100.100.100
+  selector:
+    app: webui
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+# create clusterIP Service    
+gusami@master:~$kubectl create -f clusterip-nginx.yaml 
+service/clusterip-service created
+# 생성된 service 확인.
+# External-IP의 경우, 아래의 "Exposing an External IP Address to Access an Application in a Cluster" 섹션 참고
+gusami@master:~$kubectl get services -o wide
+NAME                TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE   SELECTOR
+clusterip-service   ClusterIP   10.100.100.100   <none>        80/TCP    16s   app=webui
+# 생성된 service의 세부 사항 확인
+gusami@master:~$kubectl describe service clusterip-service 
+Name:              clusterip-service
+Namespace:         product
+Labels:            <none>
+Annotations:       <none>
+Selector:          app=webui
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                10.100.100.100
+IPs:               10.100.100.100
+Port:              <unset>  80/TCP
+TargetPort:        80/TCP
+Endpoints:         10.36.0.1:80,10.40.0.1:80,10.44.0.1:80
+Session Affinity:  None
+Events:            <none>
+# 내부에서 Virtual IP를 통해 서비스에 접속해 보기
+# 여러 EndPoints 들 중 하나에 접속
+gusami@master:~$curl 10.100.100.100
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+# 해당 서비스에 연결된 Pod 리스트 확인
+gusami@master:~$kubectl get pods -o wide
+NAME                     READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+webui-6d4c4cc4b8-6b882   1/1     Running   0          8m10s   10.40.0.1   worker-3   <none>           <none>
+webui-6d4c4cc4b8-8pblz   1/1     Running   0          8m10s   10.36.0.1   worker-2   <none>           <none>
+webui-6d4c4cc4b8-rx69q   1/1     Running   0          8m10s   10.44.0.1   worker-1   <none>           <none>
+# worker-1의 pod의 index.html 수정
+gusami@master:~$kubectl exec webui-6d4c4cc4b8-rx69q -it -- /bin/bash
+root@webui-6d4c4cc4b8-rx69q:/# echo "webui #1" > /usr/share/nginx/html/index.html 
+root@webui-6d4c4cc4b8-rx69q:/# exit
+exit
+# worker-2의 pod의 index.html 수정
+gusami@master:~$kubectl exec webui-6d4c4cc4b8-8pblz -it -- /bin/bash
+root@webui-6d4c4cc4b8-8pblz:/# echo "webui #2" > /usr/share/nginx/html/index.html 
+root@webui-6d4c4cc4b8-8pblz:/# exit
+exit
+# worker-3의 pod의 index.html 수정
+gusami@master:~$kubectl exec webui-6d4c4cc4b8-6b882 -it -- /bin/bash
+root@webui-6d4c4cc4b8-6b882:/# echo "webui #3" > /usr/share/nginx/html/index.html
+root@webui-6d4c4cc4b8-6b882:/# exit
+exit
+# load balancing가 제대로 되는지 curl 명령어를 통해 확인
+gusami@master:~$curl 10.100.100.100
+webui #1
+gusami@master:~$curl 10.100.100.100
+webui #3
+gusami@master:~$curl 10.100.100.100
+webui #1
+gusami@master:~$curl 10.100.100.100
+webui #2
+gusami@master:~$curl 10.100.100.100
+webui #1
+gusami@master:~$curl 10.100.100.100
+webui #2
+gusami@master:~$curl 10.100.100.100
+webui #3
+gusami@master:~$curl 10.100.100.100
+webui #3
+# Deployment Scale Out (3 =>5) 
+gusami@master:~$kubectl scale deployment webui --replicas=5
+deployment.apps/webui scaled
+# Service에 연결된 EndPoint도 자동으로 늘어남
+# Service를 중단할 필요가 없음
+gusami@master:~$kubectl describe service clusterip-service 
+Name:              clusterip-service
+Namespace:         product
+Labels:            <none>
+Annotations:       <none>
+Selector:          app=webui
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                10.100.100.100
+IPs:               10.100.100.100
+Port:              <unset>  80/TCP
+TargetPort:        80/TCP
+Endpoints:         10.36.0.1:80,10.40.0.1:80,10.40.0.2:80 + 2 more...
+Session Affinity:  None
+Events:            <none>
+# Deployment Scale In (5 =>3) 
+gusami@master:~$ kubectl scale deployment webui --replicas=3
+deployment.apps/webui scaled
+# Service에 연결된 EndPoint도 자동으로 늘어남
+# Service를 중단할 필요가 없음
+gusami@master:~$kubectl describe service clusterip-service 
+Name:              clusterip-service
+Namespace:         product
+Labels:            <none>
+Annotations:       <none>
+Selector:          app=webui
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                10.100.100.100
+IPs:               10.100.100.100
+Port:              <unset>  80/TCP
+TargetPort:        80/TCP
+Endpoints:         10.36.0.1:80,10.40.0.1:80,10.44.0.1:80
+Session Affinity:  None
+Events:            <none>
+```
+##### Exposing an External IP Address to Access an Application in a Cluster (참고 - LoadBalancer Type을 이용. Extenal Cloud Provider 환경에서만 동작)
+- 관련 링크: https://kubernetes.io/docs/tutorials/stateless-application/expose-external-ip-address/
+- This page shows how to create a Kubernetes Service object that exposes an external IP address
+- Before you begin
+  - Install ``kubectl``.
+  - Use a cloud provider like Google Kubernetes Engine or Amazon Web Services to create a Kubernetes cluster. This tutorial creates an [external load balancer](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/), which requires a cloud provider.
+  - Configure ``kubectl`` to communicate with your Kubernetes API server. **For instructions, see the documentation for your cloud provider**
+- Objectives
+  - Run five instances of a Hello World application.
+  - Create a Service object that exposes an external IP address.
+  - Use the Service object to access the running application.
+###### Creating a service for an application running in five pods
+- Step 01. Run a Hello World application in your cluster
+  - The below command creates a Deployment and an associated ReplicaSet. The ReplicaSet has five Pods each of which runs the Hello World application.
+```bash
+$cat > load-balancer-example.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: load-balancer-example
+  name: hello-world
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: load-balancer-example
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: load-balancer-example
+    spec:
+      containers:
+      - image: gcr.io/google-samples/node-hello:1.0
+        name: hello-world
+        ports:
+        - containerPort: 8080
+$kubectl apply -f load-balancer-example.yaml
+or        
+$kubectl apply -f https://k8s.io/examples/service/load-balancer-example.yaml
+```
+- Step 02. Display information about the Deployment
+```bash
+$kubectl get deployments hello-world
+$kubectl describe deployments hello-world
+```
+- Step 03. Display information about your ReplicaSet objects
+```bash
+$kubectl get replicasets
+$kubectl describe replicasets
+```
+- Step 04. **Create a Service object that exposes the deployment**
+  - Note: loadBalancer service type의 생성이 external cloud providers에서만 지원되므로, local에서는 아래의 명령어가 동작 안함
+```bash
+$kubectl expose deployment hello-world --type=LoadBalancer --name=my-service
+```
+- Step 05. Display information about the Service
+  - Note: **The type=LoadBalancer service is backed by external cloud providers**, which is not covered in this example, please refer to [this page](https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer) for the details.
+  - Note: If the external IP address is shown as ``<pending>``, wait for a minute and enter the same command again.
+```bash
+$kubectl get services my-service
+NAME         TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)    AGE
+my-service   LoadBalancer   10.3.245.137   104.198.205.71   8080/TCP   54s
+```
+- Step 06. Display detailed information about the Service
+  - Make a note of the external IP address (``LoadBalancer Ingress``) exposed by your service. In this example, the external IP address is 104.198.205.71. Also note the value of Port and NodePort. In this example, the ``Port`` is 8080 and the ``NodePort`` is 32377.
+```bash
+$kubectl describe services my-service
+Name:           my-service
+Namespace:      default
+Labels:         app.kubernetes.io/name=load-balancer-example
+Annotations:    <none>
+Selector:       app.kubernetes.io/name=load-balancer-example
+Type:           LoadBalancer
+IP:             10.3.245.137
+LoadBalancer Ingress:   104.198.205.71
+Port:           <unset> 8080/TCP
+NodePort:       <unset> 32377/TCP
+Endpoints:      10.0.0.6:8080,10.0.1.6:8080,10.0.1.7:8080 + 2 more...
+Session Affinity:   None
+Events:         <none>
+```
+- Step 07. In the preceding output, you can see that the service has several endpoints: ``10.0.0.6:8080,10.0.1.6:8080,10.0.1.7:8080 + 2 more``. These are internal addresses of the pods that are running the Hello World application. To verify these are pod addresses, enter this command:
+```bash
+$kubectl get pods --output=wide
+NAME                         ...  IP         NODE
+hello-world-2895499144-1jaz9 ...  10.0.1.6   gke-cluster-1-default-pool-e0b8d269-1afc
+hello-world-2895499144-2e5uh ...  10.0.1.8   gke-cluster-1-default-pool-e0b8d269-1afc
+hello-world-2895499144-9m4h1 ...  10.0.0.6   gke-cluster-1-default-pool-e0b8d269-5v7a
+hello-world-2895499144-o4z13 ...  10.0.1.7   gke-cluster-1-default-pool-e0b8d269-1afc
+hello-world-2895499144-segjf ...  10.0.2.5   gke-cluster-1-default-pool-e0b8d269-cpuc
+```
+- Step 08. Use the external IP address (``LoadBalancer Ingress``) to access the Hello World application
+  - ``<external-ip>`` is the external IP address (``LoadBalancer Ingress``) of your Service, and ``<port>`` is the value of Port in your Service description. If you are using ``minikube``, typing ``minikube service my-service`` will automatically open the Hello World application in a browser
+```bash
+$curl http://<external-ip>:<port>
+Hello Kubernetes!
+```
+- Step 09. Cleaning up
+```bash
+# To delete the Service, enter this command
+$kubectl delete services my-service
+# To delete the Deployment, the ReplicaSet, and the Pods that are running the Hello World application, enter this command
+$kubectl delete deployment hello-world
+```
+#### Service Type1: NodePort 
 ### Headless Service
 ### kube-proxy
+17:26
