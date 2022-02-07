@@ -5069,9 +5069,9 @@ cronjob.batch "cronjob-exam" deleted
 - Type 1. ClusterIP(default)
   - Pod 그룹의 단일 진입점(Virtual IP) 생성
 - Type 2. NodePort
-  - ClusterIP가 기본적으로 생성한 후, 모든 Worker Node에 외부에서 접속가능한 Port가 Open
+  - ClusterIP가 기본적으로 생성한 후, Master 및 모든 Worker Node에 외부에서 접속가능한 Port가 Open
   - ClusterIP + External Port Open on Worker Node
-  - 사용자가 특정 Worker node의 Port로 접속하면, 서비스로 등록된 Pod들로 균일하게 연결
+  - 사용자가 특정 Master 또는 Worker node의 Port로 접속하면, 서비스로 등록된 Pod들로 균일하게 연결
   ![Service_Type_NodePort](./images/Service_Type_NodePort.png)  
 - Type 3. LoadBalancer
   - ClusterIP가 기본적으로 생성한 후, 모든 Worker Node에 외부에서 접속가능한 Port가 Open하고, 외부에 존재하는 LoadBalancer(실제 장비)와 연결
@@ -5385,7 +5385,118 @@ $kubectl delete services my-service
 # To delete the Deployment, the ReplicaSet, and the Pods that are running the Hello World application, enter this command
 $kubectl delete deployment hello-world
 ```
-#### Service Type1: NodePort 
+#### Service Type2: NodePort
+- 모든 노드를 대상으로 **외부 접속 가능한 Port**를 예약
+  - Master Node와 Worker Node 모두에 대해서 해당 Port가 열림
+- Default NodePort 범위: 30000 ~ 32767. 사용자가 지정하지 않으면, 해당 범위의 값 중 하나가 할당
+- ClusterIP를 생성한 후, NodePort를 예약
+- ClusterIP + Opened Port on Each Node
+- ClusterIP는 내부용이지만, NodePort는 외부에서 접근할 수 있도록 해줌
+
+![Service_Type_NodePort_1](./images/Service_Type_NodePort_1.png)
+- NodePort Example
+  - ``nodePort``: 생략하면 30000 ~ 32767 범위에서 자동 할당. 사용자가 지정 가능.
+
+![NodePort_Example](./images/NodePort_Example.png)
+```bash
+# deployment controller 생성(정의는 바로 전 섹션에 존재)
+gusami@master:~$kubectl create -f deploy-nginx.yaml 
+deployment.apps/webui created
+# deployment controller에 의해 생성된 Pod 확인
+gusami@master:~$kubectl get pods
+NAME                     READY   STATUS    RESTARTS   AGE
+webui-6d4c4cc4b8-7dpqr   1/1     Running   0          6s
+webui-6d4c4cc4b8-fp4n8   1/1     Running   0          6s
+webui-6d4c4cc4b8-sw8hv   1/1     Running   0          6s
+# nodeport service 정의
+gusami@master:~$cat > nodeport-nginx.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodeport-service
+spec:
+  type: NodePort
+  clusterIP: 10.100.100.200
+  selector:
+    app: webui
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+    nodePort: 30200
+# Create NodePort Service    
+gusami@master:~$kubectl create -f nodeport-nginx.yaml 
+service/nodeport-service created
+# 생성된 서비스 확인. Worker Node들의 30200 Port가 열림
+gusami@master:~$kubectl get services
+NAME               TYPE       CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+nodeport-service   NodePort   10.100.100.200   <none>        80:30200/TCP   7s
+# Master node의 30200 포트 확인 
+gusami@master:~$netstat -antup | grep 30200
+(Not all processes could be identified, non-owned process info
+ will not be shown, you would have to be root to see it all.)
+tcp        0      0 0.0.0.0:30200           0.0.0.0:*               LISTEN      -
+# Worker-1 node의 30200 포트 확인 
+gusami@worker-1:~$netstat -antup | grep 30200
+(Not all processes could be identified, non-owned process info
+ will not be shown, you would have to be root to see it all.)
+tcp        0      0 0.0.0.0:30200           0.0.0.0:*               LISTEN      -
+# Worker-2 node의 30200 포트 확인 
+gusami@worker-2:~$netstat -antup | grep 30200
+(Not all processes could be identified, non-owned process info
+ will not be shown, you would have to be root to see it all.)
+tcp        0      0 0.0.0.0:30200           0.0.0.0:*               LISTEN      -    
+# Worker-3 node의 30200 포트 확인
+gusami@worker-3:~$netstat -antup | grep 30200
+(Not all processes could be identified, non-owned process info
+ will not be shown, you would have to be root to see it all.)
+tcp        0      0 0.0.0.0:30200           0.0.0.0:*               LISTEN      -
+# Master node와 worker node의 30200 Port로 접속해서 테스트 진행
+gusami@k8s-ubuntu:~$ curl 10.0.1.4:30200
+webui #3
+gusami@k8s-ubuntu:~$ curl 10.0.1.4:30200
+webui #1
+gusami@k8s-ubuntu:~$ curl 10.0.1.4:30200
+webui #1
+gusami@k8s-ubuntu:~$ curl 10.0.1.5:30200
+webui #3
+gusami@k8s-ubuntu:~$ curl 10.0.1.5:30200
+webui #3
+gusami@k8s-ubuntu:~$ curl 10.0.1.5:30200
+webui #3
+gusami@k8s-ubuntu:~$ curl 10.0.1.5:30200
+webui #1
+gusami@k8s-ubuntu:~$ curl 10.0.1.6:30200
+webui #3
+gusami@k8s-ubuntu:~$ curl 10.0.1.6:30200
+webui #1
+gusami@k8s-ubuntu:~$ curl 10.0.1.6:30200
+webui #3
+gusami@k8s-ubuntu:~$ curl 10.0.1.6:30200
+webui #3
+gusami@k8s-ubuntu:~$ curl 10.0.1.7:30200
+webui #2
+gusami@k8s-ubuntu:~$ curl 10.0.1.7:30200
+webui #2
+gusami@k8s-ubuntu:~$ curl 10.0.1.7:30200
+webui #1
+gusami@k8s-ubuntu:~$ curl 10.0.1.7:30200
+webui #2
+gusami@k8s-ubuntu:~$ curl 10.0.1.6:30200
+webui #1
+gusami@k8s-ubuntu:~$ curl 10.0.1.6:30200
+webui #1
+gusami@k8s-ubuntu:~$ curl 10.0.1.6:30200
+webui #1
+gusami@k8s-ubuntu:~$ curl 10.0.1.4:30200
+webui #2 
+```
+#### Service Type3: LoadBalancer
+- **Public Cloud(AWS, Azure, GCP등)에서만 운영 가능**
+- LoadBalancer를 자동으로 구성 요청
+  - LoadBalancer는 Public Cloud에서 외부로 Open된 IP를 가지고 구성
+  - 사용자가 외부로 Open된 IP를 가진 LoadBalancer에 접속하면, Master, Worker Node들의 NodePort 중 하나로 연결
+- NodePort를 예약한 후, 해당 NodePort로 외부 접근을 허용
 ### Headless Service
 ### kube-proxy
-17:26
+24:50
