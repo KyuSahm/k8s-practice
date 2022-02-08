@@ -5280,111 +5280,6 @@ Endpoints:         10.36.0.1:80,10.40.0.1:80,10.44.0.1:80
 Session Affinity:  None
 Events:            <none>
 ```
-##### Exposing an External IP Address to Access an Application in a Cluster (참고 - LoadBalancer Type을 이용. Extenal Cloud Provider 환경에서만 동작)
-- 관련 링크: https://kubernetes.io/docs/tutorials/stateless-application/expose-external-ip-address/
-- This page shows how to create a Kubernetes Service object that exposes an external IP address
-- Before you begin
-  - Install ``kubectl``.
-  - Use a cloud provider like Google Kubernetes Engine or Amazon Web Services to create a Kubernetes cluster. This tutorial creates an [external load balancer](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/), which requires a cloud provider.
-  - Configure ``kubectl`` to communicate with your Kubernetes API server. **For instructions, see the documentation for your cloud provider**
-- Objectives
-  - Run five instances of a Hello World application.
-  - Create a Service object that exposes an external IP address.
-  - Use the Service object to access the running application.
-###### Creating a service for an application running in five pods
-- Step 01. Run a Hello World application in your cluster
-  - The below command creates a Deployment and an associated ReplicaSet. The ReplicaSet has five Pods each of which runs the Hello World application.
-```bash
-$cat > load-balancer-example.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  labels:
-    app.kubernetes.io/name: load-balancer-example
-  name: hello-world
-spec:
-  replicas: 5
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: load-balancer-example
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: load-balancer-example
-    spec:
-      containers:
-      - image: gcr.io/google-samples/node-hello:1.0
-        name: hello-world
-        ports:
-        - containerPort: 8080
-$kubectl apply -f load-balancer-example.yaml
-or        
-$kubectl apply -f https://k8s.io/examples/service/load-balancer-example.yaml
-```
-- Step 02. Display information about the Deployment
-```bash
-$kubectl get deployments hello-world
-$kubectl describe deployments hello-world
-```
-- Step 03. Display information about your ReplicaSet objects
-```bash
-$kubectl get replicasets
-$kubectl describe replicasets
-```
-- Step 04. **Create a Service object that exposes the deployment**
-  - Note: loadBalancer service type의 생성이 external cloud providers에서만 지원되므로, local에서는 아래의 명령어가 동작 안함
-```bash
-$kubectl expose deployment hello-world --type=LoadBalancer --name=my-service
-```
-- Step 05. Display information about the Service
-  - Note: **The type=LoadBalancer service is backed by external cloud providers**, which is not covered in this example, please refer to [this page](https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer) for the details.
-  - Note: If the external IP address is shown as ``<pending>``, wait for a minute and enter the same command again.
-```bash
-$kubectl get services my-service
-NAME         TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)    AGE
-my-service   LoadBalancer   10.3.245.137   104.198.205.71   8080/TCP   54s
-```
-- Step 06. Display detailed information about the Service
-  - Make a note of the external IP address (``LoadBalancer Ingress``) exposed by your service. In this example, the external IP address is 104.198.205.71. Also note the value of Port and NodePort. In this example, the ``Port`` is 8080 and the ``NodePort`` is 32377.
-```bash
-$kubectl describe services my-service
-Name:           my-service
-Namespace:      default
-Labels:         app.kubernetes.io/name=load-balancer-example
-Annotations:    <none>
-Selector:       app.kubernetes.io/name=load-balancer-example
-Type:           LoadBalancer
-IP:             10.3.245.137
-LoadBalancer Ingress:   104.198.205.71
-Port:           <unset> 8080/TCP
-NodePort:       <unset> 32377/TCP
-Endpoints:      10.0.0.6:8080,10.0.1.6:8080,10.0.1.7:8080 + 2 more...
-Session Affinity:   None
-Events:         <none>
-```
-- Step 07. In the preceding output, you can see that the service has several endpoints: ``10.0.0.6:8080,10.0.1.6:8080,10.0.1.7:8080 + 2 more``. These are internal addresses of the pods that are running the Hello World application. To verify these are pod addresses, enter this command:
-```bash
-$kubectl get pods --output=wide
-NAME                         ...  IP         NODE
-hello-world-2895499144-1jaz9 ...  10.0.1.6   gke-cluster-1-default-pool-e0b8d269-1afc
-hello-world-2895499144-2e5uh ...  10.0.1.8   gke-cluster-1-default-pool-e0b8d269-1afc
-hello-world-2895499144-9m4h1 ...  10.0.0.6   gke-cluster-1-default-pool-e0b8d269-5v7a
-hello-world-2895499144-o4z13 ...  10.0.1.7   gke-cluster-1-default-pool-e0b8d269-1afc
-hello-world-2895499144-segjf ...  10.0.2.5   gke-cluster-1-default-pool-e0b8d269-cpuc
-```
-- Step 08. Use the external IP address (``LoadBalancer Ingress``) to access the Hello World application
-  - ``<external-ip>`` is the external IP address (``LoadBalancer Ingress``) of your Service, and ``<port>`` is the value of Port in your Service description. If you are using ``minikube``, typing ``minikube service my-service`` will automatically open the Hello World application in a browser
-```bash
-$curl http://<external-ip>:<port>
-Hello Kubernetes!
-```
-- Step 09. Cleaning up
-```bash
-# To delete the Service, enter this command
-$kubectl delete services my-service
-# To delete the Deployment, the ReplicaSet, and the Pods that are running the Hello World application, enter this command
-$kubectl delete deployment hello-world
-```
 #### Service Type2: NodePort
 - 모든 노드를 대상으로 **외부 접속 가능한 Port**를 예약
   - Master Node와 Worker Node 모두에 대해서 해당 Port가 열림
@@ -5497,6 +5392,195 @@ webui #2
   - LoadBalancer는 Public Cloud에서 외부로 Open된 IP를 가지고 구성
   - 사용자가 외부로 Open된 IP를 가진 LoadBalancer에 접속하면, Master, Worker Node들의 NodePort 중 하나로 연결
 - NodePort를 예약한 후, 해당 NodePort로 외부 접근을 허용
+
+![Service_Type_LoadBalancer_2](./images/Service_Type_LoadBalancer_2.png)
+- LoadBalancer Example
+  - 각 Cloud의 LoadBalancer Service Example을 참조해서 생성해라!
+
+![LoadBalancer_Example](./images/LoadBalancer_Example.png)
+```bash
+# local에서 loadbalancer service를 생성해 봄. 동작 안함
+gusami@master:~$cat > loadbalancer-nginx.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: loadbalancer-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: webui
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+# CLUSTER IP (Virtual IP)가 자동 생성
+# NodePort(32732) 자동 생성
+# 만약, Cloud에서 생성하면 EXTERNAL-IP가 생성됨    
+gusami@master:~$kubectl get services
+NAME                   TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE
+loadbalancer-service   LoadBalancer   10.100.74.91   <pending>     80:32732/TCP   3s
+# 모든 서비스를 삭제
+gusami@master:~$kubectl delete service --all
+service "loadbalancer-service" deleted
+```
+##### Exposing an External IP Address to Access an Application in a Cluster (참고 - LoadBalancer Type을 이용. Extenal Cloud Provider 환경에서만 동작)
+- 관련 링크: https://kubernetes.io/docs/tutorials/stateless-application/expose-external-ip-address/
+- This page shows how to create a Kubernetes Service object that exposes an external IP address
+- Before you begin
+  - Install ``kubectl``.
+  - **Use a cloud provider like Google Kubernetes Engine or Amazon Web Services to create a Kubernetes cluster.** This tutorial creates an [external load balancer](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/), which requires a cloud provider.
+  - Configure ``kubectl`` to communicate with your Kubernetes API server. **For instructions, see the documentation for your cloud provider**
+- Objectives
+  - Run five instances of a Hello World application.
+  - Create a Service object that exposes an external IP address.
+  - Use the Service object to access the running application.
+###### Creating a service for an application running in five pods
+- Step 01. Run a Hello World application in your cluster
+  - The below command creates a Deployment and an associated ReplicaSet. The ReplicaSet has five Pods each of which runs the Hello World application.
+```bash
+$cat > load-balancer-example.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: load-balancer-example
+  name: hello-world
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: load-balancer-example
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: load-balancer-example
+    spec:
+      containers:
+      - image: gcr.io/google-samples/node-hello:1.0
+        name: hello-world
+        ports:
+        - containerPort: 8080
+$kubectl apply -f load-balancer-example.yaml
+or        
+$kubectl apply -f https://k8s.io/examples/service/load-balancer-example.yaml
+```
+- Step 02. Display information about the Deployment
+```bash
+$kubectl get deployments hello-world
+$kubectl describe deployments hello-world
+```
+- Step 03. Display information about your ReplicaSet objects
+```bash
+$kubectl get replicasets
+$kubectl describe replicasets
+```
+- Step 04. **Create a Service object that exposes the deployment**
+  - Note: loadBalancer service type의 생성이 external cloud providers에서만 지원되므로, local에서는 아래의 명령어가 동작 안함
+```bash
+$kubectl expose deployment hello-world --type=LoadBalancer --name=my-service
+```
+- Step 05. Display information about the Service
+  - Note: **The type=LoadBalancer service is backed by external cloud providers**, which is not covered in this example, please refer to [this page](https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer) for the details.
+  - Note: If the external IP address is shown as ``<pending>``, wait for a minute and enter the same command again.
+```bash
+$kubectl get services my-service
+NAME         TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)    AGE
+my-service   LoadBalancer   10.3.245.137   104.198.205.71   8080/TCP   54s
+```
+- Step 06. Display detailed information about the Service
+  - Make a note of the external IP address (``LoadBalancer Ingress``) exposed by your service. In this example, the external IP address is 104.198.205.71. Also note the value of Port and NodePort. In this example, the ``Port`` is 8080 and the ``NodePort`` is 32377.
+```bash
+$kubectl describe services my-service
+Name:           my-service
+Namespace:      default
+Labels:         app.kubernetes.io/name=load-balancer-example
+Annotations:    <none>
+Selector:       app.kubernetes.io/name=load-balancer-example
+Type:           LoadBalancer
+IP:             10.3.245.137
+LoadBalancer Ingress:   104.198.205.71
+Port:           <unset> 8080/TCP
+NodePort:       <unset> 32377/TCP
+Endpoints:      10.0.0.6:8080,10.0.1.6:8080,10.0.1.7:8080 + 2 more...
+Session Affinity:   None
+Events:         <none>
+```
+- Step 07. In the preceding output, you can see that the service has several endpoints: ``10.0.0.6:8080,10.0.1.6:8080,10.0.1.7:8080 + 2 more``. These are internal addresses of the pods that are running the Hello World application. To verify these are pod addresses, enter this command:
+```bash
+$kubectl get pods --output=wide
+NAME                         ...  IP         NODE
+hello-world-2895499144-1jaz9 ...  10.0.1.6   gke-cluster-1-default-pool-e0b8d269-1afc
+hello-world-2895499144-2e5uh ...  10.0.1.8   gke-cluster-1-default-pool-e0b8d269-1afc
+hello-world-2895499144-9m4h1 ...  10.0.0.6   gke-cluster-1-default-pool-e0b8d269-5v7a
+hello-world-2895499144-o4z13 ...  10.0.1.7   gke-cluster-1-default-pool-e0b8d269-1afc
+hello-world-2895499144-segjf ...  10.0.2.5   gke-cluster-1-default-pool-e0b8d269-cpuc
+```
+- Step 08. Use the external IP address (``LoadBalancer Ingress``) to access the Hello World application
+  - ``<external-ip>`` is the external IP address (``LoadBalancer Ingress``) of your Service, and ``<port>`` is the value of Port in your Service description. If you are using ``minikube``, typing ``minikube service my-service`` will automatically open the Hello World application in a browser
+```bash
+$curl http://<external-ip>:<port>
+Hello Kubernetes!
+```
+- Step 09. Cleaning up
+```bash
+# To delete the Service, enter this command
+$kubectl delete services my-service
+# To delete the Deployment, the ReplicaSet, and the Pods that are running the Hello World application, enter this command
+$kubectl delete deployment hello-world
+```
+#### Service Type4: ExternalName
+- Cluster 내부에서 External(외부)의 도메인을 설정
+- DNS를 지원
+- ``xxx.<namespace name>.svc.cluster.local``의 ``<namespace name>.svc.cluster.local``은 kubernetes가 사용하는 Domain 이름
+- etcd에 ``exterName:google.com``으로 등록한 후, **Pod**가 ``$curl externalname-svc.<namespace name>.svc.cluster.local``에 접속하면?
+  - Cluster 내부의 DNS 서비스를 통해 ``externalname-svc.<namespace name>.svc.cluster.local``가 ``google.com``으로 번역되어 구글 사이트에 접속 함
+- linux의 ``/etc/hosts``와 비슷한 역할을 수행한다고 이해하면 됨
+
+![Service_Type_ExternalName](./images/Service_Type_ExternalName.png)
+- ExternalName Example
+
+![ExterName_Example](./images/ExterName_Example.png)
+```bash
+# define external name service
+gusami@master:~$cat > external-name.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: externalname-svc
+spec:
+  type: ExternalName
+  externalName: google.com
+# create external name service
+gusami@master:~$kubectl create -f external-name.yaml 
+service/externalname-svc created
+# service 생성 확인
+gusami@master:~$kubectl get services
+NAME               TYPE           CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+externalname-svc   ExternalName   <none>       google.com    <none>    9s
+# 현재의 namespace name 확인. "product"
+gusami@master:~$ kubectl config get-contexts
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+*         example@kubernetes            kubernetes   kubernetes-admin   product
+          kubernetes-admin@kubernetes   kubernetes   kubernetes-admin   default
+# Pod 생성 및 내부 진입
+gusami@master:~$kubectl run testpod -it --image=centos:7
+# Pod 내애서 externalName 서비스(DNS)를 통한 외부 사이트 접속
+# google.com에 접속되는 것을 확인
+[root@testpod /]#curl externalname-svc.product.svc.cluster.local
+<!DOCTYPE html>
+<html lang=en>
+  <meta charset=utf-8>
+  <meta name=viewport content="initial-scale=1, minimum-scale=1, width=device-width">
+  <title>Error 404 (Not Found)!!1</title>
+  <style>
+    *{margin:0;padding:0}html,code{font:15px/22px arial,sans-serif}html{background:#fff;color:#222;padding:15px}body{margin:7% auto 0;max-width:390px;min-height:180px;padding:30px 0 15px}* > body{background:url(//www.google.com/images/errors/robot.png) 100% 5px no-repeat;padding-right:205px}p{margin:11px 0 22px;overflow:hidden}ins{color:#777;text-decoration:none}a img{border:0}@media screen and (max-width:772px){body{background:none;margin-top:0;max-width:none;padding-right:0}}#logo{background:url(//www.google.com/images/branding/googlelogo/1x/googlelogo_color_150x54dp.png) no-repeat;margin-left:-5px}@media only screen and (min-resolution:192dpi){#logo{background:url(//www.google.com/images/branding/googlelogo/2x/googlelogo_color_150x54dp.png) no-repeat 0% 0%/100% 100%;-moz-border-image:url(//www.google.com/images/branding/googlelogo/2x/googlelogo_color_150x54dp.png) 0}}@media only screen and (-webkit-min-device-pixel-ratio:2){#logo{background:url(//www.google.com/images/branding/googlelogo/2x/googlelogo_color_150x54dp.png) no-repeat;-webkit-background-size:100% 100%}}#logo{display:inline-block;height:54px;width:150px}
+  </style>
+  <a href=//www.google.com/><span id=logo aria-label=Google></span></a>
+  <p><b>404.</b> <ins>That’s an error.</ins>
+  <p>The requested URL <code>/</code> was not found on this server.  <ins>That’s all we know.</ins>
+# Pod 밖에서는 해당 서비스가 동작 안함  
+gusami@master:~$curl externalname-svc.product.svc.cluster.local
+curl: (6) Could not resolve host: externalname-svc.product.svc.cluster.local            
+```
 ### Headless Service
 ### kube-proxy
-24:50
