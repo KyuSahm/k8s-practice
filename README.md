@@ -5583,4 +5583,204 @@ gusami@master:~$curl externalname-svc.product.svc.cluster.local
 curl: (6) Could not resolve host: externalname-svc.product.svc.cluster.local            
 ```
 ### Headless Service
+- 여러 Pod들의 EndPoint들을 하나로 묶지만, ClusterIP가 없으므로 단일 진입점의 기능을 못하는 서비스
+  - 단일 진입점이 필요없을 때 사용하는 서비스
+  - Pod의 EndPoints: 아래 그림에서 ``10.44.0.1, 10.45.0.1, 10.36.0.1``에 해당
+- Service와 연결된 Pod의 endpoint들에 대한 DNS 레코드가 생성 후, Kubernetes의 Core DNS에 등록됨
+  - **Pod의 endpoint들에 대해서 DNS resolving Service로 요청 가능해짐**
+- Pod의 DNS 주소: pod-ip-addr.<namespace name>.pod.cluster.local
+
+![Headless_Service](./images/Headless_Service.png)
+- Headless Service Example
+  - ``type:ClusterIP``인 상태에서 ``clusterIP:None``로 설정
+![Headless_Service_Example](./images/Headless_Service_Example.png)
+- Headless Service 실습
+```bash
+# define nginx deployment yaml
+gusami@master:~$cat > deploy-nginx.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webui
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webui
+  template:
+    metadata:
+      name: nginx-pod
+      labels:
+        app: webui
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.14
+# create nginx deployment controller        
+gusami@master:~$ kubectl create -f deploy-nginx.yaml
+deployment.apps/webui created
+# 생성된 Pod 확인
+# Pod의 Endpoint들: 10.36.0.1, 10.40.0.1, 10.44.0.1
+gusami@master:~$kubectl get pods -o wide
+NAME                     READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+webui-6d4c4cc4b8-8k597   1/1     Running   0          85s   10.36.0.1   worker-2   <none>           <none>
+webui-6d4c4cc4b8-nlpv8   1/1     Running   0          85s   10.40.0.1   worker-3   <none>           <none>
+webui-6d4c4cc4b8-zmt6k   1/1     Running   0          85s   10.44.0.1   worker-1   <none>           <none>
+# Define Headless Service
+gusami@master:~$cat > headless-nginx.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: headless-service
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: webui
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+# 비교를 위해 ClusterIP Service도 함께 만들어 보자!!    
+gusami@master:~$cat > clusterip-nginx.yaml 
+apiVersion: v1
+kind: Service
+metadata:
+  name: clusterip-service
+spec:
+  type: ClusterIP
+  clusterIP: 10.100.100.100
+  selector:
+    app: webui
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+# ClusterIP 서비스 생성
+gusami@master:~$kubectl create -f clusterip-nginx.yaml 
+service/clusterip-service created
+# ClusterIP 서비스 확인       
+gusami@master:~$ kubectl get service
+NAME                TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE
+clusterip-service   ClusterIP   10.100.100.100   <none>        80/TCP    12s
+# 사용자가 Cluster 내부에서 ClusterIP로 접속하면, 여러 개의 Pod들 중 하나로 접속해 줌
+gusami@master:~$curl 10.100.100.100:80
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+.....
+</head>
+<body>
+.....
+<a href="http://nginx.com/">nginx.com</a>.</p>
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+# Headless Service 생성
+gusami@master:~$kubectl create -f headless-nginx.yaml 
+service/headless-service created
+# 서비스 생성확인
+# Headless Service는 cluster-ip가 없고, ClusterIP Service는 cluster-ip가 존재
+# 하지만, Headless Service도 여러 개의 Pod가 묶어져 있음. 진입점만 없음
+gusami@master:~$kubectl get services
+NAME                TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE
+clusterip-service   ClusterIP   10.100.100.100   <none>        80/TCP    3m21s
+headless-service    ClusterIP   None             <none>        80/TCP    14s
+# Headless Service 상세 확인
+# EndPoint들이 묶어져 있지만, IP가 존재하지 않음
+gusami@master:~$kubectl describe svc headless-service 
+Name:              headless-service
+Namespace:         product
+Labels:            <none>
+Annotations:       <none>
+Selector:          app=webui
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                None
+IPs:               None
+Port:              <unset>  80/TCP
+TargetPort:        80/TCP
+Endpoints:         10.36.0.1:80,10.40.0.1:80,10.44.0.1:80
+Session Affinity:  None
+Events:            <none>
+# ClusterIP Service 상세 확인
+# EndPoint들이 묶어져 있고, 진입점(Virtual IP, Cluster IP)도 존재
+gusami@master:~$kubectl describe svc clusterip-service 
+Name:              clusterip-service
+Namespace:         product
+Labels:            <none>
+Annotations:       <none>
+Selector:          app=webui
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                10.100.100.100
+IPs:               10.100.100.100
+Port:              <unset>  80/TCP
+TargetPort:        80/TCP
+Endpoints:         10.36.0.1:80,10.40.0.1:80,10.44.0.1:80
+Session Affinity:  None
+Events:            <none>
+# DNS resolving Service 확인을 위해 centos pod를 test pod로 생성 후, 접속
+gusami@master:~$kubectl run testpod -it --image=centos:7 /bin/bash
+If you do not see a command prompt, try pressing enter.
+# 접속된 Pod에서의 DNS 정보 확인
+# 리눅스 - DNS서버 설정 파일 (/etc/host.conf, /etc/resolv.conf)
+[root@testpod /]#cat /etc/hosts
+# Kubernetes-managed hosts file.
+127.0.0.1	localhost
+::1	localhost ip6-localhost ip6-loopback
+fe00::0	ip6-localnet
+fe00::0	ip6-mcastprefix
+fe00::1	ip6-allnodes
+fe00::2	ip6-allrouters
+10.44.0.2	testpod
+# Client로 부터 자신(DNS서버)에게 도메인 주소를 IP로 알려달라는 질의 요청이 오면, 
+# 맨 처음은 /etc/hosts파일에서 찾아본 후, 없으면 /etc/resolv.conf파일에 정의된 nameserver에게 쿼리함
+# 아래의 파일에서 "nameserver 10.96.0.10"가 Core DNS 서버에 해당
+[root@testpod /]#cat /etc/resolv.conf
+nameserver 10.96.0.10
+search product.svc.cluster.local svc.cluster.local cluster.local
+options ndots:5
+# pod list 확인
+gusami@master:~$kubectl get pods -o wide
+NAME                     READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+testpod                  1/1     Running   0          2m26s   10.44.0.2   worker-1   <none>           <none>
+webui-6d4c4cc4b8-8k597   1/1     Running   0          18m     10.36.0.1   worker-2   <none>           <none>
+webui-6d4c4cc4b8-nlpv8   1/1     Running   0          18m     10.40.0.1   worker-3   <none>           <none>
+webui-6d4c4cc4b8-zmt6k   1/1     Running   0          18m     10.44.0.1   worker-1   <none>           <none>
+# test pod 내부에서 Core DNS 서버를 통해서 Headless Service에 등록된 Pod에 접근 가능
+# pod-ip-addr.<namespace name>.pod.cluster.local
+# 결국, 같은 cluster 내부의 Pod들간의 접속에서 사용 가능
+# Pod의 이름이 보존되는 Statefulset Controller에서 유용
+[root@testpod /]#curl 10-36-0-1.product.pod.cluster.local
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+```
 ### kube-proxy
+15:08
