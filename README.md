@@ -5617,7 +5617,7 @@ spec:
       - name: nginx-container
         image: nginx:1.14
 # create nginx deployment controller        
-gusami@master:~$ kubectl create -f deploy-nginx.yaml
+gusami@master:~$kubectl create -f deploy-nginx.yaml
 deployment.apps/webui created
 # 생성된 Pod 확인
 # Pod의 Endpoint들: 10.36.0.1, 10.40.0.1, 10.44.0.1
@@ -5660,7 +5660,7 @@ spec:
 gusami@master:~$kubectl create -f clusterip-nginx.yaml 
 service/clusterip-service created
 # ClusterIP 서비스 확인       
-gusami@master:~$ kubectl get service
+gusami@master:~$kubectl get service
 NAME                TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE
 clusterip-service   ClusterIP   10.100.100.100   <none>        80/TCP    12s
 # 사용자가 Cluster 내부에서 ClusterIP로 접속하면, 여러 개의 Pod들 중 하나로 접속해 줌
@@ -5783,4 +5783,93 @@ Commercial support is available at
 </html>
 ```
 ### kube-proxy
-15:08
+- kubernetes Service의 backend 구현
+- **pod들의 endpoint 연결을 위한 iptables 구성**
+- nodePort로의 접근과 Pod 연결을 구현 (iptables 구성)
+  - 각 물리적인 노드에서 외부로 노출된 nodePort를 Listen하고 있다가 외부 사용자가 접속할 때, iptables를 이용하여 pode들의 endpoint와 연결을 해 줌
+- 물리적인 노드들마다 하나씩 Pod 형태로 동작하고 있음 (master, worker-1, worker-2, worker-3)
+- 예를 들어, 각 노드의 kube-proxy는 각 물리적인 노드에 생성된 iptables Rule을 이용하여 Client가 clusterIP를 이용해서 서비스에 접근하면, 여러 Pod들 중 하나로 접속하도록 연계
+  - iptables는 패킷 필터링(Firewall)과 NAT(Port Forwarding for input + Private IP to Public IP for output) 기능을 함
+
+![kube-proxy](./images/kube-proxy.png)
+```bash
+# 모든 namespace의 Pod들을 조회
+# 물리적인 노드들마다 하나씩 kube-proxy pod가 존재
+gusami@master:~$ kubectl get pods --all-namespaces -o wide
+NAMESPACE     NAME                             READY   STATUS    RESTARTS       AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+kube-system   coredns-78fcd69978-nz4fr         1/1     Running   28 (21h ago)   90d   10.32.0.3   master     <none>           <none>
+kube-system   coredns-78fcd69978-vsnzh         1/1     Running   28 (21h ago)   90d   10.32.0.2   master     <none>           <none>
+kube-system   etcd-master                      1/1     Running   29 (21h ago)   90d   10.0.1.4    master     <none>           <none>
+kube-system   kube-apiserver-master            1/1     Running   29 (21h ago)   90d   10.0.1.4    master     <none>           <none>
+kube-system   kube-controller-manager-master   1/1     Running   29 (21h ago)   90d   10.0.1.4    master     <none>           <none>
+kube-system   kube-proxy-2pm78                 1/1     Running   9 (21h ago)    14d   10.0.1.7    worker-3   <none>           <none>
+kube-system   kube-proxy-s9cp2                 1/1     Running   26 (21h ago)   90d   10.0.1.5    worker-1   <none>           <none>
+kube-system   kube-proxy-vscnf                 1/1     Running   29 (21h ago)   90d   10.0.1.4    master     <none>           <none>
+kube-system   kube-proxy-wsc4f                 1/1     Running   25 (21h ago)   90d   10.0.1.6    worker-2   <none>           <none>
+kube-system   kube-scheduler-master            1/1     Running   29 (21h ago)   90d   10.0.1.4    master     <none>           <none>
+kube-system   weave-net-9s8mx                  2/2     Running   18 (21h ago)   14d   10.0.1.7    worker-3   <none>           <none>
+kube-system   weave-net-kzxnd                  2/2     Running   54 (21h ago)   90d   10.0.1.6    worker-2   <none>           <none>
+kube-system   weave-net-tbcxg                  2/2     Running   57 (21h ago)   90d   10.0.1.4    master     <none>           <none>
+kube-system   weave-net-zvqg4                  2/2     Running   53 (21h ago)   90d   10.0.1.5    worker-1   <none>           <none>
+product       testpod                          1/1     Running   2 (21h ago)    22h   10.44.0.2   worker-1   <none>           <none>
+product       webui-6d4c4cc4b8-8k597           1/1     Running   1 (21h ago)    22h   10.36.0.1   worker-2   <none>           <none>
+product       webui-6d4c4cc4b8-nlpv8           1/1     Running   1 (21h ago)    22h   10.40.0.1   worker-3   <none>           <none>
+product       webui-6d4c4cc4b8-zmt6k           1/1     Running   1 (21h ago)    22h   10.44.0.1   worker-1   <none>           <none>
+# 서비스 목록 확인
+gusami@master:~$kubectl get services
+NAME                TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE
+clusterip-service   ClusterIP   10.100.100.100   <none>        80/TCP    22h
+headless-service    ClusterIP   None             <none>        80/TCP    22h
+# Pod 목록 확인
+# web ui pod들은 clusterip-service에 단일 진입점을 가지고 있음
+gusami@master:~$kubectl get pods -o wide
+NAME                     READY   STATUS    RESTARTS      AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+testpod                  1/1     Running   2 (22h ago)   22h   10.44.0.2   worker-1   <none>           <none>
+webui-6d4c4cc4b8-8k597   1/1     Running   1 (22h ago)   22h   10.36.0.1   worker-2   <none>           <none>
+webui-6d4c4cc4b8-nlpv8   1/1     Running   1 (22h ago)   22h   10.40.0.1   worker-3   <none>           <none>
+webui-6d4c4cc4b8-zmt6k   1/1     Running   1 (22h ago)   22h   10.44.0.1   worker-1   <none>           <none>
+# 각 물리적인 노드마다 clusterip-service를 위한 iptables가 모두 존재
+# iptables를 통해 10.100.100.100으로 접속하면, "10.44.0.1, 10.36.0.1, 10.40.0.1" 중 하나로 연결
+root@master:~# iptables -t nat -S | grep 80
+-A KUBE-MARK-DROP -j MARK --set-xmark 0x8000/0x8000
+-A KUBE-SEP-3QIUA3JKNES6V5D2 -p tcp -m comment --comment "product/clusterip-service" -m tcp -j DNAT --to-destination 10.44.0.1:80
+-A KUBE-SEP-PXHGKYVL4C3XESGM -p tcp -m comment --comment "product/clusterip-service" -m tcp -j DNAT --to-destination 10.36.0.1:80
+-A KUBE-SEP-ZSMGV7OEK5I7AM7B -p tcp -m comment --comment "product/clusterip-service" -m tcp -j DNAT --to-destination 10.40.0.1:80
+-A KUBE-SERVICES -d 10.100.100.100/32 -p tcp -m comment --comment "product/clusterip-service cluster IP" -m tcp --dport 80 -j KUBE-SVC-KQEL6TRZW6JE33UU
+# 각 물리적인 노드마다 clusterip-service를 위한 iptables가 모두 존재
+# Worker-1 node에도 존재
+root@worker-1:~# iptables -t nat -S | grep 80
+-A KUBE-MARK-DROP -j MARK --set-xmark 0x8000/0x8000
+-A KUBE-SEP-3QIUA3JKNES6V5D2 -p tcp -m comment --comment "product/clusterip-service" -m tcp -j DNAT --to-destination 10.44.0.1:80
+-A KUBE-SEP-PXHGKYVL4C3XESGM -p tcp -m comment --comment "product/clusterip-service" -m tcp -j DNAT --to-destination 10.36.0.1:80
+-A KUBE-SEP-ZSMGV7OEK5I7AM7B -p tcp -m comment --comment "product/clusterip-service" -m tcp -j DNAT --to-destination 10.40.0.1:80
+-A KUBE-SERVICES -d 10.100.100.100/32 -p tcp -m comment --comment "product/clusterip-service cluster IP" -m tcp --dport 80 -j KUBE-SVC-KQEL6TRZW6JE33UU
+# 각 물리적인 노드마다 clusterip-service를 위한 iptables가 모두 존재
+# Worker-2 node에도 존재
+root@worker-2:~# iptables -t nat -S | grep 80
+-A KUBE-MARK-DROP -j MARK --set-xmark 0x8000/0x8000
+-A KUBE-SEP-3QIUA3JKNES6V5D2 -p tcp -m comment --comment "product/clusterip-service" -m tcp -j DNAT --to-destination 10.44.0.1:80
+-A KUBE-SEP-PXHGKYVL4C3XESGM -p tcp -m comment --comment "product/clusterip-service" -m tcp -j DNAT --to-destination 10.36.0.1:80
+-A KUBE-SEP-ZSMGV7OEK5I7AM7B -p tcp -m comment --comment "product/clusterip-service" -m tcp -j DNAT --to-destination 10.40.0.1:80
+-A KUBE-SERVICES -d 10.100.100.100/32 -p tcp -m comment --comment "product/clusterip-service cluster IP" -m tcp --dport 80 -j KUBE-SVC-KQEL6TRZW6JE33UU
+# 각 물리적인 노드마다 clusterip-service를 위한 iptables가 모두 존재
+# Worker-3 node에도 존재
+root@worker-3:~# iptables -t nat -S | grep 80
+-A KUBE-MARK-DROP -j MARK --set-xmark 0x8000/0x8000
+-A KUBE-SEP-3QIUA3JKNES6V5D2 -p tcp -m comment --comment "product/clusterip-service" -m tcp -j DNAT --to-destination 10.44.0.1:80
+-A KUBE-SEP-PXHGKYVL4C3XESGM -p tcp -m comment --comment "product/clusterip-service" -m tcp -j DNAT --to-destination 10.36.0.1:80
+-A KUBE-SEP-ZSMGV7OEK5I7AM7B -p tcp -m comment --comment "product/clusterip-service" -m tcp -j DNAT --to-destination 10.40.0.1:80
+-A KUBE-SERVICES -d 10.100.100.100/32 -p tcp -m comment --comment "product/clusterip-service cluster IP" -m tcp --dport 80 -j KUBE-SVC-KQEL6TRZW6JE33UU
+```
+#### kube-proxy mode
+- Mode 1: userspace mode (현재는 잘 사용 안함)
+  - Client의 서비스 요청을 iptables를 거쳐 kube-proxy가 받아서 연결
+  - kubernetes 초기버전에 잠깐 사용
+- Mode 2: **iptables mode (기본 사용 모드)**
+  - default kubernetes network mode
+  - kube-proxy는 service API 요청 시, iptables rule이 생성
+  - Client 연결은 kube-proxy가 받아서 iptables Rule를 통해 연결
+- Mode 3: IPVS mode
+  - Linux Kernel이 지원하는 L4 LoadBalancing 기술을 이용
+  - 별도의 ipvs 지원 모듈을 설정한 후, 적용 가능
+  - 지원 알고리즘: rr(round-robin), lc(least connection), dh(destination hashing), sh(source hashing), sed(shortest expected delay) nc(n queue)    
