@@ -4212,7 +4212,7 @@ W0127 23:29:51.828634    4424 utils.go:69] The recommended value for "resolvConf
 This node has joined the cluster:
 * Certificate signing request was sent to apiserver and a response was received.
 # worker-3 node가 join하면 daemonset에 의해서 pod가 한개 생성됨
-gusami@master:~$ kubectl get pods
+gusami@master:~$kubectl get pods
 NAME                    READY   STATUS    RESTARTS   AGE
 daemonset-nginx-gnpss   1/1     Running   0          3m21s
 daemonset-nginx-md6x9   1/1     Running   0          30m
@@ -4352,10 +4352,10 @@ rs-nginx-9dpv4   1/1     Running   0          4s
 rs-nginx-slvln   1/1     Running   0          4s
 rs-nginx-vlrdj   1/1     Running   0          4s
 # pod를 강제로 삭제하면?
-gusami@master:~$ kubectl delete pod rs-nginx-slvln
+gusami@master:~$kubectl delete pod rs-nginx-slvln
 pod "rs-nginx-slvln" deleted
 # 다른 이름을 가지는 pod가 생성
-gusami@master:~$ kubectl get pod
+gusami@master:~$kubectl get pod
 NAME             READY   STATUS    RESTARTS   AGE
 rs-nginx-9dpv4   1/1     Running   0          2m11s
 rs-nginx-tf5b8   1/1     Running   0          2s
@@ -4405,11 +4405,11 @@ sf-nginx-0   1/1     Running   0          77s   10.44.0.2   worker-1   <none>   
 sf-nginx-1   1/1     Running   0          77s   10.40.0.2   worker-3   <none>           <none>
 sf-nginx-2   1/1     Running   0          77s   10.36.0.2   worker-2   <none>           <none>
 # "sf-nginx-1" pod를 삭제한다면?
-gusami@master:~$ kubectl delete pod sf-nginx-1
+gusami@master:~$kubectl delete pod sf-nginx-1
 pod "sf-nginx-1" deleted
 # "sf-nginx-1" pod가 완전히 삭제되기를 기다렸다가 동일한 이름으로 Pod가 생성
 # 어느 node에 배치될지는 모름 
-gusami@master:~$ kubectl get pods -o wide
+gusami@master:~$kubectl get pods -o wide
 NAME         READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
 sf-nginx-0   1/1     Running   0          3m    10.44.0.2   worker-1   <none>           <none>
 sf-nginx-1   1/1     Running   0          2s    10.40.0.1   worker-3   <none>           <none>
@@ -4661,7 +4661,7 @@ gusami@master:~$kubectl create -f job-exam.yaml
 job.batch/centos-job created
 # 관찰. 3번 Restart 시도 후, 종료
 # container가 restart하므로, Pod 명은 변하지 않음
-gusami@master:~$ kubectl get pods --watch
+gusami@master:~$kubectl get pods --watch
 NAME                  READY   STATUS    RESTARTS   AGE
 centos-job--1-pvlss   0/1     Pending   0          0s
 centos-job--1-pvlss   0/1     Pending   0          0s
@@ -4862,7 +4862,7 @@ centos-job--1-84xj7   0/1     Terminating         0          12s
 centos-job--1-84xj7   0/1     Terminating         0          12s
 centos-job--1-84xj7   0/1     Terminating         0          12s
 # job controller 제거
-gusami@master:~$ kubectl delete jobs.batch centos-job 
+gusami@master:~$kubectl delete jobs.batch centos-job 
 job.batch "centos-job" deleted
 ```
 ### CronJob Controller
@@ -5259,7 +5259,7 @@ Endpoints:         10.36.0.1:80,10.40.0.1:80,10.40.0.2:80 + 2 more...
 Session Affinity:  None
 Events:            <none>
 # Deployment Scale In (5 =>3) 
-gusami@master:~$ kubectl scale deployment webui --replicas=3
+gusami@master:~$kubectl scale deployment webui --replicas=3
 deployment.apps/webui scaled
 # Service에 연결된 EndPoint도 자동으로 늘어남
 # Service를 중단할 필요가 없음
@@ -5558,7 +5558,7 @@ gusami@master:~$kubectl get services
 NAME               TYPE           CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
 externalname-svc   ExternalName   <none>       google.com    <none>    9s
 # 현재의 namespace name 확인. "product"
-gusami@master:~$ kubectl config get-contexts
+gusami@master:~$kubectl config get-contexts
 CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
 *         example@kubernetes            kubernetes   kubernetes-admin   product
           kubernetes-admin@kubernetes   kubernetes   kubernetes-admin   default
@@ -5795,7 +5795,7 @@ Commercial support is available at
 ```bash
 # 모든 namespace의 Pod들을 조회
 # 물리적인 노드들마다 하나씩 kube-proxy pod가 존재
-gusami@master:~$ kubectl get pods --all-namespaces -o wide
+gusami@master:~$kubectl get pods --all-namespaces -o wide
 NAMESPACE     NAME                             READY   STATUS    RESTARTS       AGE   IP          NODE       NOMINATED NODE   READINESS GATES
 kube-system   coredns-78fcd69978-nz4fr         1/1     Running   28 (21h ago)   90d   10.32.0.3   master     <none>           <none>
 kube-system   coredns-78fcd69978-vsnzh         1/1     Running   28 (21h ago)   90d   10.32.0.2   master     <none>           <none>
@@ -5877,8 +5877,10 @@ root@worker-3:~# iptables -t nat -S | grep 80
 ## kubernetes Ingress
 ### Ingress란?
 ![IngressController](./images/IngressController.png)
-- Pod, Controller, Service와 같은 API 중 하나임
 - **HTTP나 HTTPS를 통해 Cluster 내부의 서비스를 외부로 노출**
+- ``NGINX Ingress Controller``의 경우, IngressClass, Service, Deployment, Pod, Role, ClusterRole 등으로 구성
+  - Controller 역할은 Pod가 하고, IngressClass, Ingress Rule을 이용해서 특정 서비스로 Forward
+  - NodePort 서비스를 통해서 외부로 Controller를 오픈함
 - 기능
   - **Service에 대해서 외부 URL을 제공**
   - Traffic를 LoadBalancing
@@ -5946,9 +5948,15 @@ deploy.yaml                                   100%[=============================
 #  - 결국, NodePort 서비스의 open된 port를 통해서 외부 사용자에게 내부의 서비스들을 제공 (중요)
 # 7. Deployment Controller 정의 (중요)
 #  - "ingress-nginx" pod를 생성하는 것을 담당
+#  - "ingress-nginx" pod가 ingress rule을 처리하고, HTTP와 HTTPS 서비스를 제공
 #  - 이미지가 "k8s.gcr.io/ingress-nginx/controller:v1.1"인 Pod 생성
 #  - ReplicaSet가 정의되지 않았으므로, 1개의 Pod만을 수행
-# 8. 기타 작업 
+#  - Pod의 container 생성 시, 인자로 "--controller-class=k8s.io/ingress-nginx" IngressClass 지정
+# 8. IngressClass 정의 (중요)
+#  - ingress controller pod인 "ingress-nginx"와 ingress rule을 연결하는 작업을 하는 듯함
+#  - controller 항목인 "controller: k8s.io/ingress-nginx"가 Pod 생성 시, 인자로 사용
+#  - name항목의 "name: nginx"가 ingress rule 생성시, ingressClassName으로 사용
+# 9. 기타 작업 
 #  - serviceaccount
 #  - clusterrole, clusterrolebinding
 #  - role, rolebinding
@@ -6636,8 +6644,8 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 2000
-# ingress controller 생성 (결국, ingress는 k8s의 여러 것들을 조합해서 생성 )
-gusami@master:~$ kubectl create -f deploy.yaml 
+# ingress controller 생성 (결국, k8s의 여러 것들을 조합해서 생성 )
+gusami@master:~$kubectl create -f deploy.yaml 
 namespace/ingress-nginx created
 serviceaccount/ingress-nginx created
 configmap/ingress-nginx-controller created
@@ -6665,10 +6673,722 @@ ingress-nginx-admission-patch--1-qnchw      0/1     Completed   0          104s
 ingress-nginx-controller-778574f59b-4dxxp   1/1     Running     0          104s
 # 생성된 서비스 확인
 # NodePort 서비스와 ClusterIP 서비스가 존재
-# NodePort 서비스의 경우, http port는 30945 port로 외부로 노출. https port는 30886 port로 외부로 노출. 30945, 30886 자동 생성 값임
+# NodePort 서비스의 경우
+#  - http port는 30945 port로 외부로 노출
+#  - https port는 30886 port로 외부로 노출
+#  - 30945, 30886 자동 생성 값임
 gusami@master:~$kubectl get services -n ingress-nginx
 NAME                                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
 ingress-nginx-controller             NodePort    10.101.150.102   <none>        80:30945/TCP,443:30886/TCP   3m59s
-ingress-nginx-controller-admission   ClusterIP   10.109.22.5      <none>        443/TCP                      3m59s        
+ingress-nginx-controller-admission   ClusterIP   10.109.22.5      <none>        443/TCP                      3m59s
+# "ingress-nginx namespace"내의 service 확인
+gusami@master:~$kubectl get services -n ingress-nginx -o yaml
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: "2022-02-12T04:37:54Z"
+    labels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/version: 1.1.1
+      helm.sh/chart: ingress-nginx-4.0.15
+    name: ingress-nginx-controller
+    namespace: ingress-nginx
+    resourceVersion: "228823"
+    uid: 3b491d6d-757b-4e15-a025-5bde09b91bed
+  spec:
+    clusterIP: 10.101.150.102
+    clusterIPs:
+    - 10.101.150.102
+    externalTrafficPolicy: Cluster
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - appProtocol: http
+      name: http
+      nodePort: 30945
+      port: 80
+      protocol: TCP
+      targetPort: http
+    - appProtocol: https
+      name: https
+      nodePort: 30886
+      port: 443
+      protocol: TCP
+      targetPort: https
+    selector:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/name: ingress-nginx
+    sessionAffinity: None
+    type: NodePort
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: "2022-02-12T04:37:54Z"
+    labels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/version: 1.1.1
+      helm.sh/chart: ingress-nginx-4.0.15
+    name: ingress-nginx-controller-admission
+    namespace: ingress-nginx
+    resourceVersion: "228816"
+    uid: 3569551c-434c-4666-8b31-b3e7bd80bbe8
+  spec:
+    clusterIP: 10.109.22.5
+    clusterIPs:
+    - 10.109.22.5
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - appProtocol: https
+      name: https-webhook
+      port: 443
+      protocol: TCP
+      targetPort: webhook
+    selector:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/name: ingress-nginx
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""        
 ```      
 ### Practice: Ingress를 이용한 Web Service 운영
+![IngressController_Example](./images/IngressController_Example.png)
+![IngressController_Example_UI](./images/IngressController_Example_UI.png)
+- Ingress Rule
+  - Client가 http 프로토콜로 ``/``로 접속 시, ``marvel-service`` 서비스의 80 port로 연결
+  - Client가 http 프로토콜로 ``/pay``로 접속 시, ``pay-service`` 서비스의 80 port로 연결
+  - Rule 생성하기 전에, ``marvel-service``와 ``pay-service``가 먼저 동작하고 있어야 함
+  - **"ingress-nginx" pod가 ingress Rule을 읽어서 처리하는 것으로 보임**
+
+![IngressRule](./images/IngressRule.png)
+```bash
+# delete name, serviceaccount, controller and etc related with ingress
+# 기존에는 NodePort가 random port가 open되어 있으므로, port 지정을 위해 삭제 
+gusami@master:~$kubectl delete -f deploy.yaml 
+namespace "ingress-nginx" deleted
+serviceaccount "ingress-nginx" deleted
+configmap "ingress-nginx-controller" deleted
+clusterrole.rbac.authorization.k8s.io "ingress-nginx" deleted
+clusterrolebinding.rbac.authorization.k8s.io "ingress-nginx" deleted
+role.rbac.authorization.k8s.io "ingress-nginx" deleted
+rolebinding.rbac.authorization.k8s.io "ingress-nginx" deleted
+service "ingress-nginx-controller-admission" deleted
+service "ingress-nginx-controller" deleted
+deployment.apps "ingress-nginx-controller" deleted
+ingressclass.networking.k8s.io "nginx" deleted
+validatingwebhookconfiguration.admissionregistration.k8s.io "ingress-nginx-admission" deleted
+serviceaccount "ingress-nginx-admission" deleted
+clusterrole.rbac.authorization.k8s.io "ingress-nginx-admission" deleted
+clusterrolebinding.rbac.authorization.k8s.io "ingress-nginx-admission" deleted
+role.rbac.authorization.k8s.io "ingress-nginx-admission" deleted
+rolebinding.rbac.authorization.k8s.io "ingress-nginx-admission" deleted
+job.batch "ingress-nginx-admission-create" deleted
+job.batch "ingress-nginx-admission-patch" deleted
+# 리소스 삭제 확인
+gusami@master:~$kubectl get all -n ingress-nginx
+No resources found in ingress-nginx namespace.
+# 다운로드 받은 ingress controller 파일을 수정
+# http용으로 "nodePort: 30100" 추가: 외부 접속 http port 고정 - 30100
+# https용으로 "nodePort: 30200" 추가: 외부 접속 https port 고정 - 30200
+gusami@master:~$vi deploy.yaml
+.......
+# Source: ingress-nginx/templates/controller-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+  labels:
+    helm.sh/chart: ingress-nginx-4.0.15
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/version: 1.1.1
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: controller
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+spec:
+  type: NodePort
+  ipFamilyPolicy: SingleStack
+  ipFamilies:
+    - IPv4
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: http
+      appProtocol: http
+      nodePort: 30100
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: https
+      appProtocol: https
+      nodePort: 30200
+  selector:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/component: controller
+.......
+# nginx ingress controller 생성
+gusami@master:~$kubectl create -f deploy.yaml 
+namespace/ingress-nginx created
+serviceaccount/ingress-nginx created
+configmap/ingress-nginx-controller created
+clusterrole.rbac.authorization.k8s.io/ingress-nginx created
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx created
+role.rbac.authorization.k8s.io/ingress-nginx created
+rolebinding.rbac.authorization.k8s.io/ingress-nginx created
+service/ingress-nginx-controller-admission created
+service/ingress-nginx-controller created
+deployment.apps/ingress-nginx-controller created
+ingressclass.networking.k8s.io/nginx created
+validatingwebhookconfiguration.admissionregistration.k8s.io/ingress-nginx-admission created
+serviceaccount/ingress-nginx-admission created
+clusterrole.rbac.authorization.k8s.io/ingress-nginx-admission created
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
+role.rbac.authorization.k8s.io/ingress-nginx-admission created
+rolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
+job.batch/ingress-nginx-admission-create created
+job.batch/ingress-nginx-admission-patch created
+# "ingress-nginx" namespace 생성 확인
+gusami@master:~$kubectl get namespaces
+NAME              STATUS   AGE
+default           Active   91d
+ingress-nginx     Active   8m12s
+kube-node-lease   Active   91d
+kube-public       Active   91d
+kube-system       Active   91d
+product           Active   48d
+# "ingress-nginx" namespace내에 생성된 pod, service, deployment, replicaset, job 등 모두 확인
+# kubectl get all 명령어를 사용
+# 서비스 항목에, nodeport로 http용 30100, https용 30200 포트가 외부로 open된 것을 확인
+gusami@master:~$kubectl get all -n ingress-nginx
+NAME                                            READY   STATUS      RESTARTS   AGE
+pod/ingress-nginx-admission-create--1-fpqxd     0/1     Completed   0          29s
+pod/ingress-nginx-admission-patch--1-5qmv9      0/1     Completed   1          29s
+pod/ingress-nginx-controller-778574f59b-mfwns   1/1     Running     0          29s
+
+NAME                                         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+service/ingress-nginx-controller             NodePort    10.108.107.220   <none>        80:30100/TCP,443:30200/TCP   30s
+service/ingress-nginx-controller-admission   ClusterIP   10.104.129.172   <none>        443/TCP                      30s
+
+NAME                                       READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/ingress-nginx-controller   1/1     1            1           30s
+
+NAME                                                  DESIRED   CURRENT   READY   AGE
+replicaset.apps/ingress-nginx-controller-778574f59b   1         1         1       30s
+
+NAME                                       COMPLETIONS   DURATION   AGE
+job.batch/ingress-nginx-admission-create   1/1           1s         29s
+job.batch/ingress-nginx-admission-patch    1/1           2s         29s
+# hub.docker.com에서 "smlinux/marvel-collection", "smlinux/pay" 를 검색해서 이미지를 다운로드 받을 수 있음
+# 실제 소스들은 GitHub에서 다운로드 받은 "yamls\8\webserver-demo" 폴더에 존재
+# 아래와 같이 local에 존재하는 webserver-demo 폴더를 scp 명령어를 이용해서 리모트에 복사
+#  - 127.0.0.1:104는 10.0.1.4:22으로 Port forwarding되어 있는 상태 
+[D:\Workspace\k8s-practice\yamls\8]$scp -P 104 -r ./webserver-demo gusami@127.0.0.1:~/
+Connecting to 127.0.0.1:104...
+Connection established.
+To escape to local shell, press Ctrl+Alt+].
+Password: *********
+Start scp session to upload.
+ingress.yaml	326바이트
+marvel-home.yaml	532바이트
+pay.yaml	427바이트
+Dockerfile	160바이트
+category.png	242KB
+marvel_logo.png	4.12KB
+index.html	320바이트
+app.js	285바이트
+Dockerfile	65바이트
+Sent all of files.
+Connection closing...Socket close.
+
+Connection closed by foreign host.
+
+Disconnected from remote host(127.0.0.1:104) at 20:03:25.
+# webserver-demo 폴더가 k8s master 머신으로 정상적으로 복사된 것을 확인
+gusami@master:~$ls -al webserver-demo/
+total 20
+drwxr-xr-x  5 gusami gusami 4096  2월 12 20:03 .
+drwxr-xr-x 19 gusami gusami 4096  2월 12 20:03 ..
+drwxr-xr-x  2 gusami gusami 4096  2월 12 20:03 ingress
+drwxr-xr-x  3 gusami gusami 4096  2월 12 20:03 marvel-collection
+drwxr-xr-x  2 gusami gusami 4096  2월 12 20:03 paymentjs
+# 작업의 편의를 위해 Default namespace를 "ingress-nginx"로 변경
+gusami@master:~$kubectl config get-contexts
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+*         example@kubernetes            kubernetes   kubernetes-admin   product
+          kubernetes-admin@kubernetes   kubernetes   kubernetes-admin   default
+# kubectl config 명령어 사용 방법
+gusami@master:~$kubectl config --help
+Modify kubeconfig files using subcommands like "kubectl config set current-context my-context"
+
+Available Commands:
+  current-context Display the current-context
+  delete-cluster  Delete the specified cluster from the kubeconfig
+  delete-context  Delete the specified context from the kubeconfig
+  delete-user     Delete the specified user from the kubeconfig
+  get-clusters    Display clusters defined in the kubeconfig
+  get-contexts    Describe one or many contexts
+  get-users       Display users defined in the kubeconfig
+  rename-context  Rename a context from the kubeconfig file
+  set             Set an individual value in a kubeconfig file
+  set-cluster     Set a cluster entry in kubeconfig
+  set-context     Set a context entry in kubeconfig
+  set-credentials Set a user entry in kubeconfig
+  unset           Unset an individual value in a kubeconfig file
+  use-context     Set the current-context in a kubeconfig file
+  view            Display merged kubeconfig settings or a specified kubeconfig file
+
+Usage:
+  kubectl config SUBCOMMAND [options]
+# 현재의 cluster, context 정보 보기
+gusami@master:~$kubectl config view
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://10.0.1.4:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    namespace: product
+    user: kubernetes-admin
+  name: example@kubernetes
+- context:
+    cluster: kubernetes
+    namespace: default
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+current-context: example@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: REDACTED
+    client-key-data: REDACTED
+# "kubernetes" cluster를 이용하고, "kubernetes-admin" user인 "ingress-admin@kubernetes" 이름을 가진 새로운 context 생성
+#  - 생성 시, default namespace를 "ingress-nginx"로 지정함
+gusami@master:~$kubectl config set-context ingress-admin@kubernetes --cluster=kubernetes --user=kubernetes-admin --namespace ingress-nginx 
+Context "ingress-admin@kubernetes" created.
+# 생성된 context와 default namespace 확인
+gusami@master:~$kubectl config get-contexts
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+*         example@kubernetes            kubernetes   kubernetes-admin   product
+          ingress-admin@kubernetes      kubernetes   kubernetes-admin   ingress-nginx
+          kubernetes-admin@kubernetes   kubernetes   kubernetes-admin   default
+# context 변경
+gusami@master:~$kubectl config use-context ingress-admin@kubernetes
+Switched to context "ingress-admin@kubernetes".
+gusami@master:~$kubectl config get-contexts
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+          example@kubernetes            kubernetes   kubernetes-admin   product
+*         ingress-admin@kubernetes      kubernetes   kubernetes-admin   ingress-nginx
+          kubernetes-admin@kubernetes   kubernetes   kubernetes-admin   default            
+# "ingress-nginx" namespace에 등록된 pod, service, deployment controller, replicaset, job 확인
+gusami@master:~$kubectl get all
+NAME                                            READY   STATUS      RESTARTS   AGE
+pod/ingress-nginx-admission-create--1-fpqxd     0/1     Completed   0          23m
+pod/ingress-nginx-admission-patch--1-5qmv9      0/1     Completed   1          23m
+pod/ingress-nginx-controller-778574f59b-mfwns   1/1     Running     0          23m
+
+NAME                                         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+service/ingress-nginx-controller             NodePort    10.108.107.220   <none>        80:30100/TCP,443:30200/TCP   23m
+service/ingress-nginx-controller-admission   ClusterIP   10.104.129.172   <none>        443/TCP                      23m
+
+NAME                                       READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/ingress-nginx-controller   1/1     1            1           23m
+
+NAME                                                  DESIRED   CURRENT   READY   AGE
+replicaset.apps/ingress-nginx-controller-778574f59b   1         1         1       23m
+
+NAME                                       COMPLETIONS   DURATION   AGE
+job.batch/ingress-nginx-admission-create   1/1           1s         23m
+job.batch/ingress-nginx-admission-patch    1/1           2s         23m
+# Ingress Rule을 생성하기 전에, 관련 서비스를 먼저 생성
+# Step 01. 웹 서비스를 동작
+gusami@master:~$cd webserver-demo/ingress/
+# marvel service 및 deployment 확인
+#  - Service는 type을 명시하지 않았으므로, clusterIP type으로 생성되고, virtual ip로 자동으로 지정됨
+gusami@master:~/webserver-demo/ingress$cat marvel-home.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: marvel-home
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: marvel
+  template:
+    metadata:
+      labels:
+        name: marvel
+    spec:
+      containers:
+      - image: smlinux/marvel-collection
+        name: marvel-container
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: marvel-service
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    name: marvel
+# pay service 및 deployment 확인
+#  - Service는 type을 명시하지 않았으므로, clusterIP type으로 생성되고, virtual ip로 자동으로 지정됨
+#  - replicas가 3이므로, 3개의 pod가 동작    
+gusami@master:~/webserver-demo/ingress$cat pay.yaml 
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: pay-rc
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: pay
+    spec:
+      containers:
+      - image: smlinux/pay
+        name: pay
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pay-service
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: pay
+# 서비스와 deployment를 이용한 pod 생성    
+gusami@master:~/webserver-demo/ingress$kubectl create -f marvel-home.yaml -f pay.yaml 
+deployment.apps/marvel-home created
+service/marvel-service created
+replicationcontroller/pay-rc created
+service/pay-service created
+# "ingress-nginx" namespace에 등록된 pod, service, deployment, replicaset, job 확인
+gusami@master:~/webserver-demo/ingress$kubectl get all
+NAME                                            READY   STATUS              RESTARTS   AGE
+pod/ingress-nginx-admission-create--1-fpqxd     0/1     Completed           0          28m
+pod/ingress-nginx-admission-patch--1-5qmv9      0/1     Completed           1          28m
+pod/ingress-nginx-controller-778574f59b-mfwns   1/1     Running             0          28m
+pod/marvel-home-97fdd98db-z22bx                 1/1     Running             0          13s
+pod/pay-rc-46jg4                                1/1     Running             0          13s
+pod/pay-rc-9w8zm                                0/1     ContainerCreating   0          13s
+pod/pay-rc-wbrdm                                0/1     ContainerCreating   0          13s
+
+NAME                           DESIRED   CURRENT   READY   AGE
+replicationcontroller/pay-rc   3         3         1       13s
+
+NAME                                         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+service/ingress-nginx-controller             NodePort    10.108.107.220   <none>        80:30100/TCP,443:30200/TCP   28m
+service/ingress-nginx-controller-admission   ClusterIP   10.104.129.172   <none>        443/TCP                      28m
+service/marvel-service                       ClusterIP   10.111.120.192   <none>        80/TCP                       13s
+service/pay-service                          ClusterIP   10.107.198.241   <none>        80/TCP                       13s
+
+NAME                                       READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/ingress-nginx-controller   1/1     1            1           28m
+deployment.apps/marvel-home                1/1     1            1           13s
+
+NAME                                                  DESIRED   CURRENT   READY   AGE
+replicaset.apps/ingress-nginx-controller-778574f59b   1         1         1       28m
+replicaset.apps/marvel-home-97fdd98db                 1         1         1       13s
+
+NAME                                       COMPLETIONS   DURATION   AGE
+job.batch/ingress-nginx-admission-create   1/1           1s         28m
+job.batch/ingress-nginx-admission-patch    1/1           2s         28m
+# Step 02. Ingress Rule 생성
+# Ingress rule yaml 파일 확인
+# Ingress Rule
+#  - Client가 http 프로토콜로 ``/``로 접속 시, ``marvel-service`` 서비스의 80 port로 연결
+#  - Client가 http 프로토콜로 ``/pay``로 접속 시, ``pay-service`` 서비스의 80 port로 연결
+#  - Rule 생성하기 전에, ``marvel-service``와 ``pay-service``가 먼저 동작하고 있어야 함
+#  - apiVersion이 업데이트 되어서 수정 처리 함
+#  - IngressClass를 아래의 두 가지 방법 중 하나로 명시 (중요): 않하면, 404 not found exception이 발생
+#    - 방법1: ingressClassName: nginx
+#    - 방법2: kubernetes.io/ingress.class: "nginx"
+#    - 상세 참조: https://kubernetes.github.io/ingress-nginx/user-guide/basic-usage/
+#      - Nginx is configured to automatically discover all ingress with the kubernetes.io/ingress.class: "nginx" annotation or where ingressClassName: nginx is present
+
+# 방법1: ingressClassName를 "nginx"로 지정 (중요) : 지정하지 않으면, ingress가 동작 안함
+#  - ingressClassName을 이용하여 "nginx"란 이름을 가진 IngressClass를 찾음
+#  - 해당 IngressClass의 "controller: k8s.io/ingress-nginx"를 이용하여 Pod를 찾아감
+#  - Pod 생성 시, "--controller-class=k8s.io/ingress-nginx"란 인자값을 이용해서 생성
+gusami@master:~/webserver-demo/ingress$cat ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: marvel-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: marvel-service
+            port:
+              number: 80
+      - path: /pay
+        pathType: Prefix
+        backend:
+          service:
+            name: pay-service
+            port:
+              number: 80
+# 방법2: kubernetes.io/ingress.class를 "nginx"로 지정 (중요) : 지정 않하면, ingress가 동작 안함
+#  - "kubernetes.io/ingress.class"을 이용하여 "nginx"란 이름을 가진 IngressClass를 찾음
+#  - 해당 IngressClass의 "controller: k8s.io/ingress-nginx"를 이용하여 Pod를 찾아감
+#  - Pod 생성 시, "--controller-class=k8s.io/ingress-nginx"란 인자값을 이용해서 생성              
+gusami@master:~/webserver-demo/ingress$cat ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: marvel-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: marvel-service
+            port:
+              number: 80
+      - path: /pay
+        pathType: Prefix
+        backend:
+          service:
+            name: pay-service
+            port:
+              number: 80
+# Ingress rule 생성              
+gusami@master:~/webserver-demo/ingress$kubectl create -f ingress.yaml 
+ingress.networking.k8s.io/marvel-ingress created
+# 생성된 Ingress rule정보 확인
+#  - ADDRESS 항목이 나타나야 함
+gusami@master:~/webserver-demo/ingress$kubectl get ingress
+NAME             CLASS   HOSTS   ADDRESS    PORTS   AGE
+marvel-ingress   nginx   *       10.0.1.7   80      31s
+# 생성된 Ingress rule의 상세 정보 확인
+gusami@master:~/webserver-demo/ingress$kubectl describe ingress marvel-ingress 
+Name:             marvel-ingress
+Namespace:        ingress-nginx
+Address:          10.0.1.7
+Default backend:  default-http-backend:80 (<error: endpoints "default-http-backend" not found>)
+Rules:
+  Host        Path  Backends
+  ----        ----  --------
+  *           
+              /      marvel-service:80 (10.44.0.1:80)
+              /pay   pay-service:80 (10.36.0.2:8080,10.36.0.3:8080,10.40.0.3:8080)
+Annotations:  nginx.ingress.kubernetes.io/rewrite-target: /
+Events:
+  Type    Reason  Age                From                      Message
+  ----    ------  ----               ----                      -------
+  Normal  Sync    46s (x2 over 75s)  nginx-ingress-controller  Scheduled for sync
+# 서비스 전체 확인
+gusami@master:~/webserver-demo/ingress$kubectl get services
+NAME                                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+ingress-nginx-controller             NodePort    10.108.107.220   <none>        80:30100/TCP,443:30200/TCP   40m
+ingress-nginx-controller-admission   ClusterIP   10.104.129.172   <none>        443/TCP                      40m
+marvel-service                       ClusterIP   10.111.120.192   <none>        80/TCP                       12m
+pay-service                          ClusterIP   10.107.198.241   <none>        80/TCP                       12m
+# 네트워크 DNS 정보 확인
+# k8s-ubuntu은 동일한 네트워크이지만, k8s cluster 외부의 computer
+gusami@k8s-ubuntu:~$cat /etc/hosts
+127.0.0.1	localhost
+127.0.1.1	k8s-ubuntu.example.com	k8s-ubuntu
+10.0.1.4        master
+10.0.1.5        worker-1
+10.0.1.6        worker-2
+10.0.1.7        worker-3
+# k8s cluster 외부의 computer에서 open된 nodeport를 이용하여 외부에서 marvel main page 접속
+gusami@k8s-ubuntu:~$curl master:30100/
+<html>
+<head>
+  <title>marvel heroes</title>
+</head>
+<body>
+  <center>
+  <img src="images/marvel_logo.png"><br>
+  <p style="color:red;">Marvel Entertainment/Marvel Studios</p><br>
+  <img src="images/category.png"><br>
+  <a href="http://211.253.8.13/pay">[payment]</a></center>
+
+  </center>
+</body>
+</html>
+gusami@k8s-ubuntu:~$curl worker-1:30100/
+<html>
+<head>
+  <title>marvel heroes</title>
+</head>
+<body>
+  <center>
+  <img src="images/marvel_logo.png"><br>
+  <p style="color:red;">Marvel Entertainment/Marvel Studios</p><br>
+  <img src="images/category.png"><br>
+  <a href="http://211.253.8.13/pay">[payment]</a></center>
+
+  </center>
+</body>
+</html>
+gusami@k8s-ubuntu:~$curl worker-2:30100/
+<html>
+<head>
+  <title>marvel heroes</title>
+</head>
+<body>
+  <center>
+  <img src="images/marvel_logo.png"><br>
+  <p style="color:red;">Marvel Entertainment/Marvel Studios</p><br>
+  <img src="images/category.png"><br>
+  <a href="http://211.253.8.13/pay">[payment]</a></center>
+
+  </center>
+</body>
+</html>
+gusami@k8s-ubuntu:~$curl worker-3:30100/
+<html>
+<head>
+  <title>marvel heroes</title>
+</head>
+<body>
+  <center>
+  <img src="images/marvel_logo.png"><br>
+  <p style="color:red;">Marvel Entertainment/Marvel Studios</p><br>
+  <img src="images/category.png"><br>
+  <a href="http://211.253.8.13/pay">[payment]</a></center>
+
+  </center>
+</body>
+</html>
+# k8s cluster 외부의 computer에서 open된 nodeport를 이용하여 외부에서 marvel payment page 접속
+gusami@k8s-ubuntu:~$curl master:30100/pay
+PAYMENT Page
+gusami@k8s-ubuntu:~$curl worker-1:30100/pay
+PAYMENT Page
+gusami@k8s-ubuntu:~$curl worker-2:30100/pay
+PAYMENT Page
+gusami@k8s-ubuntu:~$curl worker-3:30100/pay
+PAYMENT Page
+```
+- 마지막으로, 외부에서 공인 IP를 통해 접속하도록 Port Forwarding를 설정
+![Ingress_Public_IP_Port_Forwarding](./images/Ingress_Public_IP_Port_Forwarding.png)
+- 아니면, Cloud 환경에서 LoadBalancer를 구현하는 것도 가능
+  - 참조 링크: https://kubernetes.github.io/ingress-nginx/deploy/#tls-termination-in-aws-load-balancer-nlb
+- ingress controller에 HTTPS 인증서를 만들어서 주입 가능
+- ingress controller에 Session Affinity 기능을 추가 가능
+
+#### Windows 10에서 접속해 보기
+- Step 01: Port Forwarding
+![Ingress_Port_Forward](./images/Ingress_Port_Forward.png)
+
+- Step 02: HTML 파일 수정(상대 경로) 및 Volume mount
+```bash
+# payment에 대한 경로를 IP 주소를 없애고, 상대 경로로 수정
+gusami@master:~/webserver-demo/marvel-collection/html$ cat index.html 
+<html>
+<head>
+  <title>marvel heroes</title>
+</head>
+<body>
+  <center>
+  <img src="images/marvel_logo.png"><br>
+  <p style="color:red;">Marvel Entertainment/Marvel Studios</p><br>
+  <img src="images/category.png"><br>
+  <a href="./pay">[payment]</a></center>
+
+  </center>
+</body>
+</html>
+# volume mount 추가
+gusami@master:~/webserver-demo/ingress$ cat marvel-home.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: marvel-home
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: marvel
+  template:
+    metadata:
+      labels:
+        name: marvel
+    spec:
+      containers:
+      - image: smlinux/marvel-collection
+        name: marvel-container
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - mountPath: /usr/share/nginx/html
+          name: html-volume
+      volumes:
+      - name: html-volume
+        hostPath:
+          path: /home/gusami/webserver-demo/marvel-collection/html
+          type: Directory
+......
+# copy directory and files to worker nodes
+# pod가 동작할 node를 모르기 때문에 모든 worker node에 복사
+gusami@master:~$scp -r ./webserver-demo/ gusami@worker-1:~/
+gusami@worker-1 password: 
+...copied
+gusami@master:~$scp -r ./webserver-demo/ gusami@worker-2:~/
+gusami@worker-2 password: 
+...copied
+gusami@master:~$scp -r ./webserver-demo/ gusami@worker-3:~/
+gusami@worker-3 password: 
+...copied
+```
+- Step 03: 접속하기
+![Ingress_Windows_Connect](./images/Ingress_Windows_Connect.png)
+![Ingress_Windows_Connect_pay](./images/Ingress_Windows_Connect_pay.png)
