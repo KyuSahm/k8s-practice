@@ -7392,3 +7392,176 @@ gusami@worker-3 password:
 - Step 03: 접속하기
 ![Ingress_Windows_Connect](./images/Ingress_Windows_Connect.png)
 ![Ingress_Windows_Connect_pay](./images/Ingress_Windows_Connect_pay.png)
+
+## Label과 Annotation
+### Label이란?
+![Label_1](./images/Label_1.png)
+- 관련링크: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+- Node를 포함하여 Pod, deployment등 모든 리소스에 할당
+- **리소스의 특성을 분류하고, Selector를 이용해서 선택**
+- ``Key-Value`` 쌍으로 적용
+- Label과 Selector
+![LabelAndSelector](./images/LabelAndSelector.png)
+- Valid Label Value
+  - must be 63 characters or less (can be empty),
+  - unless empty, must begin and end with an alphanumeric character ([a-z0-9A-Z]),
+  - could contain dashes (-), underscores (_), dots (.), and alphanumerics between.
+- Example labels:
+```bash
+"release" : "stable", "release" : "canary"
+"environment" : "dev", "environment" : "qa", "environment" : "production"
+"tier" : "frontend", "tier" : "backend", "tier" : "cache"
+"partition" : "customerA", "partition" : "customerB"
+"track" : "daily", "track" : "weekly"
+```
+- Pod that has two labels
+  - ``environment: production``
+  - ``app: nginx``
+```bash
+apiVersion: v1
+kind: Pod
+metadata:
+  name: label-demo
+  labels:
+    environment: production
+    app: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.14.2
+    ports:
+    - containerPort: 80
+```
+- Label Template: 단순 문자열이 들어갈 경우, ""이 없어도 됨(단, TRUE, FALSE, YES, NO는 제외)
+![LabelTemplate](./images/LabelTemplate.png)
+- 실습
+```bash
+# create nginx pod on command line
+gusami@master:~$kubectl run cmdpod --image=nginx:1.14 --port=80
+pod/cmdpod created
+# create nginx pod on yaml without label
+gusami@master:~$cat > pod1.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-demo
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.14
+    ports:
+    - containerPort: 80
+gusami@master:~$kubectl create -f pod1.yaml 
+pod/pod-demo created    
+# create nginx pod on yaml with label    
+gusami@master:~$cat > pod2.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: label-pod-demo
+  labels:
+    name: mainui
+    rel: stable
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.14
+    ports:
+    - containerPort: 80
+gusami@master:~$kubectl create -f pod2.yaml 
+pod/label-pod-demo created
+# label을 포함한 Pod 리스트 보기
+# 특이 사항: "kubectl run cmdpod" 명령어를 사용한 경우, 자동으로 "run=cmdpod"라는 label이 생김
+gusami@master:~$kubectl get pods --show-labels -o wide
+NAME             READY   STATUS    RESTARTS   AGE    IP          NODE       NOMINATED NODE   READINESS GATES   LABELS
+cmdpod           1/1     Running   0          100s   10.36.0.1   worker-2   <none>           <none>            run=cmdpod
+label-pod-demo   1/1     Running   0          83s    10.44.0.1   worker-1   <none>           <none>            name=mainui,rel=stable
+pod-demo         1/1     Running   0          86s    10.40.0.1   worker-3   <none>           <none>            <none>
+# 명령어 라인에서 selector 사용하기
+#   - label 명이 같은 pod를 출력(selector)
+#   - kubectl get pods -l name=<label name>
+#   - kubectl get pods --selector name=<label name>
+gusami@master:~$kubectl get pods -l name=mainui -o wide
+NAME             READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+label-pod-demo   1/1     Running   0          6m17s   10.44.0.1   worker-1   <none>           <none>
+gusami@master:~$kubectl get pods --selector name=mainui -o wide
+NAME             READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+label-pod-demo   1/1     Running   0          6m59s   10.44.0.1   worker-1   <none>           <none>
+# 특정 label을 가지는 Pod 삭제하기
+# --selector 또는 -l 옵션을 통해서 여러 kubectl command가 적용되는 기준을 정할 수 있음
+gusami@master:~$kubectl delete pods --selector name=mainui
+pod "label-pod-demo" deleted
+# pod 다시 생성
+gusami@master:~$kubectl create -f pod2.yaml 
+pod/label-pod-demo created
+# label을 포함한 Pod 리스트 보기 
+gusami@master:~$kubectl get pods --show-labels -o wide
+NAME             READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES   LABELS
+cmdpod           1/1     Running   0          10m   10.36.0.1   worker-2   <none>           <none>            run=cmdpod
+label-pod-demo   1/1     Running   0          10s   10.44.0.1   worker-1   <none>           <none>            name=mainui,rel=stable
+pod-demo         1/1     Running   0          10m   10.40.0.1   worker-3   <none>           <none>            <none>
+# command line에서 실행 중인 Pod에 label 설정 하기
+gusami@master:~$kubectl label pod pod-demo name=test
+pod/pod-demo labeled
+# label을 포함한 Pod 리스트 보기 
+gusami@master:~$kubectl get pods --show-labels -o wide
+NAME             READY   STATUS    RESTARTS   AGE    IP          NODE       NOMINATED NODE   READINESS GATES   LABELS
+cmdpod           1/1     Running   0          12m    10.36.0.1   worker-2   <none>           <none>            run=cmdpod
+label-pod-demo   1/1     Running   0          112s   10.44.0.1   worker-1   <none>           <none>            name=mainui,rel=stable
+pod-demo         1/1     Running   0          12m    10.40.0.1   worker-3   <none>           <none>            name=test
+# 기존에 존재하는 label의 Key에 대한 value 값 수정하기
+# --overwrite 속성: 이미 존재하는 label 위에 덮어쓰기
+gusami@master:~$kubectl label pod pod-demo name=login
+error: 'name' already has a value (test), and --overwrite is false
+gusami@master:~$kubectl label pod pod-demo name=login --overwrite
+pod/pod-demo labeled
+# label을 포함한 Pod 리스트 보기 
+gusami@master:~$kubectl get pods --show-labels -o wide
+NAME             READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES   LABELS
+cmdpod           1/1     Running   0          14m     10.36.0.1   worker-2   <none>           <none>            run=cmdpod
+label-pod-demo   1/1     Running   0          3m42s   10.44.0.1   worker-1   <none>           <none>            name=mainui,rel=stable
+pod-demo         1/1     Running   0          13m     10.40.0.1   worker-3   <none>           <none>            name=login
+# pod에 여러 개의 label 추가하기
+#  - key=value 형식에 맞춰 label 복수 할당 (값을 space로 분리)
+#  - 이미 존재하는 label이라면 --overwrite 속성 필수!
+gusami@master:~$kubectl label pod cmdpod name=order rel=beta
+pod/cmdpod labeled
+gusami@master:~$kubectl get pods --show-labels -o wide
+NAME             READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES   LABELS
+cmdpod           1/1     Running   0          16m     10.36.0.1   worker-2   <none>           <none>            name=order,rel=beta,run=cmdpod
+label-pod-demo   1/1     Running   0          6m13s   10.44.0.1   worker-1   <none>           <none>            name=mainui,rel=stable
+pod-demo         1/1     Running   0          16m     10.40.0.1   worker-3   <none>           <none>            name=login
+# pod에서 label 삭제하기
+#  - label명 뒤에 -(대시문자)
+gusami@master:~$kubectl label pod cmdpod run-
+pod/cmdpod labeled
+gusami@master:~$kubectl get pods --show-labels -o wide
+NAME             READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES   LABELS
+cmdpod           1/1     Running   0          19m     10.36.0.1   worker-2   <none>           <none>            name=order,rel=beta
+label-pod-demo   1/1     Running   0          8m38s   10.44.0.1   worker-1   <none>           <none>            name=mainui,rel=stable
+pod-demo         1/1     Running   0          18m     10.40.0.1   worker-3   <none>           <none>            name=login
+# pod-demo pod에 label 추가
+gusami@master:~$kubectl label pod pod-demo rel=stable
+pod/pod-demo labeled
+gusami@master:~$kubectl get pods --show-labels -o wide
+NAME             READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES   LABELS
+cmdpod           1/1     Running   0          20m   10.36.0.1   worker-2   <none>           <none>            name=order,rel=beta
+label-pod-demo   1/1     Running   0          10m   10.44.0.1   worker-1   <none>           <none>            name=mainui,rel=stable
+pod-demo         1/1     Running   0          20m   10.40.0.1   worker-3   <none>           <none>            name=login,rel=stable
+# --selector 옵션을 이용하여 "rel=stable"인 Pod만 조회
+gusami@master:~$kubectl get pods --selector rel=stable -o wide
+NAME             READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+label-pod-demo   1/1     Running   0          10m   10.44.0.1   worker-1   <none>           <none>
+pod-demo         1/1     Running   0          20m   10.40.0.1   worker-3   <none>           <none>
+# --selector 옵션을 이용하여 "rel=beta"인 Pod만 조회
+gusami@master:~$kubectl get pods --selector rel=beta -o wide
+NAME     READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+cmdpod   1/1     Running   0          22m   10.36.0.1   worker-2   <none>           <none>
+# --selector 옵션을 이용하여 "rel=beta"인 Pod만 삭제
+gusami@master:~$kubectl delete pod --selector rel=beta
+pod "cmdpod" deleted
+```
+### Worker Node에 Label 설정
+- Label은 일반적으로 resource에 할당해서 사용하지만, Node에도 할당해서 사용 가능 
+### Label과 Annotation
+### Label을 이용한 Canary 배포
