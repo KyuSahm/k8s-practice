@@ -5593,7 +5593,7 @@ curl: (6) Could not resolve host: externalname-svc.product.svc.cluster.local
 ![Headless_Service](./images/Headless_Service.png)
 - Headless Service Example
   - ``type:ClusterIP``인 상태에서 ``clusterIP:None``로 설정
-![Headless_Service_Example](./images/Headless_Service_Example.png)
+  ![Headless_Service_Example](./images/Headless_Service_Example.png)
 - Headless Service 실습
 ```bash
 # define nginx deployment yaml
@@ -6771,7 +6771,7 @@ kind: List
 metadata:
   resourceVersion: ""
   selfLink: ""        
-```      
+```
 ### Practice: Ingress를 이용한 Web Service 운영
 ![IngressController_Example](./images/IngressController_Example.png)
 ![IngressController_Example_UI](./images/IngressController_Example_UI.png)
@@ -7522,7 +7522,7 @@ cmdpod           1/1     Running   0          14m     10.36.0.1   worker-2   <no
 label-pod-demo   1/1     Running   0          3m42s   10.44.0.1   worker-1   <none>           <none>            name=mainui,rel=stable
 pod-demo         1/1     Running   0          13m     10.40.0.1   worker-3   <none>           <none>            name=login
 # pod에 여러 개의 label 추가하기
-#  - key=value 형식에 맞춰 label 복수 할당 (값을 space로 분리)
+#  - key=value 형식에 맞춰 label 복수 할당 (space로 분리)
 #  - 이미 존재하는 label이라면 --overwrite 속성 필수!
 gusami@master:~$kubectl label pod cmdpod name=order rel=beta
 pod/cmdpod labeled
@@ -7649,5 +7649,138 @@ pod-nodeselector   1/1     Running   0          9s    10.44.0.1   worker-1   <no
 gusami@master:~$kubectl delete pod pod-nodeselector 
 pod "pod-nodeselector" deleted
 ```
-### Label과 Annotation
+### Annotation
+- Label과 동일하게 ``key-value``를 통해 리소스의 특성을 기록
+  - Pod, Deployment, Service 등에 사용 가능
+- 용도 1: Kubernetes에게 특정 정보 전달할 용도로 사용
+  - Kubernetes에서 미리 정해놓은 annotation을 사용
+  - 예를 들어, Deployment의 rolling update 정보 기록
+    - ``kubernetes.io/change-cause`` annotation은 rolling update 정보를 기록
+```bash
+  annotations:
+    kubernetes.io/change-cause: version 1.15
+```
+- 용도 2: 관리를 위해 필요한 정보를 기록할 용도로 사용
+  - 사용자가 정의한 annotation을 사용
+  - Release, logging, monitoring에 필요한 정보들을 기록
+  - ``kubectl describe pod`` 명령어를 통해서 확인 가능
+```bash
+  annotations:
+    builder: "KyuSahm Kim (kyusahm.kim@gmail.com)"
+    buildDate: "20220228"
+    imageRegistry: https://hub.docker.com/
+```
+- Annotation Example
+![Annotation_Example](./images/Annotation_Example.png)
+```bash
+# nginx pod에 annotation을 추가해서 yaml형태로 정의
+gusami@master:~$cat > annotation.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-annotation
+  annotations:
+    builder: "KyuSahm Kim (kyusahm.kim@gmail.com)"
+    buildDate: "20220228"
+    imageRegistry: https://hub.docker.com/
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.14
+    ports:
+    - containerPort: 80
+# Pod 생성    
+gusami@master:~$kubectl create -f annotation.yaml 
+pod/pod-annotation created
+# 생성된 Pod 정보 확인
+gusami@master:~$kubectl get pods -o wide
+NAME             READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+pod-annotation   1/1     Running   0          40s   10.44.0.1   worker-1   <none>           <none>
+# Pod 상세 정보 확인
+# Pod 생성 시 사용한 annotation 정보를 확인할 수 있음
+#  - 운영환경에서 꼭 필요한 정보를 Pod 생성 시 annotation을 통해서 기록을 남길 수 있음
+gusami@master:~$kubectl describe pod pod-annotation 
+Name:         pod-annotation
+Namespace:    product
+Priority:     0
+Node:         worker-1/10.0.1.5
+Start Time:   Mon, 28 Feb 2022 23:24:39 +0900
+Labels:       <none>
+Annotations:  buildDate: 20220228
+              builder: KyuSahm Kim (kyusahm.kim@gmail.com)
+              imageRegistry: https://hub.docker.com/
+Status:       Running
+IP:           10.44.0.1
+IPs:
+  IP:  10.44.0.1
+Containers:
+  nginx:
+    Container ID:   docker://0608e446505317d45f0c71cdffe2466d70569e08c2d12f6b6736450385a2c484
+    Image:          nginx:1.14
+    Image ID:       docker-pullable://nginx@sha256:f7988fb6c02e0ce69257d9bd9cf37ae20a60f1df7563c3a2a6abe24160306b8d
+    Port:           80/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Mon, 28 Feb 2022 23:24:40 +0900
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-jcc5j (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             True 
+  ContainersReady   True 
+  PodScheduled      True 
+Volumes:
+  kube-api-access-jcc5j:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   BestEffort
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type    Reason     Age   From               Message
+  ----    ------     ----  ----               -------
+  Normal  Scheduled  52s   default-scheduler  Successfully assigned product/pod-annotation to worker-1
+  Normal  Pulled     51s   kubelet            Container image "nginx:1.14" already present on machine
+  Normal  Created    51s   kubelet            Created container nginx
+  Normal  Started    51s   kubelet            Started container nginx
+# kubernetes에서 미리 정의한 annotation을 통해서 특정 정보를 k8s에 전달 가능
+#  - "kubernetes.io/change-cause": rolling update정보를 기록
+gusami@master:~$ cat > deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-nginx
+  annotations:
+    kubernetes.io/change-cause: version 1.15
+spec:
+  progressDeadlineSeconds: 600
+  revisionHistoryLimit: 10
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webui
+  template:
+    metadata:
+      labels:
+        app: webui
+    spec:
+      containers:
+      - name: web
+        image: nginx:1.15
+        ports:
+        - containerPort: 80      
+```
 ### Label을 이용한 Canary 배포
