@@ -7562,6 +7562,92 @@ gusami@master:~$kubectl delete pod --selector rel=beta
 pod "cmdpod" deleted
 ```
 ### Worker Node에 Label 설정
-- Label은 일반적으로 resource에 할당해서 사용하지만, Node에도 할당해서 사용 가능 
+- Label은 일반적으로 resource에 할당해서 사용하지만, Node에도 할당해서 사용 가능
+- Worker Node의 특성을 Label로 설정
+  - ``kubectl label nodes <node name> <label key>=<label value>``
+  - 예를 들어, node1과 node2에 GPU가 장착되어 있고, node1과 node3에 SSD가 장착되어 있음
+    - 하드웨어 정보를 수집해서 Kubernetes가 기억하고 있지는 않음
+    - 사용자가 Machine Learning를 동작시키는 Pod는 GPU가 장착된 Node에 배치하고 싶은 경우
+- Node를 선택해서 Pod를 배치할 수 있음
+![Node_Label_Example](./images/Node_Label_Example.png)
+- Node Label 관리 명령어 실습하기
+![NodeLabel_Definition](./images/NodeLabel_Definition.png)
+```bash
+# 현재의 Node 정보 확인하기
+gusami@master:~$kubectl get nodes -o wide
+NAME       STATUS   ROLES                  AGE    VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+master     Ready    control-plane,master   107d   v1.22.3   10.0.1.4      <none>        Ubuntu 20.04.3 LTS   5.13.0-28-generic   docker://20.10.10
+worker-1   Ready    <none>                 107d   v1.22.3   10.0.1.5      <none>        Ubuntu 20.04.3 LTS   5.13.0-28-generic   docker://20.10.10
+worker-2   Ready    <none>                 107d   v1.22.3   10.0.1.6      <none>        Ubuntu 20.04.3 LTS   5.13.0-28-generic   docker://20.10.10
+worker-3   Ready    <none>                 31d    v1.23.3   10.0.1.7      <none>        Ubuntu 20.04.3 LTS   5.13.0-28-generic   docker://20.10.12
+# Node에 설정된 Label 정보 확인
+# 설치할 때 기본적으로 Node에 설정된 Label 정보가 존재. (","로 구분)
+#  beta.kubernetes.io/arch=amd64,
+#  beta.kubernetes.io/os=linux,
+#  kubernetes.io/arch=amd64,
+#  kubernetes.io/hostname=master,
+#  kubernetes.io/os=linux,
+#  node-role.kubernetes.io/control-plane=,
+#  node-role.kubernetes.io/master=,
+#  node.kubernetes.io/exclude-from-external-load-balancers=
+gusami@master:~$kubectl get nodes --show-labels
+NAME       STATUS   ROLES                  AGE    VERSION   LABELS
+master     Ready    control-plane,master   107d   v1.22.3   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node-role.kubernetes.io/master=,node.kubernetes.io/exclude-from-external-load-balancers=
+worker-1   Ready    <none>                 107d   v1.22.3   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker-1,kubernetes.io/os=linux
+worker-2   Ready    <none>                 107d   v1.22.3   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker-2,kubernetes.io/os=linux
+worker-3   Ready    <none>                 31d    v1.23.3   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker-3,kubernetes.io/os=linux
+# worker-1 node에 gpu=true와 disk=ssd label을 지정
+gusami@master:~$kubectl label nodes worker-1 gpu=true disk=ssd
+node/worker-1 labeled
+# worker-2 node에 gpu=true label을 지정
+gusami@master:~$kubectl label nodes worker-2 gpu=true
+node/worker-2 labeled
+# worker-3 node에 disk=ssd label을 지정
+gusami@master:~$kubectl label nodes worker-3 disk=ssd
+node/worker-3 labeled
+# Node에 설정된 Label 정보 확인.
+# 방금 설정한 Label이 추가된 것을 확인 가능
+gusami@master:~$kubectl get nodes --show-labels
+NAME       STATUS   ROLES                  AGE    VERSION   LABELS
+master     Ready    control-plane,master   107d   v1.22.3   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node-role.kubernetes.io/master=,node.kubernetes.io/exclude-from-external-load-balancers=
+worker-1   Ready    <none>                 107d   v1.22.3   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,disk=ssd,gpu=true,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker-1,kubernetes.io/os=linux
+worker-2   Ready    <none>                 107d   v1.22.3   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,gpu=true,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker-2,kubernetes.io/os=linux
+worker-3   Ready    <none>                 31d    v1.23.3   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,disk=ssd,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker-3,kubernetes.io/os=linux
+# Node에 설정된 특정 Label 정보만을 확인 (disk, gpu)
+gusami@master:~$kubectl get nodes -L disk,gpu
+NAME       STATUS   ROLES                  AGE    VERSION   DISK   GPU
+master     Ready    control-plane,master   107d   v1.22.3          
+worker-1   Ready    <none>                 107d   v1.22.3   ssd    true
+worker-2   Ready    <none>                 107d   v1.22.3          true
+worker-3   Ready    <none>                 31d    v1.23.3   ssd 
+# nginx container를 실행하는 Pod가 특정 Label을 가진 Node에서 실행되도록 정의
+#  - gpu가 존재하고, disk가 ssd인 node (결국, worker-1에 배치되어야 함)
+gusami@master:~$cat > nodeselector.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-nodeselector
+spec:
+  nodeSelector:
+    gpu: "true"
+    disk: ssd
+  containers:
+  - name: nginx
+    image: nginx:1.14
+    ports:
+    - containerPort: 80
+# Yaml 파일을 이용한 pod 생성     
+gusami@master:~$kubectl create -f nodeselector.yaml 
+pod/pod-nodeselector created
+# 생성한 Pod 정보 확인. Worker-1 Node에 배치되었음
+# 만약, 해당 조건(gpu=true and disk=ssd)인 Node가 없다면?
+#  - Pod가 배치되지 못하고, STATUS가 "Pending"로 머물러 있음
+gusami@master:~$kubectl get pod -o wide
+NAME               READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+pod-nodeselector   1/1     Running   0          9s    10.44.0.1   worker-1   <none>           <none>
+# Pod 제거
+gusami@master:~$kubectl delete pod pod-nodeselector 
+pod "pod-nodeselector" deleted
+```
 ### Label과 Annotation
 ### Label을 이용한 Canary 배포
