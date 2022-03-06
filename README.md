@@ -7958,5 +7958,215 @@ deployment.apps/mainui-canary scaled
 gusami@master:~$kubectl get deployments.apps 
 NAME            READY   UP-TO-DATE   AVAILABLE   AGE
 mainui-canary   3/3     3            3           7m57s
-
 ```
+## ConfigMap
+- ConfigMap: Container 구성 정보를 한 곳에 모아서 관리
+![ConfigMap_Concept](./images/ConfigMap_Concept.png)
+### ConfigMap 생성
+#### 명령어를 이용한 생성 법
+![CreateConfigMap](./images/CreateConfigMap.png)
+- ``kubectl create configmap <config name> --from-literal=<key1>=<value1> --from-literal=<key2>=<value2>``
+  - ``config name``을 가지는 configmap 생성. 
+  - key와 value의 쌍을 문자열로 직접 명시해서 생성
+- ``kubectl create configmap <config name> --from-file=<fileName>``
+  - ``config name``을 가지는 configmap 생성. 
+  - ``<fileName>``이 Key이고, file의 내용이 value인 config map 생성
+- ``kubectl create configmap <config name> --from-file=<key1>=<fileName>``
+  - ``config name``을 가지는 configmap 생성. 
+  - ``<key1>``이 Key이고, ``<fileName>`` 파일의 내용이 value인 config map 생성
+- ``kubectl create configmap <config name> --from-file=<directoryName>``
+  - ``config name``을 가지는 configmap 생성. 
+  - ``<directoryName>``의 디렉토리 내부의 파일 이름들을 이용한 Key들과 해당 파일의 내용이 value인 config map 생성
+- ConfigMap의 value의 사이즈 제한은 없나요?
+  - 1MiB를 초과할 수는 없음
+#### Yaml 파일을 이용한 생성 법
+- 관련 링크: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
+  - 아래의 예제는 여러 개의 config map을 한번에 생성
+```bash
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: special-config
+  namespace: default
+data:
+  special.how: very
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: env-config
+  namespace: default
+data:
+  log_level: INFO
+```  
+#### ConfigMap 생성 실습
+- ``$kubectl create configmap ttabae-config --from-literal=INTERVAL=2 --from-literal=OPTION=boy --from-file=config.dir/``
+![ConfigMap_Example](./images/ConfigMap_Example.png)
+```bash
+# Windows 10 local directory
+$pwd
+/d/Workspace/k8s-practice/yamls/10
+# 아래와 같이 local에 존재하는 config.dir 폴더를 scp 명령어를 이용해서 리모트(master)에 복사
+#  - 127.0.0.1:104는 10.0.1.4:22으로 Port forwarding되어 있는 상태
+$scp -P 104 -r ./config.dir/ gusami@127.0.0.1:~/
+The authenticity of host '[127.0.0.1]:104 ([127.0.0.1]:104)' can't be established.
+ED25519 key fingerprint is SHA256:jfCH78nW/fHv4YWsaDcQhEPY/3FQx8CftJO5ZDs0BnI.
+This key is not known by any other names
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '[127.0.0.1]:104' (ED25519) to the list of known hosts.
+gusami@127.0.0.1's password: 
+nginx-config.conf
+# k8s master node에서 복사된 폴더와 파일 확인
+gusami@master:~$ls -al config.dir/
+total 12
+drwxr-xr-x  2 gusami gusami 4096  3월  6 22:13 .
+drwxr-xr-x 20 gusami gusami 4096  3월  6 22:13 ..
+-rw-r--r--  1 gusami gusami  230  3월  6 22:13 nginx-config.conf
+# 폴더안의 파일의 내용 확인
+gusami@master:~$cat config.dir/nginx-config.conf 
+server {
+    listen   80;
+    server_name  www.example.com;
+
+    gzip on;
+    gzip_types text/plain application/xml;
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+    }
+}
+# config map 생성
+gusami@master:~$kubectl create configmap ttabae-config --from-literal=INTERVAL=2 --from-literal=OPTION=boy --from-file=config.dir/
+configmap/ttabae-config created
+# 생성된 config map 확인
+gusami@master:~$kubectl get configmaps 
+NAME               DATA   AGE
+kube-root-ca.crt   1      70d
+ttabae-config      3      13s
+# ttabae-config configmap 상세 확인
+#  - INTERVAL: 2
+#  - OPTION: boy
+#  - nginx-config.conf: 파일 내용
+gusami@master:~$kubectl describe configmap ttabae-config 
+Name:         ttabae-config
+Namespace:    product
+Labels:       <none>
+Annotations:  <none>
+
+Data
+====
+INTERVAL:
+----
+2
+OPTION:
+----
+boy
+nginx-config.conf:
+----
+server {
+    listen   80;
+    server_name  www.example.com;
+
+    gzip on;
+    gzip_types text/plain application/xml;
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+    }
+}
+
+
+BinaryData
+====
+
+Events:  <none>
+# ConfigMap 수정 하기
+#  - OPTION의 boy를 girl로 수정
+gusami@master:~$kubectl edit configmap ttabae-config
+# Please edit the object below. Lines beginning with a '#' will be ignored,
+# and an empty file will abort the edit. If an error occurs while saving this file will be
+# reopened with the relevant failures.
+#
+apiVersion: v1
+data:
+  INTERVAL: "2"
+  OPTION: girl
+  nginx-config.conf: "server {\r\n    listen   80;\r\n    server_name  www.example.com;\r\n\r\n
+    \   gzip on;\r\n    gzip_types text/plain application/xml;\r\n\r\n    location
+    / {\r\n        root   /usr/share/nginx/html;\r\n        index  index.html index.htm;\r\n
+    \   }\r\n}\r\n"
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2022-03-06T13:17:08Z"
+  name: ttabae-config
+  namespace: product
+  resourceVersion: "303210"
+  uid: 05087687-f0f7-43d5-8de8-e64b17ab82ab
+# ConfigMap Yaml 파일 생성
+gusami@master:~$cat > ks-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: special-config
+  namespace: product
+data:
+  special.how: very
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: env-config
+  namespace: product
+data:
+  log_level: INFO
+# ConfigMap 생성 with yaml 파일  
+gusami@master:~$kubectl create -f ks-configmap.yaml 
+configmap/special-config created
+configmap/env-config created
+# ConfigMap list 확인
+gusami@master:~$kubectl get configmaps
+NAME               DATA   AGE
+env-config         1      5s
+kube-root-ca.crt   1      70d
+special-config     1      5s
+ttabae-config      3      17m
+# ConfigMap 상세 확인
+gusami@master:~$kubectl describe configmap env-config 
+Name:         env-config
+Namespace:    product
+Labels:       <none>
+Annotations:  <none>
+
+Data
+====
+log_level:
+----
+INFO
+
+BinaryData
+====
+
+Events:  <none>
+gusami@master:~$kubectl describe configmap special-config 
+Name:         special-config
+Namespace:    product
+Labels:       <none>
+Annotations:  <none>
+
+Data
+====
+special.how:
+----
+very
+
+BinaryData
+====
+
+Events:  <none>
+```
+### ConfigMap의 일부분을 적용하기
+12:25
+### ConfigMap 전체를 적용하기
+### ConfigMap을 볼륨으로 적용하기
