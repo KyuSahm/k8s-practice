@@ -7784,3 +7784,179 @@ spec:
         - containerPort: 80      
 ```
 ### Label을 이용한 Canary 배포
+- Pod를 배포(업데이트)하는 방법
+  - Blue Green Update
+    - Blue 제품을 모두 Down 시키고, Green으로 교체 (다운 타임이 존재)
+  - Canary Update
+  - Rolling Update
+- Canary 배포
+  - 기존 버전을 유지한 채로 일부만 신규 버전으로 올려서 신규 버전에 Bug나 이상은 없는지 확인
+- Canary 배포 Example: Blue 제품 2개와 Green 제품 1개(Carnary version)을 동시에 운용하면서 확인
+![CanaryDeployment](./images/CanaryDeployment.png)
+- Canary 배포 실습
+```bash
+# blue product yaml definition
+gusami@master:~$cat > mainui-stable.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mainui-stable
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mainui
+      version: stable
+  template:
+    metadata:
+      labels:
+        app: mainui
+        version: stable
+    spec:
+      containers:
+      - name: mainui
+        image: nginx:1.14
+        ports:
+        - containerPort: 80
+# create deployment with yaml        
+gusami@master:~$kubectl create -f mainui-stable.yaml 
+deployment.apps/mainui-stable created
+# 생성된 pod 확인
+gusami@master:~$kubectl get pods --show-labels
+NAME                             READY   STATUS    RESTARTS   AGE   LABELS
+mainui-stable-755498588d-m6q2v   1/1     Running   0          81s   app=mainui,pod-template-hash=755498588d,version=stable
+mainui-stable-755498588d-nh6dj   1/1     Running   0          81s   app=mainui,pod-template-hash=755498588d,version=stable
+# define ClusterIP Service for pods (단일 진입점 제공)
+gusami@master:~$cat mainui-service.yaml 
+apiVersion: v1
+kind: Service
+metadata:
+  name: mainui-svc
+spec:
+  selector:
+    app: mainui
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+# 서비스 생성    
+gusami@master:~$kubectl create -f mainui-service.yaml 
+service/mainui-svc created
+# 생성된 서비스 확인
+gusami@master:~$kubectl get svc
+NAME         TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
+mainui-svc   ClusterIP   10.99.67.246   <none>        80/TCP    5s
+# 서비스 상세 확인
+gusami@master:~$kubectl describe service mainui-svc 
+Name:              mainui-svc
+Namespace:         product
+Labels:            <none>
+Annotations:       <none>
+Selector:          app=mainui
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                10.99.67.246
+IPs:               10.99.67.246
+Port:              <unset>  80/TCP
+TargetPort:        80/TCP
+Endpoints:         10.36.0.1:80,10.44.0.1:80
+Session Affinity:  None
+Events:            <none>
+# Virtual IP에 접속하여 서비스 확인
+gusami@master:~$curl 10.99.67.246:80
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+# green(canary) product definition with yaml
+gusami@master:~$cat > mainui-canary.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mainui-canary
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mainui
+      version: canary
+  template:
+    metadata:
+      labels:
+        app: mainui
+        version: canary
+    spec:
+      containers:
+      - name: mainui
+        image: nginx:1.15
+        ports:
+        - containerPort: 80
+# canary deployment 생성
+gusami@master:~$ kubectl create -f mainui-canary.yaml 
+deployment.apps/mainui-canary created
+# 서비스 상세 확인
+# canary pod도 endpoint로 추가됨 (서비스의 selector에 의해서 함께 추가됨)
+#  - Selector: app=mainui
+#  - blue product 2개, green product 1개 동작중임
+gusami@master:~$kubectl describe service mainui-svc 
+Name:              mainui-svc
+Namespace:         product
+Labels:            <none>
+Annotations:       <none>
+Selector:          app=mainui
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                10.99.67.246
+IPs:               10.99.67.246
+Port:              <unset>  80/TCP
+TargetPort:        80/TCP
+Endpoints:         10.36.0.1:80,10.40.0.1:80,10.44.0.1:80
+Session Affinity:  None
+Events:            <none>
+# deployment 정보 확인
+gusami@master:~$kubectl get deployments.apps 
+NAME            READY   UP-TO-DATE   AVAILABLE   AGE
+mainui-canary   1/1     1            1           5m10s
+mainui-stable   2/2     2            2           40m
+# kubectl scale 명령어를 통해 canary를 2개로 stable을 1개로 조정
+gusami@master:~$kubectl scale deployment mainui-canary --replicas=2
+deployment.apps/mainui-canary scaled
+gusami@master:~$kubectl scale deployment mainui-stable --replicas=1
+deployment.apps/mainui-stable scaled
+gusami@master:~$kubectl get deployments.apps 
+NAME            READY   UP-TO-DATE   AVAILABLE   AGE
+mainui-canary   2/2     2            2           6m17s
+mainui-stable   1/1     1            1           41m
+# blue(stable) product 제거 및 green(canary) product를 3개로 늘림
+gusami@master:~$kubectl delete deployments.apps mainui-stable 
+deployment.apps "mainui-stable" deleted
+gusami@master:~$kubectl scale deployment mainui-canary --replicas=3
+deployment.apps/mainui-canary scaled
+gusami@master:~$kubectl get deployments.apps 
+NAME            READY   UP-TO-DATE   AVAILABLE   AGE
+mainui-canary   3/3     3            3           7m57s
+
+```
