@@ -8521,11 +8521,16 @@ gusami@master:~/build$curl 10.36.0.1
 ```
 ### ConfigMap을 볼륨으로 적용하기
 - ConfigMap의 전체 또는 일부를 Pod의 Container에 Volume로 마운트할 수 있음
-  - **ConfigMap의 Key가 특정 디렉토리의 파일명으로 존재**
+  - **ConfigMap의 Key의 value가 특정 디렉토리의 파일 형태로 존재**
+  - ``configMap.items``
+    - ``key``: configMap에서 해당 키를 가져옴
+    - ``path``: 마운트되는 Path에 사용할 파일 이름
 - ``ttabae-config`` ConfigMap의 ``nginx-conf.conf`` key를 container내의 ``/etc/nginx/conf.d``로 마운트하기
 ![Apply_ConfigMap_Volume](./images/Apply_ConfigMap_Volume.png)
 ```bash
 # web-server container의 /etc/nginx/conf.d 경로에 "nginx-config.conf" 키를 마운트하기
+#  - ``key``: configMap에서 해당 키를 가져옴
+#  - ``path``: 마운트되는 Path에 사용할 파일 이름
 gusami@master:~/build$cat > genid-volume.yaml
 apiVersion: v1
 kind: Pod
@@ -8647,5 +8652,248 @@ lrwxrwxrwx 1 root root 24 Mar 12 10:52 nginx-config.conf -> ..data/nginx-config.
   - 사용자(User)가 PVC를 생성
   - K8S가 PVC 내용에 맞는 적절한 Volumne에 연결해 줌
   - Pod 생성 시, PVC를 사용
-## Secret
- 
+## secret
+### ConfigMap과 Secret
+![ConfigMapVsSecret](./images/ConfigMapVsSecret.png)
+- ConfigMap
+  - 컨테이너 구성 정보를 한곳에 모아서 관리
+- Secret
+  - 컨테이너가 사용하는 password, auth token, ssh key와 같은 중요한 정보를 저장
+  - 민감한 구성 정보를 **base64로 인코딩**해서 한 곳에 모아서 관리
+  - **실제 Pod로 전달될 때는 base64가 디코딩되어서 전달됨**
+- 민감하지 않은 일반 설정들은 ConfigMap을 사용하고, 민감한 설정들은 secret를 사용
+- Secret 데이터 전달 방법
+  - Command-line Argument
+  - Environment Variable
+  - Volume Mount  
+### secret 생성
+- ``kubectl create secret <Available Commands> name [flags] [options]``
+- ``Available Commands`` 종류
+  - ``generic``: Create a secret from a local file, directory and literal value
+    - ConfigMap과 매우 비슷함
+  - ``docker-registry``: Create a secret for use with a Docker registry
+    - ``--docker-username=``: Username for Docker registry authentication
+    - ``--docker-password=``: Password for Docker registry authentication
+  - ``tls``: Create a TLS secret from the given public/private key pair
+    - ``--cert=``: Path to PEM encoded public key certificate
+    - ``--key=``: Path to private key associated with given certificate
+    - Public Key Vs Private Key: https://blog.naver.com/PostView.naver?blogId=chodahi&logNo=221385524980
+- secret type: 사용하는 ``Available commands``와 연관
+![Secret_Types](./images/Secret_Types.png)
+```bash
+# tls command의 secret 생성. --cert, --key 옵션을 명시해야 함
+$kubectl create secret tls my-secret --cert=path/to/cert/file --key=path/to/key/file
+# docker-registry command의 secret 생성. --docker-username, --docker-password 옵션을 명시해야 함
+$kubectl create secret docker-registry reg-secret --docker-username=tiger --docker-password=pass --docker-email=tiger@acme.com
+# generic command의 secret 생성
+#  - INTERVAL은 2로 설정
+#  - "./genid-web-config" 디렉토리를 읽어서 파일명을 Key값으로 하고, 파일의 내용을 value로 설정
+$kubectl create secret generic ttabae-secret --from-literal=INTERVAL=2 --from-file=./genid-web-config/
+```
+- 실습
+```bash
+# scp를 이용하여 파일을 master node로 복사
+gusam@DESKTOP-RF6D56E MINGW64 /d/Workspace/k8s-practice/yamls (main)
+$scp -P 104 -r ./11 gusami@localhost:~/
+gusami@localhost password: 
+genid-env-secret.yaml                                                                                                                                 100%  564   205.4KB/s   00:00    
+genid-volume-secret.yaml                                                                                                                              100%  788   317.2KB/s   00:00     
+nginx-config.conf 
+# 현재 디렉토리 확인
+gusami@master:~/11$pwd
+/home/gusami/11
+# genid-web-config 디렉토리내의 nginx-config.conf 파일 내용 확인
+gusami@master:~/11$cat genid-web-config/nginx-config.conf 
+server {
+    listen   80;
+    server_name  www.example.com;
+
+    gzip on;
+    gzip_types text/plain application/xml;
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+    }
+}
+# secret 생성
+#  - INTERVAL은 2로 설정
+#  - "./genid-web-config" 디렉토리를 읽어서 파일명을 Key값으로 하고, 파일의 내용을 value로 설정
+gusami@master:~/11$kubectl create secret generic ttabae-secret --from-literal=INTERVAL=2 --from-file=./genid-web-config/
+secret/ttabae-secret created
+# secret list 확인
+#  - default-token-4ws27: k8s default service account에서 사용되는 것임
+#  - TYPE이 Opaque인 것은 사용자 정의 secret임
+gusami@master:~/11$kubectl get secrets
+NAME                  TYPE                                  DATA   AGE
+default-token-4ws27   kubernetes.io/service-account-token   3      76d
+ttabae-secret         Opaque                                2      83s
+# secret 상세 정보 확인
+#  - base64로 인코딩되어서 보이지 않고, 바이트수만 알려줌
+#  - 실제 Pod로 전달될 때는 base64가 디코딩되어서 전달
+gusami@master:~/11$kubectl describe secret ttabae-secret 
+Name:         ttabae-secret
+Namespace:    product
+Labels:       <none>
+Annotations:  <none>
+
+Type:  Opaque
+
+Data
+====
+INTERVAL:           1 bytes
+nginx-config.conf:  230 bytes
+```  
+### secret 사용 하기
+![Secret_HowTo](./images/Secret_HowTo.png)
+- 정의된 secret를 Pod의 Container에 전달하는 방법
+  - environment variable로 전달
+  - Command-line Argument로 전달
+  - Volume에 secret을 사용하여 컨테이너 디렉토리에 Mount
+- 생성한 secret를 Container 환경변수(env)로 컨테이너에 전달하기
+![Secret_Env](./images/Secret_Env.png)
+```bash
+# Pod definition using secret with yaml file
+# 사용 방법이 ConfigMap과 거의 유사
+gusami@master:~/11$cat genid-env-secret.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: genid-env-secret
+spec:
+  containers:
+  - image: smlinux/genid:env
+    env:
+    - name: INTERVAL
+      valueFrom:
+        secretKeyRef:
+          name: ttabae-secret
+          key: INTERVAL
+    name: fakeid-generator
+    volumeMounts:
+    - name: html
+      mountPath: /webdata
+  - image: nginx:1.14
+    name: web-server
+    volumeMounts:
+    - name: html
+      mountPath: /usr/share/nginx/html
+      readOnly: true
+    ports:
+    - containerPort: 80
+  volumes:
+  - name: html
+    emptyDir: {}
+# Pod 생성    
+gusami@master:~/11$kubectl create -f genid-env-secret.yaml 
+pod/genid-env-secret created    
+# 생성된 Pod 확인
+gusami@master:~/11$kubectl get pods -o wide
+NAME               READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+genid-env-secret   2/2     Running   0          80s   10.40.0.1   worker-3   <none>           <none>
+# 2초마다 fake id가 생성되는 것을 확인
+gusami@master:~/11$ curl 10.40.0.1
++------------------+
+| Kitty Dominguez  |
+| 305 Southern Dr  |
+| Alton, IL  62002 |
+| (708) xxx-xxxx   |
++------------------+
+gusami@master:~/11$ curl 10.40.0.1
++-------------------+
+| Morgan Love       |
+| 169 Freeton Blvd  |
+| Albany, NY  12212 |
+| (518) xxx-xxxx    |
++-------------------+
+# fakeid-generator 컨테이너의 환경 변수 값 확인
+#  - INTERVAL이 2초임 (Dockerfile에서의 값은 5초 였음)
+gusami@master:~/11$kubectl exec genid-env-secret -c fakeid-generator -- env
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HOSTNAME=genid-env-secret
+INTERVAL=2
+KUBERNETES_PORT_443_TCP_PROTO=tcp
+KUBERNETES_PORT_443_TCP_PORT=443
+KUBERNETES_PORT_443_TCP_ADDR=10.96.0.1
+KUBERNETES_SERVICE_HOST=10.96.0.1
+KUBERNETES_SERVICE_PORT=443
+KUBERNETES_SERVICE_PORT_HTTPS=443
+KUBERNETES_PORT=tcp://10.96.0.1:443
+KUBERNETES_PORT_443_TCP=tcp://10.96.0.1:443
+OPTION=stone
+HOME=/root
+```
+- 생성한 secret를 Container Volume mount하기
+![Secret_Volume](./images/Secret_Volume.png)
+- ``secret.items`` 속성
+  - ``key``: Secret에서 해당 키를 가져옴
+  - ``path``: 마운트되는 Path에 사용할 파일 이름
+- 실습
+```bash
+# secret key와 value을 volume mount하는 Pod 정의
+#  - ttabae-secret secret의 "nginx-config.conf" 키의 value를 읽어와서, container 내부의 "/etc/nginx/conf.d"에 "nginx-config.conf"란 이름의 파일 형태로 존재
+gusami@master:~/11$cat > genid-volume-secret.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: genid-volume-secret
+spec:
+  containers:
+  - image: smlinux/genid:env
+    env:
+    - name: INTERVAL
+      valueFrom:
+        secretKeyRef:
+          name: ttabae-secret
+          key: INTERVAL
+    name: fakeid-generator
+    volumeMounts:
+    - name: html
+      mountPath: /webdata
+  - image: nginx:1.14
+    name: web-server
+    volumeMounts:
+    - name: html
+      mountPath: /usr/share/nginx/html
+      readOnly: true
+    - name: config
+      mountPath: /etc/nginx/conf.d
+      readOnly: true
+    ports:
+    - containerPort: 80
+  volumes:
+  - name: html
+    emptyDir: {}
+  - name: config
+    secret:
+      secretName: ttabae-secret
+      items:
+      - key: nginx-config.conf
+        path: nginx-config.conf
+# Pod 생성
+gusami@master:~/11$kubectl create -f genid-volume-secret.yaml 
+pod/genid-volume-secret created
+# 생성된 Pod 확인
+gusami@master:~/11$ kubectl get pods -o wide
+NAME                  READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+genid-env-secret      2/2     Running   0          32m   10.40.0.1   worker-3   <none>           <none>
+genid-volume-secret   2/2     Running   0          57s   10.36.0.1   worker-2   <none>           <none>
+# 해당 container에 cat 명령어를 통해서 mount된 파일의 내용 확인
+gusami@master:~/11$kubectl exec genid-volume-secret -c web-server -- cat /etc/nginx/conf.d/nginx-config.conf
+server {
+    listen   80;
+    server_name  www.example.com;
+
+    gzip on;
+    gzip_types text/plain application/xml;
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+    }
+}
+```
+### secret 데이터 용량 제한
+- secret etcd에 암호화 하지 않은 텍스트로 저장되므로, secret value가 커지면 메모리 용량을 많이 사용하게 됨
+  - etcd는 메모리 공간임
+- secret의 최대 크기는 1MB임. configMap도 최대 크기는 1MB임
