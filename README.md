@@ -8167,6 +8167,485 @@ BinaryData
 Events:  <none>
 ```
 ### ConfigMap의 일부분을 적용하기
-12:25
+- 생성한 Configmap의 Key를 Pod의 컨테이너에 적용
+![Apply_ConfigMap_To_Pod](./images/Apply_ConfigMap_To_Pod.png)
+```bash
+# 먼저, genid라는 container의 동작방식을 이해해 보자!!
+# scp from windows 10 to master node
+gusam@DESKTOP-RF6D56E MINGW64 /d/Workspace/k8s-practice/yamls/10 (main)
+$ scp -P 104 -r ./build/ gusami@localhost:~/
+The authenticity of host '[localhost]:104 ([127.0.0.1]:104)' can't be established.
+ED25519 key fingerprint is SHA256:jfCH78nW/fHv4YWsaDcQhEPY/3FQx8CftJO5ZDs0BnI.
+This host key is known by the following other names/addresses:
+    ~/.ssh/known_hosts:3: [127.0.0.1]:104
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '[localhost]:104' (ED25519) to the list of known hosts.
+gusami@localhost's password: 
+Dockerfile                                                                                                                                            100%  190    75.0KB/s   00:00    
+genid.sh
+# genid shell definition
+#  - 환경 변수 $OPTION과 $INTERVAL을 이용해서 지속적으로 index.html을 업데이트
+gusami@master:~/build$cat genid.sh 
+#!/bin/bash
+mkdir -p /webdata
+while true
+do
+  /usr/bin/rig | /usr/bin/boxes -d $OPTION  > /webdata/index.html
+  sleep $INTERVAL
+done
+# apt-get update is used to resynchronize the package index files from their sources. The indexes of available packages are fetched from the location(s) specified in /etc/apt/sources.list
+gusami@master:~/build$sudo apt-get update
+....
+# install rig program
+#  - rig: 실행할 때마다 랜덤한 fakeID를 생성해 줌
+gusami@master:~/build$sudo apt-get install rig
+Reading package lists... Done
+Building dependency tree       
+Reading state information... Done
+The following NEW packages will be installed:
+  rig
+0 upgraded, 1 newly installed, 0 to remove and 144 not upgraded.
+Need to get 24.9 kB of archives.
+After this operation, 79.9 kB of additional disk space will be used.
+Get:1 http://kr.archive.ubuntu.com/ubuntu focal/universe amd64 rig amd64 1.11-1build3 [24.9 kB]
+Fetched 24.9 kB in 1s (34.3 kB/s)
+Selecting previously unselected package rig.
+(Reading database ... 159772 files and directories currently installed.)
+Preparing to unpack .../rig_1.11-1build3_amd64.deb ...
+Unpacking rig (1.11-1build3) ...
+Setting up rig (1.11-1build3) ...
+Processing triggers for man-db (2.9.1-1) ...
+gusami@master:~/build$rig
+Shelley Bullock
+204 Spring County Blvd
+Knoxville, TN  37901
+(615) xxx-xxxx
+gusami@master:~/build$rig
+Paulette Fisher
+367 Tomkins Blcd
+Vancouver, WA  98661
+(206) xxx-xxxx
+gusami@master:~/build$rig
+Margery Burks
+119 Sunrise Rd
+Wichita, KS  67276
+(316) xxx-xxxx
+# install boxes program
+#  - boxes: 박스 형태로 출력해 줌
+gusami@master:~/build$sudo apt-get install boxes
+Reading package lists... Done
+Building dependency tree       
+Reading state information... Done
+The following NEW packages will be installed:
+  boxes
+0 upgraded, 1 newly installed, 0 to remove and 144 not upgraded.
+Need to get 60.4 kB of archives.
+After this operation, 259 kB of additional disk space will be used.
+Get:1 http://kr.archive.ubuntu.com/ubuntu focal/universe amd64 boxes amd64 1.3-1 [60.4 kB]
+Fetched 60.4 kB in 1s (51.9 kB/s)
+Selecting previously unselected package boxes.
+(Reading database ... 159784 files and directories currently installed.)
+Preparing to unpack .../archives/boxes_1.3-1_amd64.deb ...
+Unpacking boxes (1.3-1) ...
+Setting up boxes (1.3-1) ...
+Processing triggers for man-db (2.9.1-1) ...
+# rig와 boxes를 함께 실행
+gusami@master:~/build$rig | boxes
+/*********************/
+/* Martina Mendoza   */
+/* 84 Maple Ln       */
+/* Dallas, TX  75260 */
+/* (214) xxx-xxxx    */
+/*********************/
+# -d 옵션을 통해 형태를 지정 가능
+gusami@master:~/build$ rig | boxes -d boy
+         .-   -.
+        / .===. \
+        \/ 6 6 \/
+        ( \___/ )
+  __ooo__\_____/______
+ /                    \
+| Misty Allen          |
+| 239 North Hampton St |
+| Orlando, FL  32802   |
+| (407) xxx-xxxx       |
+ \_______________ooo__/
+        |  |  |
+        |_ | _|
+        |  |  |
+        |__|__|
+        /-'Y'-\
+       (__/ \__)
+# container image 생성을 위한 Dockerfile
+# 5초마다 stone 형태로 fake id를 생성해서 "/webdata/index.html"에 저장
+gusami@master:~/build$cat Dockerfile 
+FROM ubuntu:18.04
+RUN apt-get update ; apt-get -y install rig boxes
+ENV INTERVAL 5
+ENV OPTION stone
+ADD genid.sh /bin/genid.sh
+RUN chmod +x /bin/genid.sh
+ENTRYPOINT ["/bin/genid.sh"]
+# genid container이미지를 받아서 Pod를 생성하는 yaml 정의
+#  - 환경변수 INTERVAL을 ConfigMap "ttabae-config"에서 받아와서 설정
+gusami@master:~$cat > genid.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: genid-stone
+spec:
+  containers:
+  - image: smlinux/genid:env
+    env:
+    - name: INTERVAL
+      valueFrom:
+        configMapKeyRef:
+          name: ttabae-config
+          key: INTERVAL 
+    name: fakeid
+    volumeMounts:
+    - name: html
+      mountPath: /webdata
+  - image: nginx:1.14
+    name: web-server
+    volumeMounts:
+    - name: html
+      mountPath: /usr/share/nginx/html
+      readOnly: true
+    ports:
+    - containerPort: 80
+  volumes:
+  - name: html
+    emptyDir: {}
+# ConfigMap list 가져오기
+gusami@master:~$kubectl get configmap
+NAME               DATA   AGE
+env-config         1      4d23h
+kube-root-ca.crt   1      75d
+special-config     1      4d23h
+ttabae-config      3      5d
+# ConfigMap "ttabae-config" 상세 정보 보기
+#  - INTERVAL이 2로 설정
+gusami@master:~$kubectl describe configmap ttabae-config 
+Name:         ttabae-config
+Namespace:    product
+Labels:       <none>
+Annotations:  <none>
+
+Data
+====
+OPTION:
+----
+girl
+nginx-config.conf:
+----
+server {
+    listen   80;
+    server_name  www.example.com;
+
+    gzip on;
+    gzip_types text/plain application/xml;
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+    }
+}
+
+INTERVAL:
+----
+2
+
+BinaryData
+====
+
+Events:  <none>
+# Pod 생성
+#  - ConfigMap에 정의된 Intervl을 읽어서 동작
+gusami@master:~$kubectl apply -f genid.yaml 
+pod/genid-stone created
+# 생성된 Pod 리스트 확인
+gusami@master:~$kubectl get pods -o wide
+NAME          READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+genid-stone   2/2     Running   0          3m14s   10.36.0.1   worker-2   <none>           <none>
+# 2초마다 업데이트 되는 것을 확인
+gusami@master:~$curl 10.36.0.1
++-----------------+
+| Leigh Spence    |
+| 385 First St    |
+| Ames, IA  50010 |
+| (515) xxx-xxxx  |
++-----------------+
+gusami@master:~$curl 10.36.0.1
++-------------------+
+| Johnathan Myers   |
+| 963 Brandy Run    |
+| Aurora, IL  60507 |
+| (708) xxx-xxxx    |
++-------------------+
+# 모든 Pod 삭제
+gusami@master:~$kubectl delete pod --all
+pod "genid-stone" deleted
+# 10초마다 갱신되도록 configmap 수정
+gusami@master:~$kubectl edit configmaps ttabae-config  
+#
+# Please edit the object below. Lines beginning with a '#' will be ignored,
+# and an empty file will abort the edit. If an error occurs while saving this file will be
+# reopened with the relevant failures.
+#
+apiVersion: v1
+data:
+  INTERVAL: "10"
+  OPTION: girl
+  nginx-config.conf: "server {\r\n    listen   80;\r\n    server_name  www.example.com;\r\n\r\n
+    \   gzip on;\r\n    gzip_types text/plain application/xml;\r\n\r\n    location
+    / {\r\n        root   /usr/share/nginx/html;\r\n        index  index.html index.htm;\r\n
+    \   }\r\n}\r\n"
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2022-03-06T13:17:08Z"
+  name: ttabae-config
+  namespace: product
+  resourceVersion: "303653"
+  uid: 05087687-f0f7-43d5-8de8-e64b17ab82ab
+# Pod 생성  
+gusami@master:~$kubectl apply -f genid.yaml 
+pod/genid-stone created
+# Pod 리스트 확인
+gusami@master:~$kubectl get pods -o wide
+NAME          READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+genid-stone   2/2     Running   0          7s    10.36.0.1   worker-2   <none>           <none>
+# 10초마다 갱신되는 지 확인
+gusami@master:~$curl 10.36.0.1
++--------------------+
+| Mable Wilcox       |
+| 89 Brighton St     |
+| Seattle, WA  98109 |
+| (206) xxx-xxxx     |
++--------------------+
+gusami@master:~$curl 10.36.0.1
++--------------------+
+| Mable Wilcox       |
+| 89 Brighton St     |
+| Seattle, WA  98109 |
+| (206) xxx-xxxx     |
++--------------------+
+```
 ### ConfigMap 전체를 적용하기
+![Apply_AllConfigMap_To_Pod](./images/Apply_AllConfigMap_To_Pod.png)
+- ``envFrom``속성을 이용하여 전체를 읽어옴
+```bash
+gusami@master:~$cat > genid-whole.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: genid-boy
+spec:
+  containers:
+  - image: smlinux/genid:env
+    envFrom:
+    - configMapRef:
+        name: ttabae-config
+    name: fakeid
+    volumeMounts:
+    - name: html
+      mountPath: /webdata
+  - image: nginx:1.14
+    name: web-server
+    volumeMounts:
+    - name: html
+      mountPath: /usr/share/nginx/html
+      readOnly: true
+    ports:
+    - containerPort: 80
+  volumes:
+  - name: html
+    emptyDir: {}
+# 전체 ConfigMap을 읽어서 환경 변수로 저장한 Pod 생성
+gusami@master:~$kubectl create -f genid-whole.yaml 
+pod/genid-boy created
+# 생성한 Pod 리스트 확인
+gusami@master:~$kubectl get pods -o wide
+NAME        READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+genid-boy   2/2     Running   0          8s    10.36.0.1   worker-2   <none>           <none>
+# Pod에 env 명령어를 실행하여 환경변수 확인
+#  - ttabae-config ConfigMap의 모든 Key값이 환경변수로 설정됨: Dockerfile의 내용이 Overwritten
+#  - $INTERVAL, $OPTION, $nginx-config.conf
+gusami@master:~$ kubectl exec genid-boy -- env
+Defaulted container "fakeid" out of: fakeid, web-server
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HOSTNAME=genid-boy
+OPTION=girl
+nginx-config.conf=server {
+    listen   80;
+    server_name  www.example.com;
+
+    gzip on;
+    gzip_types text/plain application/xml;
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+    }
+}
+
+INTERVAL=10
+KUBERNETES_PORT_443_TCP=tcp://10.96.0.1:443
+KUBERNETES_PORT_443_TCP_PROTO=tcp
+KUBERNETES_PORT_443_TCP_PORT=443
+KUBERNETES_PORT_443_TCP_ADDR=10.96.0.1
+KUBERNETES_SERVICE_HOST=10.96.0.1
+KUBERNETES_SERVICE_PORT=443
+KUBERNETES_SERVICE_PORT_HTTPS=443
+KUBERNETES_PORT=tcp://10.96.0.1:443
+HOME=/root
+# Option이 girl이고, interval이 10인 것을 확인
+gusami@master:~/build$curl 10.36.0.1
+         .-   -.
+        / .===. \
+       / / a a \ \
+      / ( \___/ ) \
+  _ooo\__\_____/__/____
+ /                     \
+| Priscilla Estrada     |
+| 548 Lincoln Rd        |
+| Plainfield, NJ  07061 |
+| (908) xxx-xxxx        |
+ \_________________ooo_/
+      /           \
+     /:.:.:.:.:.:.:\
+         |  |  |
+         \==|==/
+         /-'Y'-\
+        (__/ \__)
+```
 ### ConfigMap을 볼륨으로 적용하기
+- ConfigMap의 전체 또는 일부를 Pod의 Container에 Volume로 마운트할 수 있음
+  - **ConfigMap의 Key가 특정 디렉토리의 파일명으로 존재**
+- ``ttabae-config`` ConfigMap의 ``nginx-conf.conf`` key를 container내의 ``/etc/nginx/conf.d``로 마운트하기
+![Apply_ConfigMap_Volume](./images/Apply_ConfigMap_Volume.png)
+```bash
+# web-server container의 /etc/nginx/conf.d 경로에 "nginx-config.conf" 키를 마운트하기
+gusami@master:~/build$cat > genid-volume.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: genid-volume
+spec:
+  containers:
+  - image: smlinux/genid:env
+    env:
+    - name: INTERVAL
+      valueFrom:
+        configMapKeyRef:
+          name: ttabae-config
+          key: INTERVAL
+    name: fakeid-generator
+    volumeMounts:
+    - name: html
+      mountPath: /webdata
+  - image: nginx:1.14
+    name: web-server
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - name: html
+      mountPath: /usr/share/nginx/html
+      readOnly: true
+    - name: config
+      mountPath: /etc/nginx/conf.d
+      readOnly: true
+  volumes:
+  - name: html
+    emptyDir: {}
+  - name: config
+    configMap:
+      name: ttabae-config
+      items:
+      - key: nginx-config.conf
+        path: nginx-config.conf
+# Pod 생성        
+gusami@master:~/build$kubectl create -f genid-volume.yaml 
+pod/genid-volume created
+# 생성된 Pod List 확인
+gusami@master:~/build$kubectl get pods -o wide
+NAME           READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+genid-volume   2/2     Running   0          15s   10.36.0.1   worker-2   <none>           <none>
+# Pod 동작 확인
+gusami@master:~/build$curl 10.36.0.1
++-------------------------+
+| Annie Finch             |
+| 407 Rider Blvd          |
+| Indianapolis, IN  46206 |
+| (317) xxx-xxxx          |
++-------------------------+
+# web-server container에 접속해서 configmap이 정상 마운트 되었는지 확인
+gusami@master:~/build$kubectl exec genid-volume -it -c web-server -- /bin/bash
+root@genid-volume:/#cd /etc/nginx/conf.d/
+root@genid-volume:/etc/nginx/conf.d#cat nginx-config.conf 
+server {
+    listen   80;
+    server_name  www.example.com;
+
+    gzip on;
+    gzip_types text/plain application/xml;
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+    }
+}
+# 실제 configmap과 링크 확인
+root@genid-volume:/etc/nginx/conf.d#ls -l
+total 0
+lrwxrwxrwx 1 root root 24 Mar 12 10:52 nginx-config.conf -> ..data/nginx-config.conf
+```
+## Kubernetes Volume
+![Volume_Types](./images/Volume_Types.png)
+- emptyDir
+- hostPath
+- PVC/PV
+### emptyDir
+![Volume_EmptyDir](./images/Volume_EmptyDir.png)
+![Volume_EmptyDir_Example](./images/Volume_EmptyDir_Example.png)
+- Container 간 데이터 공유를 위해 Volume 을 사용하는 것
+- 최초 Volume 이 생성될 때는 항상 내용이 비어있기 때문에 emptyDir 이란 이름을 가지게 됨
+- 예시
+  - 만약, Container 1 이 web 역할을 하는 서버이고, Container 2 는 백엔드를 처리해주는 서버라고 하자
+  - 이때, web 서버로부터 받은 파일을 mount 된 Volume 에 저장해두고, 백엔드의 Container 역시 같은 Volume 을 mount 해두면, 이 두 서버가 Volume 을 자신의 로컬에 있는 파일처럼 사용할 수 있음
+  - 즉, 두 서버 간 파일 전송 없이 같은 파일을 사용할 수 있음
+- Volume 은 Pod 안에 생성되기 때문에, 만약 Pod 에 문제가 발생하여 다시 생성 될 경우 모든 데이터가 삭제됨
+  - 일시적으로 사용 할 데이터만 넣어 둠
+### hostPath
+![Volume_HostPath_1](./images/Volume_HostPath_1.png)
+![Volume_HostPath_2](./images/Volume_HostPath_2.png)
+![Volume_HostPath_Example](./images/Volume_HostPath_Example.png)
+- 하나의 host 즉, Pod 들이 올라가 있는 Node의 path 를 Volume으로 사용
+- ``emptyDir``과 다른 점은 Path를 각 Pod 들이 mount 해서 공유하기 때문에, Pod 가 삭제 되어도 Node 에 있는 데이터는 사라지지 않음
+- 데이터가 사라지지 않아 좋아 보이지만, Pod 입장에서 문제가 있음
+  - Pod 가 다시 생성될 때, 다른 Node 에 만들어지는 경우, Pod 가 사용하던 Volume 은 hostPath에 mount 되어있었기 때문에 Volume 을 사용할 수 없게 됨
+  - 왜냐하면, Pod는 자신이 올라간 Node에 있는 Volume만 사용할 수 있기 때문
+- 각 Node 는 기본적으로 시스템 파일 또는 다양한 설정 파일과 같이 자기 자신을 위해 사용되는 파일들이 존재
+  - Pod 자신이 할당되어 있는 host에 데이터를 읽거나 써야할 때 사용
+- hostPath는 Pod 의 데이터를 저장하기 위한 용도가 아니고, Node 에 있는 데이터를 Pod 에서 사용하기 위한 용도
+### PVC/PV
+![PVAndPVC](./images/PVAndPVC.png)
+- Pod 에 영속성 있는 Volume 을 제공하기 위한 기능
+- 실제 Volume 의 형태는 다양
+  - Local Volume도 있지만, 외부에 원격으로 사용되는 형태의 aws, git 등과 같은 Volume들도 존재
+- Pod는 이런 PV(Persistent Volume)에 바로 연결하지 않고, PVC를 통해 PV 와 연결
+- k8s 는 Volume 사용에 있어서 User 영역과 Admin 영역으로 나눔
+  - Admin은 k8s를 관리하는 운영자이고, User는 Pod 에 Service를 만들고 배포를 관리하는 서비스 담당자
+  - Admin은 PV들을 생성해서 관리하고, User는 PVC를 생성하여 PV들을 사용함
+- Volume의 종류가 다양하기 때문에, 각 Volume에 연결하기 위한 방법과 설정이 상이함
+- PV (Persistent Volumes)
+![PersistentVolume_Definition](./images/PersistentVolume_Definition.png)
+- PVC (Persistent Volume Claim)
+![PersistentVolumeClaim_Definition](./images/PersistentVolumeClaim_Definition.png)
+- 처리 흐름 정리
+  - 최초 Admin이 PV를 생성
+  - 사용자(User)가 PVC를 생성
+  - K8S가 PVC 내용에 맞는 적절한 Volumne에 연결해 줌
+  - Pod 생성 시, PVC를 사용
+## Secret
+ 
