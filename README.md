@@ -8897,3 +8897,257 @@ server {
 - secret etcd에 암호화 하지 않은 텍스트로 저장되므로, secret value가 커지면 메모리 용량을 많이 사용하게 됨
   - etcd는 메모리 공간임
 - secret의 최대 크기는 1MB임. configMap도 최대 크기는 1MB임
+## Pod Scheduling
+- Node Selector: 특정 Node에서만 실행되도록 Scheduling
+### Node Selector
+![NodeSelector_1](./images/NodeSelector_1.png)
+- Worker node에 할당된 label을 이용해 node를 선택
+- Node Label 설정
+  - ``kubectl label nodes <Node Name> <Label Key>=<Label Value>``
+```bash
+# worker-2, worker-3 Node에 gpu=true Label을 지정
+gusami@master:~$kubectl label node worker-{2,3} gpu=true
+node/worker-2 labeled
+node/worker-3 labeled
+# gpu label을 가지는 Node 검색
+#  - tensorflow와 같은 AI 알고리즘을 동작시킬 때, 특정 Node를 선택할 수 있음
+gusami@master:~$kubectl get nodes -L gpu
+NAME       STATUS   ROLES                  AGE    VERSION   GPU
+master     Ready    control-plane,master   122d   v1.22.3   
+worker-1   Ready    <none>                 122d   v1.22.3   
+worker-2   Ready    <none>                 122d   v1.22.3   true
+worker-3   Ready    <none>                 46d    v1.23.3   true
+# gpu가 장착된 Node에서만 실행하기 위한 Pod 정의
+gusami@master:~$cat > tensorflow-gpu.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tensorflow-gpu
+spec:
+  containers:
+  - name: tensorflow
+    image: tensorflow/tensorflow:nightly-jupyter
+    ports:
+    - containerPort: 8888
+      protocol: TCP
+  nodeSelector:
+    gpu: "true"
+# Pod 생성
+gusami@master:~$kubectl apply -f tensorflow-gpu.yaml 
+pod/tensorflow-gpu created
+# Worker-2 또는 Worker-3에서 실행
+gusami@master:~$kubectl get pods -o wide
+NAME             READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+tensorflow-gpu   1/1     Running   0          3m21s   10.36.0.1   worker-2   <none>           <none>    
+```
+### Affinity & antiAffinity
+#### Node Affinity
+![NodeAffinity_1](./images/NodeAffinity_1.png)
+- 노드의 특정 집합에만 Pod를 스케줄 하도록 지시
+- NodeSelector: selector field에 명시된 모든 LABEL이 포함되어야 배치됨
+- NodeAffinity: 특정 노드에만 Pod가 실행되도록 유도
+  - 요구조건
+    - 엄격한 요구: requiredDuringSchedulingIgnoredDuringExecution (일치하는 조건만)
+    - 선호도 요구: preferredDuringSchedulingIgnoredDuringExecution (가중치)
+```bash
+# worker-1, worker-2 node에 disktype=ssd label 지정
+gusami@master:~$kubectl label node worker-{1,2} disktype=ssd
+node/worker-2 labeled
+# gpu와 disktype의 Label에 대한 Node 정보 확인
+gusami@master:~$ kubectl get nodes -L gpu,disktype
+NAME       STATUS   ROLES                  AGE    VERSION   GPU    DISKTYPE
+master     Ready    control-plane,master   122d   v1.22.3          
+worker-1   Ready    <none>                 122d   v1.22.3          ssd
+worker-2   Ready    <none>                 122d   v1.22.3   true   ssd
+worker-3   Ready    <none>                 46d    v1.23.3   true  
+# node affinity를 가지는 Pod 정의
+#  - 필수 조건: disktype 레이블이 존재해야 함
+#  - 선호 조건: gpu는 true이고, disktype는 ssd인 것
+#    - gpu가 true이면 +10점, disktype이 ssd이면 +10점 (둘다 만족하면, +20점)
+gusami@master:~$cat > tensorflow-gpu-ssd.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tensorflow-gpu-ssd
+spec:
+  containers:
+  - name: tensorflow
+    image: tensorflow/tensorflow:nightly-jupyter
+    ports:
+    - containerPort: 8888
+      protocol: TCP
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - {key: disktype, operator: Exists}
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 10
+        preference:
+          matchExpressions:
+          - {key: gpu, operator: In, values: ["true"]}
+          - {key: disktype, operator: In, values: ["ssd"]}
+# Pod 생성
+gusami@master:~$kubectl apply -f tensorflow-gpu-ssd.yaml 
+pod/tensorflow-gpu-ssd created
+# 생성된 Pod 확인 (필수 조건을 만족하고, 선호 조건 점수가 가장 높은 worker-2에서 실행)
+gusami@master:~$kubectl get pods -o wide
+NAME                 READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+tensorflow-gpu-ssd   1/1     Running   0          18s   10.36.0.1   worker-2   <none>           <none>    
+# Pod 제거
+gusami@master:~$kubectl delete -f tensorflow-gpu-ssd.yaml 
+pod "tensorflow-gpu-ssd" deleted
+# Worker-2에서 disktype label을 제거하고, Worker-3에 disktype label을 추가
+gusami@master:~$kubectl label node worker-2 disktype-
+node/worker-2 labeled
+gusami@master:~$kubectl label node worker-3 disktype=ssd
+node/worker-3 labeled
+# 수정된 Label 확인
+gusami@master:~$kubectl get nodes -L gpu,disktype
+NAME       STATUS   ROLES                  AGE    VERSION   GPU    DISKTYPE
+master     Ready    control-plane,master   122d   v1.22.3          
+worker-1   Ready    <none>                 122d   v1.22.3          ssd
+worker-2   Ready    <none>                 122d   v1.22.3   true   
+worker-3   Ready    <none>                 46d    v1.23.3   true   ssd  
+# Pod 생성
+gusami@master:~$kubectl apply -f tensorflow-gpu-ssd.yaml 
+pod/tensorflow-gpu-ssd created
+# 생성된 Pod 확인 (필수 조건을 만족하고, 선호 조건 점수가 가장 높은 worker-3에서 실행)
+gusami@master:~$kubectl get pods -o wide
+NAME                 READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+tensorflow-gpu-ssd   1/1     Running   0          76s   10.40.0.1   worker-3   <none>           <none>
+# Pod 삭제
+gusami@master:~$kubectl delete -f tensorflow-gpu-ssd.yaml 
+pod "tensorflow-gpu-ssd" deleted
+# 모든 노드에서 disktype와 gpu label 삭제
+gusami@master:~$kubectl label node worker-{1,2,3} disktype- gpu-
+label "gpu" not found.
+node/worker-1 labeled
+label "disktype" not found.
+node/worker-2 labeled
+node/worker-3 labeled
+# 해당 label이 삭제되었는지 확인
+gusami@master:~$kubectl get nodes -L gpu,disktype
+NAME       STATUS   ROLES                  AGE    VERSION   GPU   DISKTYPE
+master     Ready    control-plane,master   122d   v1.22.3         
+worker-1   Ready    <none>                 122d   v1.22.3         
+worker-2   Ready    <none>                 122d   v1.22.3         
+worker-3   Ready    <none>                 46d    v1.23.3 
+```
+#### Pod Affinity
+- Pod 스케줄링
+  - podAffinity: Pod들을 더 가깝게 배치하기
+  - podAntiAffinity: Pod들을 더 멀리 배치하기
+- podAffinity 요구 조건
+  - 엄격한 요구: requiredDuringSchedulingIgnoredDuringExecution  
+  - 선호도 요구: preferredDuringSchedulingIgnoredDuringExecution
+- topologyKey
+  - Node Label을 이용해 Pod를 affinity와 antiaffinity를 설정할 수 있는 또 하나의 기준
+  - Kubernetes는 Pod를 스케줄링 할 때, 먼저 Pod의 Label을 기준으로 대상 노드를 찾고, 이후 topologykey 필드를 확인해 해당 노드가 원하는 노드인지 확인
+```bash
+# webbackend pod 생성
+#  - label을 지정: app=backend
+#  - 생성시 명령어: sleep 9999999 (sleep 명령어 실행)
+gusami@master:~$kubectl run webbackend -l app=backend --image=busybox  -- sleep 99999999
+pod/webbackend created
+# 생성된 Pod 확인. Label 확인. worker-1에서 실행
+gusami@master:~$kubectl get pods --show-labels -o wide
+NAME         READY   STATUS         RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES   LABELS
+webbackend   0/1     ErrImagePull   0          26s   10.44.0.1   worker-1   <none>           <none>            app=backend
+# Deployment 정의
+#  - 5개의 Pod를 실행. app=frontend인 Pod들
+#  - podAffinity: 필수조건. app=backend인 Pod가 실행 중인 노드에서 실행해줘
+gusami@master:~$cat > pod-affinity.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: backend
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: main
+        image: busybox
+        args:
+        - sleep
+        - "99999"
+# Deployment를 통한 5개의 Pod 생성
+gusami@master:~$kubectl create -f pod-affinity.yaml 
+deployment.apps/frontend created
+# 5개의 Pod 모두 app=backend인 Pod가 실행 중인 worker-1에서 실행 됨
+gusami@master:~$kubectl get pods --show-labels -o wide
+NAME                        READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES   LABELS
+frontend-6f4bf96c95-8wctg   1/1     Running   0          113s    10.44.0.5   worker-1   <none>           <none>            app=frontend,pod-template-hash=6f4bf96c95
+frontend-6f4bf96c95-kct8d   1/1     Running   0          113s    10.44.0.6   worker-1   <none>           <none>            app=frontend,pod-template-hash=6f4bf96c95
+frontend-6f4bf96c95-kk74r   1/1     Running   0          113s    10.44.0.2   worker-1   <none>           <none>            app=frontend,pod-template-hash=6f4bf96c95
+frontend-6f4bf96c95-ts759   1/1     Running   0          113s    10.44.0.4   worker-1   <none>           <none>            app=frontend,pod-template-hash=6f4bf96c95
+frontend-6f4bf96c95-zblwb   1/1     Running   0          113s    10.44.0.3   worker-1   <none>           <none>            app=frontend,pod-template-hash=6f4bf96c95
+webbackend                  1/1     Running   0          7m48s   10.44.0.1   worker-1   <none>           <none>            app=backend
+# deployment가 생성한 5개의 Pod 삭제
+gusami@master:~$kubectl delete -f pod-affinity.yaml 
+deployment.apps "frontend" deleted
+# 정상 삭제되었는지 확인
+gusami@master:~$kubectl get pods --show-labels -o wide
+NAME         READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES   LABELS
+webbackend   1/1     Running   0          9m16s   10.44.0.1   worker-1   <none>           <none>            app=backend
+# Deployment 정의
+#  - 5개의 Pod를 실행. app=frontend인 Pod들
+#  - podAntiAffinity: 필수조건. app=backend인 Pod가 실행 중이지 않은 노드에서 실행해줘!
+gusami@master:~$cat > pod-antiaffinity.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: backend
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: main
+        image: busybox
+        args:
+        - sleep
+        - "99999"
+# Deployment를 통한 5개의 Pod 생성        
+gusami@master:~$kubectl create -f pod-antiaffinity.yaml 
+deployment.apps/frontend created
+# 5개의 Pod 모두 app=backend인 Pod가 실행 중이지 않은 worker-2, worker-3 에서 실행 됨
+gusami@master:~$kubectl get pods --show-labels -o wide
+NAME                        READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES   LABELS
+frontend-6fbcc977ff-8zn7w   1/1     Running   0          34s   10.40.0.3   worker-3   <none>           <none>            app=frontend,pod-template-hash=6fbcc977ff
+frontend-6fbcc977ff-fdpmg   1/1     Running   0          34s   10.36.0.2   worker-2   <none>           <none>            app=frontend,pod-template-hash=6fbcc977ff
+frontend-6fbcc977ff-jndx9   1/1     Running   0          34s   10.40.0.2   worker-3   <none>           <none>            app=frontend,pod-template-hash=6fbcc977ff
+frontend-6fbcc977ff-lx4fr   1/1     Running   0          34s   10.40.0.1   worker-3   <none>           <none>            app=frontend,pod-template-hash=6fbcc977ff
+frontend-6fbcc977ff-rfc2s   1/1     Running   0          34s   10.36.0.1   worker-2   <none>           <none>            app=frontend,pod-template-hash=6fbcc977ff
+webbackend                  1/1     Running   0          13m   10.44.0.1   worker-1   <none>           <none>            app=backend
+```  
+### taint & toleration
+### cordon & drain
