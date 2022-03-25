@@ -9150,4 +9150,280 @@ frontend-6fbcc977ff-rfc2s   1/1     Running   0          34s   10.36.0.1   worke
 webbackend                  1/1     Running   0          13m   10.44.0.1   worker-1   <none>           <none>            app=backend
 ```  
 ### taint & toleration
+- Master Node에서 Pod가 실행되지 않은 이유와 관련
+- **node taint, Pod toleration**
+  - node에 taint를 설정하고, Pod에는 toleration을 설정
+- Worker node에 taint가 설정된 경우, 동일 값의 toleration이 있는 Pod들만 배치 가능
+- toleration이 있는 Pod는 동일한 taint가 있는 node를 포함하여 모든 node에 배치 가능
+- effect 필드 종류
+  - NoSchedule: toleration이 맞지 않으면, 배치되지 않음
+  - PreferNoSchedule: toleration이 맞지 않으면 배치되지 않으나, 클러스터 리소스가 부족하면 할당
+  - NoExecute: toleration이 맞으면 동작 중인 Pod를 종료
+```bash
+# node list
+gusami@master:~$kubectl get nodes
+NAME       STATUS   ROLES                  AGE    VERSION
+master     Ready    control-plane,master   132d   v1.22.3
+worker-1   Ready    <none>                 132d   v1.22.3
+worker-2   Ready    <none>                 132d   v1.22.3
+worker-3   Ready    <none>                 56d    v1.23.3
+# master node의 상세정보
+#  - Taint의 Key는  "node-role.kubernetes.io/master", Value는 "NoSchedule"
+#  - Application Pod는 "node-role.kubernetes.io/master" 즉, master node에는 실행하지 말라는 뜻
+#  - 만약, 해당 Taint를 제거하면 master node에도 Pod가 Schedule됨
+gusami@master:~$kubectl describe nodes master | grep -i taint
+Taints:             node-role.kubernetes.io/master:NoSchedule
+# Worker node이 상세정보 - Taint가 없음
+gusami@master:~$kubectl describe nodes worker-1 | grep -i taint
+Taints:             <none>
+```  
+![TaintAndToleration](./images/TaintAndToleration.png)
+- 위의 이미지처럼, node에 taint가 설정된 경우
+  - Pod들이 toleration을 taint와 동일한 값("role=web:NoSchedule")을 가지면, node1, node2, node3에도 배치가능
+```bash
+# worker-2, worker-2 node에 taint 정보를 설정
+gusami@master:~$kubectl taint nodes worker-1 role=web:NoSchedule
+node/worker-1 tainted
+gusami@master:~$kubectl taint nodes worker-2 role=web:NoSchedule
+node/worker-2 tainted
+# worker node들의 taint 정보 확인
+gusami@master:~$ kubectl describe nodes worker-{1..3} | grep -i taint
+Taints:             role=web:NoSchedule
+Taints:             role=web:NoSchedule
+Taints:             <none>
+# nginx deployment 정의 (toleration이 없는 상태)
+gusami@master:~$cat > deploy-nginx.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webui
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: webui
+  template:
+    metadata:
+      name: nginx-pod
+      labels:
+        app: webui
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.14
+# nginx deployment 생성
+gusami@master:~$kubectl create -f deploy-nginx.yaml 
+deployment.apps/webui created
+# 모든 Pod들이 taint가 존재하지 않는 worker-3 node에서만 실행
+gusami@master:~$kubectl get pods -o wide
+NAME                     READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+webui-6d4c4cc4b8-8ftl9   1/1     Running   0          56s   10.40.0.3   worker-3   <none>           <none>
+webui-6d4c4cc4b8-lk9wg   1/1     Running   0          56s   10.40.0.1   worker-3   <none>           <none>
+webui-6d4c4cc4b8-t5jcm   1/1     Running   0          56s   10.40.0.2   worker-3   <none>           <none>
+webui-6d4c4cc4b8-txsmb   1/1     Running   0          56s   10.40.0.4   worker-3   <none>           <none>
+# nginx deployment 삭제
+gusami@master:~$kubectl delete -f deploy-nginx.yaml 
+deployment.apps "webui" deleted
+# nginx deployment 정의
+#  - Pod에 toleration을 정의
+#  - worker-1, worker-2 node의 taint와 동일
+gusami@master:~$cat > deploy-nginx.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webui
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: webui
+  template:
+    metadata:
+      name: nginx-pod
+      labels:
+        app: webui
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.14
+      tolerations:
+      - key: "role"
+        operator: "Equal"
+        value: "web"
+        effect: "NoSchedule"
+# nginx deployment 생성
+gusami@master:~$kubectl create -f deploy-nginx.yaml 
+deployment.apps/webui created
+# 모든 worker node에 nginx pod들이 배치됨을 확인
+#  - toleration과 일치하는 taint를 가지는 node들에 배치
+#  - 해당 taint를 가지지 않는 node들에도 배치
+gusami@master:~$kubectl get pods -o wide
+NAME                     READY   STATUS    RESTARTS   AGE     IP          NODE       NOMINATED NODE   READINESS GATES
+webui-647cd84775-249mw   1/1     Running   0          2m11s   10.44.0.2   worker-1   <none>           <none>
+webui-647cd84775-jdtzq   1/1     Running   0          2m11s   10.36.0.1   worker-2   <none>           <none>
+webui-647cd84775-q5c7c   1/1     Running   0          2m11s   10.44.0.1   worker-1   <none>           <none>
+webui-647cd84775-rbl76   1/1     Running   0          2m11s   10.40.0.1   worker-3   <none>           <none>
+# worker-1과 worker-2 node에서 role을 key로 가지는 taint 제거
+gusami@master:~$kubectl taint nodes worker-1 role-
+node/worker-1 untainted
+gusami@master:~$kubectl taint nodes worker-2 role-
+node/worker-2 untainted
+# taint 정보가 삭제 됨을 확인
+gusami@master:~$kubectl describe nodes worker-{1..3} | grep -i taint
+Taints:             <none>
+Taints:             <none>
+Taints:             <none>
+# nginx deployment 삭제
+gusami@master:~$kubectl delete -f deploy-nginx.yaml 
+deployment.apps "webui" deleted
+# master node의 taint 정보 확인
+gusami@master:~$kubectl describe nodes master | grep -i taint
+Taints:             node-role.kubernetes.io/master:NoSchedule
+# master node에서 해당 taint 정보 삭제
+gusami@master:~$kubectl taint nodes master node-role.kubernetes.io/master-
+node/master untainted
+# master node에서 해당 taint 정보 삭제 확인
+gusami@master:~$kubectl describe nodes master | grep -i taint
+Taints:             <none>
+# nginx deployment 생성
+gusami@master:~$kubectl apply -f deploy-nginx.yaml 
+deployment.apps/webui created
+# master node에서 해당 taint 정보 재생성
+gusami@master:~$kubectl taint nodes master node-role.kubernetes.io/master:NoSchedule
+node/master tainted
+gusami@master:~$kubectl describe nodes master | grep -i taint
+Taints:             node-role.kubernetes.io/master:NoSchedule
+```  
 ### cordon & drain
+- Node 관련 명령
+- 특정 노드에 Pod를 스케줄링하지 말아줘!
+  - ``cordon``
+- 특정 노드에 Pod를 싹 다 지워줘!
+  - ``drain``
+#### cordon  
+![Cordon](./images/Cordon.png)  
+- 노드 스케줄링 중단(cordon) 및 허용(uncordon)
+  - 특정 노드에 pod 스케줄을 금지하거나 해제
+  - ``kubectl [cordon|uncordon] Node [options]``
+```bash
+# worker-2 node의 스케줄링을 금지 시킴
+gusami@master:~$kubectl cordon worker-2
+node/worker-2 cordoned
+# node 정보 확인
+#  - worker-2 node가 SchedulingDisabled된 것을 확인
+gusami@master:~$ kubectl get nodes
+NAME       STATUS                     ROLES                  AGE    VERSION
+master     Ready                      control-plane,master   132d   v1.22.3
+worker-1   Ready                      <none>                 132d   v1.22.3
+worker-2   Ready,SchedulingDisabled   <none>                 132d   v1.22.3
+worker-3   Ready                      <none>                 56d    v1.23.3
+# nginx deployment 생성
+gusami@master:~$kubectl apply -f deploy-nginx.yaml 
+deployment.apps/webui created
+# pod list 확인
+#  - worker-2에는 스케줄링 되지 않은 것을 확인
+gusami@master:~$kubectl get pods -o wide
+NAME                     READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+webui-647cd84775-5lqgg   1/1     Running   0          15s   10.44.0.1   worker-1   <none>           <none>
+webui-647cd84775-6htr2   1/1     Running   0          15s   10.44.0.2   worker-1   <none>           <none>
+webui-647cd84775-c52mz   1/1     Running   0          15s   10.40.0.2   worker-3   <none>           <none>
+webui-647cd84775-cbvm6   1/1     Running   0          15s   10.40.0.1   worker-3   <none>           <none>
+# worker-2 node의 스케줄링을 다시 활성화
+gusami@master:~$kubectl uncordon worker-2
+node/worker-2 uncordoned
+# uncordon된 것을 확인
+gusami@master:~$kubectl get nodes
+NAME       STATUS   ROLES                  AGE    VERSION
+master     Ready    control-plane,master   132d   v1.22.3
+worker-1   Ready    <none>                 132d   v1.22.3
+worker-2   Ready    <none>                 132d   v1.22.3
+worker-3   Ready    <none>                 56d    v1.23.3
+# nginx deployment 삭제
+gusami@master:~$kubectl delete -f deploy-nginx.yaml 
+deployment.apps "webui" deleted
+```
+#### drain
+- 노드 비우기
+  - 특정 노드에서 동작 중인 모든 Pod들을 제거
+  - 특정 노드의 시스템을 점검할 때 사용 가능
+  - ``kubectl drain NODE [options]``
+  - ``--ignore-daemonsets``: DaemonSet-managed pod들은 ignore
+  - ``--force``: RC, RS, Job, DaemonSet 또는 StatefulSet에서 관리하지 않는 Pod까지 제거
+```bash
+# nginx deployment 생성
+gusami@master:~$kubectl apply -f deploy-nginx.yaml 
+deployment.apps/webui created
+# redis pod 생성
+gusami@master:~$ kubectl run db --image=redis
+pod/db created
+# 생성된 Pod 정보 확인
+#  - redis db는 worker-3에서 실행 중
+gusami@master:~$kubectl get pods -o wide
+NAME                     READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+db                       1/1     Running   0          25s   10.40.0.2   worker-3   <none>           <none>
+webui-647cd84775-2n6gd   1/1     Running   0          42s   10.36.0.1   worker-2   <none>           <none>
+webui-647cd84775-g8l7b   1/1     Running   0          42s   10.36.0.2   worker-2   <none>           <none>
+webui-647cd84775-rcdnj   1/1     Running   0          42s   10.40.0.1   worker-3   <none>           <none>
+webui-647cd84775-wldrm   1/1     Running   0          42s   10.44.0.1   worker-1   <none>           <none>
+# drain worker-3 node
+#  - 삭제 실패
+gusami@master:~$kubectl drain worker-3
+node/worker-3 cordoned
+DEPRECATED WARNING: Aborting the drain command in a list of nodes will be deprecated in v1.23.
+The new behavior will make the drain command go through all nodes even if one or more nodes failed during the drain.
+For now, users can try such experience via: --ignore-errors
+error: unable to drain node "worker-3", aborting command...
+
+There are pending nodes to be drained:
+ worker-3
+cannot delete DaemonSet-managed Pods (use --ignore-daemonsets to ignore): kube-system/kube-proxy-2pm78, kube-system/weave-net-9s8mx
+cannot delete Pods not managed by ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet (use --force to override): product/db
+# drain worker-3 node with 
+#  - "--ignore-daemonsets": daemonset 삭제
+#  - "--force": RC, RS, Job, DaemonSet 또는 StatefulSet에서 관리하지 않는 Pod까지 제거
+gusami@master:~$kubectl drain worker-3 --ignore-daemonsets --force
+node/worker-3 already cordoned
+WARNING: ignoring DaemonSet-managed Pods: kube-system/kube-proxy-2pm78, kube-system/weave-net-9s8mx; deleting Pods not managed by ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet: product/db
+evicting pod product/webui-647cd84775-rcdnj
+evicting pod product/db
+pod/webui-647cd84775-rcdnj evicted
+pod/db evicted
+node/worker-3 evicted
+# worker-3는 drain되면서 스케줄링도 비활성화됨
+gusami@master:~$kubectl get nodes
+NAME       STATUS                     ROLES                  AGE    VERSION
+master     Ready                      control-plane,master   132d   v1.22.3
+worker-1   Ready                      <none>                 132d   v1.22.3
+worker-2   Ready                      <none>                 132d   v1.22.3
+worker-3   Ready,SchedulingDisabled   <none>                 56d    v1.23.3
+# worker-3에 대한 장비 점검이 종료되면, 해당 노드를 다시 활성화(uncordon)
+gusami@master:~$kubectl uncordon worker-3
+node/worker-3 uncordoned
+# worker-3가 활성화 됨을 확인
+#  - 해당 노드에 Pod가 배치될 수 있는 상태
+gusami@master:~$kubectl get nodes
+NAME       STATUS   ROLES                  AGE    VERSION
+master     Ready    control-plane,master   132d   v1.22.3
+worker-1   Ready    <none>                 132d   v1.22.3
+worker-2   Ready    <none>                 132d   v1.22.3
+worker-3   Ready    <none>                 56d    v1.23.3
+```
+### Pod Scheduling 실습
+- 다음과 같은 Node Label을 설정하시오
+
+| Node      | LABEL       |
+| --------- | ----------- |
+| node1     | disktype=std, gpu=true       |
+| node2     | disktype=ssd, gpu=false      |
+| node3     | disktype=ssd, gpu=true       |
+- nodeSelector를 이용하여 tensorflow/tensorflow:nightly-juptyer 컨테이너를 다음의 조건으로 실행하시오
+```bash
+ podname: pod-ml
+ image: tensorflow/tensorflow:nightly-jupyter
+ NODE: disktype=ssd, gpu=true
+```
+- mongoDB 데이터베이스를 다음의 조건으로 실행하시오
+  - name: mongodb-pod
+  - image: mongo
+  - containerPort: 27017
+  - NODE: pod-ml이 동작되고 있는 node와 최대한 멀리 떨어뜨려서 배치하시오
