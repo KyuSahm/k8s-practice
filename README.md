@@ -9416,6 +9416,7 @@ worker-3   Ready    <none>                 56d    v1.23.3
 | node1     | disktype=std, gpu=true       |
 | node2     | disktype=ssd, gpu=false      |
 | node3     | disktype=ssd, gpu=true       |
+
 - nodeSelector를 이용하여 tensorflow/tensorflow:nightly-juptyer 컨테이너를 다음의 조건으로 실행하시오
 ```bash
  podname: pod-ml
@@ -9427,3 +9428,414 @@ worker-3   Ready    <none>                 56d    v1.23.3
   - image: mongo
   - containerPort: 27017
   - NODE: pod-ml이 동작되고 있는 node와 최대한 멀리 떨어뜨려서 배치하시오
+## 인증과 권한관리
+- user의 인증 정보를 이용해서 K8S API에 접근
+  - 예: ``kubectl get nodes``
+- Application Pod의 경우, ServiceAccount가 토큰을 이용해서 K8S API에 접근
+- User와 ServiceAccount가 접근할 때, K8S는 권한 관리를 이용해서 접근 권한 확인
+```bash
+# 현재의 Context 정보와 바인드된 User 정보를 확인 가능
+#  - current-context: example@kubernetes
+#  - user: kubernetes-admin
+gusami@master:~$kubectl config view
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://10.0.1.4:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    namespace: product
+    user: kubernetes-admin
+  name: example@kubernetes
+- context:
+    cluster: kubernetes
+    namespace: ingress-nginx
+    user: kubernetes-admin
+  name: ingress-admin@kubernetes
+- context:
+    cluster: kubernetes
+    namespace: default
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+current-context: example@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: REDACTED
+    client-key-data: REDACTED
+# 결국, 아래의 명령을 수행하는 User는 "kubernetes-admin"임
+#  - 인증서와 Key를 이용해서 K8S API에 접근   
+gusami@master:~$kubectl get nodes
+NAME       STATUS   ROLES                  AGE    VERSION
+master     Ready    control-plane,master   134d   v1.22.3
+worker-1   Ready    <none>                 134d   v1.22.3
+worker-2   Ready    <none>                 134d   v1.22.3
+worker-3   Ready    <none>                 58d    v1.23.3
+# $HOME/.kube/config 파일에 "kubernetes-admin" User의 인증서와 Key 정보가 존재
+#  - 해당 인증서와 Key를 이용해서 K8S API에 접근
+gusami@master:~$cat ~/.kube/config
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUMvakNDQWVhZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRJeE1URXhNekF4TURFeE4xb1hEVE14TVRFeE1UQXhNREV4TjFvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTlJPCmlpc3cvZk9IMnpJMWtDZ2xKT1ZFRzlJdUdyMWRjUUxIOGVhT1hvME45QjFUS0J6dE9vRnhOczc5VUVaaWllRloKYU9ZNTBvNnlGdDMxUHZpdm90RTF4cTc2a1FHTlNtcDVvaDU1UzN6RDlHVzFablg1akhkZ3drK3RiUEhqYlJXOApLZVJrVVJwYVFKSUszT2lRT2ovdU9VQjJVSXZrNE5IWnMvaWhhWUU0ajhkeTFFSEs1TWhBMk81QkVQWmhOKzkyCm5SUFBWWlpwZitUNnpOZWJxNEJvaFRiVEdCWmxzc0xTdXlINC9pY285YlcyVHVtUEtaOXMyc2lpS2pkVGR1QXYKMHZqWHhmc1h6d29NdHZhakhLd09GYVNGaENFOEVuVHdGakcyVW40MXQvTTcvUGhpRkJid051VUlFM1Vhb3Y0bApFb1FMRGh2dVlFWkpDQW11K0hFQ0F3RUFBYU5aTUZjd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0hRWURWUjBPQkJZRUZERHlqYjhNZDkxYWx3dVFiZEtFNSt2QWMrSHVNQlVHQTFVZEVRUU8KTUF5Q0NtdDFZbVZ5Ym1WMFpYTXdEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBS1RrOHI2UElaVlIwWFVpU1FkMAp2OUlTSzcrTnE1em9QUHRVN1NReDlEREJ6UnZ2UDB6UTFVa2kzNzQzUGtoT0VPQklZTmZkQWQ1bXRaTGcrWGc4CkFGd2UxVXk5V05EbjE5YXdDT2U1azFPUTZGZVl5OHRYbkxBYmNnRHlOdVBoMERTc2hqSHRLRWFvSEtMVXdTakEKMGdKaFhGZEZyQ3BZZTdUdHM3VzlrUXZKeGJ4MXpOcXhKcnJlczQ1NldYcFhDaGEzUTNsZzMzcXovZ3RKZDcvaQppVUc3WUFrSk5RckFNSXFHU2kyY3dQdXhvWnVpNG1IcXBaajhZbWd4dFNrN292dG1PYXBPaEdjOEQxQ3BLc1JIClpNbXhqYldYbk5FNjJMaUF2MExaMTE5YXJRNFRBMDJIeGlhNXVNSUNYckhmcTVnOStvRThRTUJoaUhHdE5RWnkKVmQwPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+    server: https://10.0.1.4:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    namespace: product
+    user: kubernetes-admin
+  name: example@kubernetes
+- context:
+    cluster: kubernetes
+    namespace: ingress-nginx
+    user: kubernetes-admin
+  name: ingress-admin@kubernetes
+- context:
+    cluster: kubernetes
+    namespace: default
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+current-context: example@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURJVENDQWdtZ0F3SUJBZ0lJSzY0OHdyNzcvbFF3RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TVRFeE1UTXdNVEF4TVRkYUZ3MHlNakV4TVRNd01UQXhNVGxhTURReApGekFWQmdOVkJBb1REbk41YzNSbGJUcHRZWE4wWlhKek1Sa3dGd1lEVlFRREV4QnJkV0psY201bGRHVnpMV0ZrCmJXbHVNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QU1JSUJDZ0tDQVFFQXZzQk1PRytQV2gwaVNaNEUKSVlGcEZ5VUpPaEJvR1lYMWNKUkJ0MVVlRk0wUVg2S1JrN3JGb1dWeUJrbnVWRjV3MFVSTEdyUVNQQkRIQmpncQp0cnMydHNiS2I1S3hWajh6RkowRUh1TUxSUjk2OW44UlVjclB6SHdzNGlINUlONm9mWmo4NlIzR3dJYjdpR09YCkRDQkxIUHVyVXdBNFEyeVFGRmcwelY2RVBsanRhdG5seXp2dXJISUsvZ3dlU1JMb3hWOEZtSXo4VVY5ZWRCOUkKYkxvZEdOLy94TzJWTDNzNzdhWW9ubkltTDNuQmNNUTNFNmY0OWlVWGtkS3dJeDA5Nk0ydWFBZGU0VC9yZEprbApoQmZaNjZaWk9UNTN2cDFoZHMwbVRvdmFZZEN2OGJITnJNeTRMYWsrc1JMaERPejEvU05ySXFEMlBVRklqVU04CmN4eFNNd0lEQVFBQm8xWXdWREFPQmdOVkhROEJBZjhFQkFNQ0JhQXdFd1lEVlIwbEJBd3dDZ1lJS3dZQkJRVUgKQXdJd0RBWURWUjBUQVFIL0JBSXdBREFmQmdOVkhTTUVHREFXZ0JRdzhvMi9ESGZkV3BjTGtHM1NoT2Zyd0hQaAo3akFOQmdrcWhraUc5dzBCQVFzRkFBT0NBUUVBa2gxSmdVTDdIRUxRT1dybU5rWE1mMGkzVGF2UkxGTHQ5WmVHCkxBQkNpTDNFbWJuU21KcjdrMmRwZ1R3OFJmay9hS0lPOURzOFFlNnRIL003ZUs0QWxERDYyUkFJNzluNVNxaysKR2d4WXFaVkJkclNZTXRPWHk3eHpKQVFxci9sa0ZvdEFMVGZHZ2Jic21wSXhIRGM4N3B6ZFphYi9vbldaNWt1WQpIdDdIZFhJam9OZHVYMWhKeGg4bnlJdEZGNzl5S3N2SXpDS0xoOVVQNFk2YVRxckUvaWFsbFhrZ2VlSko5eExZCk1WcmdLeDNCM2ZvYmlYcmRQcWxNVDhnQkswNjVQSXJRWmNvcis5ZDhsUy9OTENLS1pKQ0l4b1U5WjE1SDJsYysKbitidGNWOVdaY3o1ZGlyRDJlQWwxcGNmMlAvbDhPTERjN21ZOWE5S2dzVUNJR0xCNVE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+    client-key-data: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFb3dJQkFBS0NBUUVBdnNCTU9HK1BXaDBpU1o0RUlZRnBGeVVKT2hCb0dZWDFjSlJCdDFVZUZNMFFYNktSCms3ckZvV1Z5QmtudVZGNXcwVVJMR3JRU1BCREhCamdxdHJzMnRzYktiNUt4Vmo4ekZKMEVIdU1MUlI5NjluOFIKVWNyUHpId3M0aUg1SU42b2Zaajg2UjNHd0liN2lHT1hEQ0JMSFB1clV3QTRRMnlRRkZnMHpWNkVQbGp0YXRubAp5enZ1ckhJSy9nd2VTUkxveFY4Rm1JejhVVjllZEI5SWJMb2RHTi8veE8yVkwzczc3YVlvbm5JbUwzbkJjTVEzCkU2ZjQ5aVVYa2RLd0l4MDk2TTJ1YUFkZTRUL3JkSmtsaEJmWjY2WlpPVDUzdnAxaGRzMG1Ub3ZhWWRDdjhiSE4Kck15NExhaytzUkxoRE96MS9TTnJJcUQyUFVGSWpVTThjeHhTTXdJREFRQUJBb0lCQVFDbk5SbWJQdStDSnBldgp3SHdPZ3NvRUo4cjJ3dnI5cEplSm4rd2JNTm0xa2l3UUtRbERYaTF2Vk9XbTdaZWxEVVFIckwzSklwLzVWeHVmCk1BMEJNUXE5SFhUR2FPaGFtZnZFemY2V3RKOWtjRHZ4WjJGZk9WRCtCcnV4WGVac0VjSFFseExicGVaYlRmZWYKanUwUkRCM0x3akJrQ1lWSVZSblhPNXJOaTFTUThRMldKV2hIcGMwSlZZZjZZckVuM2pqcmRIYWxSekJGZ0FPVgpxWVJJZGd6Q1dmOTkxZlVwMTBubnlzWHRidXBLc2czanZOY0hXcXZGTkg2dVRwclFFM3doMi82dDJkNm1uaUVpCnh0NSt5U0J1Zld4M0VpTjBrUjZ5T2JEUVhyT2wzbHFiMTFlUjYyUzRYSDRpSTdodVNnVmFIUlFnV1Qwa3UrMDEKSVEvZHg1UEJBb0dCQVBRZGpSYXVIT1k4NHphVjI4bWU3SmZBa2RIS1ZGMlhpQWdudUkweFVvYWFjSWYvV2R5ZQpJMjkzaE9QbGc4VFJFS3Zkb0h3WW9vRlNDMWJBU29aeE5OQVphM1FaSmI1N2dLNkRlVHRuTHc5bEdlbkpUSUJFCkw2b280TTVxVFFBZnlhSFo5MGc0dzFocmloUys4aWpSVUxKMWJudHBiSjhnSHZ0cHNXenMwNXhYQW9HQkFNZ0oKcU1ySEVsSWdua0tac2JrZEtIelRIaDRmY05DVU1hSCtNdXg5czlyVkd1OHk0K0kxR1BlakluUjk4ZkpRSVpxcQpLRFc5TzZRUG5tTmVTZW5qVTI0dHJTa3dKaUFGWFdHRHJpYWU3TnZSUG4zMldidEZrMC9Wa1g2WkVBYlYwbThmCkJ6QSt1aXFveFBvY0w2VTQvejhnZEdIOTh0enptTzlFellCak5RK0ZBb0dBY0hxeFNMTC9JK01JT2wyQWdQMFcKUExJQlBtNEF3NE1QcmRwSGdkOHBERlphNVg3MTg5NTFxMldodUxSSEs4ZTg2OFBacjNSV1pFbmVhYUYrZFVYeQpOTFNSdTFQZS9VN0FzeWhuRXNUdmZTTnpkakpIYW82QWUrSUwrM0FsZkpvbytNZUsxaDg1ZXlOSjQxYzhFeXluCkJ5TnV2YlNNMVNFaXhXc2swbkNvN0U4Q2dZQWtiMlg0TVZSTDh6Y0FTSUJQaUZrVWkxdWovdlFNZWNHa2tPbHoKbTkzRGtTZEx4RWd2cnA0eWxOczB2cS93QTlwckVtMHFoS0kxV3NidHNJSGtBUXowTjR1ZndlNWZ6THBhaGFLVgoxRUt1TXltZnhkeElPUDhBL3BSMnE2aDRwaitqRDlLK1hkNkk0SjZvTTdRVjh4REN6Y1dGQjcxUnMyajZ3OXh1CmN5TjZCUUtCZ0Y2R1FBbUJRemxSNUxOSkx1S1h4aXlmSXJHT0hhckJpZHN3UEJFZ09JejcxTDN6em9CMUl1dkoKYnBIMlVkWks5aEZrTjduU3RicUtHOHB3eXJzWVVyeXhWbldUQUllWFhQNU90UThYc1JuT3dNRVhHSTBmWWhseApQbHV6ZGU2ZHJoejRMb0lOODhBbTh6SVh0cGpOM25nU0JwbUtGZXZqYjRyeFR5UC9uaHFrCi0tLS0tRU5EIFJTQSBQUklWQVRFIEtFWS0tLS0tCg==    
+```
+### API 접근 제어
+![API_AcessControl](./images/API_AcessControl.png)
+- API 인증 요청
+  - User/Group, Service Account(Application pod)
+- Authentication
+  - User 또는 Application이 API에 접근을 허가 받는 과정
+  - 인증 방식: 클라이언트 인증서, 베어러 토큰(bearer token), HTTP 기본인증 지원
+- Authorization
+  - RBAC 모델 기반
+  - **요청 ID에 적절한 role이 있는지 확인**
+- Admission Control
+  - 요청이 올바른 형식인지 판별
+  - 요청이 처리되기 전에 수정사항을 잠재적으로 적용    
+### 인증 (user, ServiceAccount)
+#### API 인증
+- API 서버에 접근하기 위해서는 인증작업 필요
+  - 일반 사용자(Human User) 또는 그룹(Group)
+    - Cluster 외부에서 Kubernetes를 조작하는 사용자로, 다양한 방법으로 인증을 거침
+  - 서비스 계정(ServiceAccount)  
+    - kubernetes 내부적으로 관리되며, Pod가 kubernetes API를 다룰 때 사용하는 계정
+    - 예: Ingress Controller Pod의 경우, 여러 사용자 서비스들에 접근하여 HTTP Request들을 연결해줌
+    - 예: 특정 ServiceAccount는 서비스 목록을 볼수 있고, 서비스 삭제 및 생성 가능하도록 권한을 줌
+- 사용자 및 그룹
+  - Cluster 외부에서 kubernetes를 조작하는 사용자
+  - ``kubernetes-admin`` user
+    - kubernetes의 모든 권한 소유한 User
+    - ``$cat ~/.kube/config``: User의 인증서 위치
+    - ``$kubectl config view``: cluster, context 및 user 정보 보기
+#### 일반 사용자(Human User) 생성
+- https://kubernetes.io/docs/reference/access-authn-authz/certificate-signing-requests/#normal-user        
+- 인증서 생성 후, User 등록
+  - The following scripts show how to generate PKI private key and CSR
+  - It is important to set CN and O attribute of the CSR
+    - CN is the name of the user and O is the group that this user will belong to
+    - You can refer to RBAC for standard groups.
+  - ``$openssl genrsa -out myuser.key 2048``
+  - ``$openssl req -new -key myuser.key -out myuser.csr -subj "/CN=myuser"``
+- CertificateSigningRequest 생성    
+  - ``cat myuser.csr | base64 | tr -d "\n"``
+    ```bash
+    LS.....=
+    ```
+  - ``vi csr-myuser.yaml``
+    ```bash
+    apiVersion: certificates.k8s.io/v1
+    kind: CertificateSigningRequest
+    metadata:
+      name: myuser
+    spec:
+      request: LS....=
+      signerName: kubernetes.io/kube-apiserver-client
+      usages:
+      - client auth  
+    ```
+  - ``$kubectl apply -f csr-myuser.yaml``
+- CertificateSigningRequest 승인
+  - ``$kubectl certificate approve myuser``
+  - ``$kubectl get csr``
+- 생성된 CertificateSigningRequest 확인
+  - ``kubectl get csr/myuser -o yaml``  
+```bash
+# Step 01: Private Key 생성
+gusami@master:~$openssl genrsa -out myuser.key 2048
+Generating RSA private key, 2048 bit long modulus (2 primes)
+..........................................+++++
+...............................................+++++
+
+# Step 02: Private Key를 기반으로 CSR 파일 생성
+#  - CSR 파일은 인증서 정보를 생성하기 위한 요청 파일
+#  - ``-subj "/CN=myuser"을 통해서 User Name을 지정
+gusami@master:~$openssl req -new -key myuser.key -out myuser.csr -subj "/CN=myuser"
+gusami@master:~$ls myuser.*
+myuser.csr  myuser.key
+# Step 03: CSR 파일을 base64 encoding해서 request 정보 생성
+gusami@master:~$cat myuser.csr | base64 | tr -d "\n"
+LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQ1ZqQ0NBVDRDQVFBd0VURVBNQTBHQTFVRUF3d0diWGwxYzJWeU1JSUJJakFOQmdrcWhraUc5dzBCQVFFRgpBQU9DQVE4QU1JSUJDZ0tDQVFFQTB3dGtQTURkcVFaVi9HWXEzMWU4SGM2RjBEenVUbTZ1SXF3MjBXczRWSW1BCk5FajJ6WVNoRFBsc2pHVk5DUklycHdSeGJ1TFhYQ25NNVpkSGVJaDQ0V001OTA4TnRIWWRFcWg5V3F0UzhXbXEKWEEySHlqUi9iSXBselJnWEZZeENVS2NaaThqU0U0N1ZjKzRWLzlKM1VRdFlQM2FPWEx1LzJoWFhGSmdweVNkSApERURPbzFnUk9FU0NYcTUvNGY1c3JUMzQyYXJud3FCbnRwQU9nUG54Y2xEcWpPN2o1Zy8yK3NWT3NVeDZLQ2tuCk5TYllMTVU3S0Zid09hUm9mQXA2SlZxR1B1d0FidGVpTVpMbnYwZVQ5U3l5anRIVU1uMEl2UCt1eHBMdGZ0S3MKTjVnRWNZb1hONElHdGl5QmRYVFRteThHVmkvQlNpUEE1Qk5wcms5NENRSURBUUFCb0FBd0RRWUpLb1pJaHZjTgpBUUVMQlFBRGdnRUJBRW5IOFJSRkZqVXNhS3Z6Mnphenp6YVV5MktkVlozSjhwbDhnYitCL3BOenRackpoRHRBCnphZzZVaHlud24xay9iUHhQb3Fudm9IR0VJaXJ5UW9pcVpJNUdNME1JaE1Ea3UzaWo5RUxTYnJEazBEOFJDdXEKK1Q0VTNWYXFrcVBCbjRMYnJwR3QrMG5yUWJ6Z1ZrNktYSDFIMXFiZkZuQ2poc096YkduZk96Z25PL0ltb0lSdgpMdC84aWJXNmd6bjB3OFZsNTMrZXFoTTloZjJPRDVYcVgzT2FSU2ZGSWd0blcrQ0RkeEhjcHB6OTVNTlplbk1QCmJIdGZzUjRrZzNrZENuMDhjWHVkMExNU3Fyc2c5QzM4UFJyejVCRmtKTGdtM1B6T0w5QkpDMjBpcUhPNG5PMHoKYjFXdnRMQTlmY1BiMUcyMDd3d0hUMU04ZkcxbmZjSnpyWVk9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=
+# Step 04: CertificateSigningRequest 생성
+#  - kubernetes에서 새로 생성한 User를 등록
+#  - usages has to be 'client auth'
+#  - expirationSeconds could be made
+#    - longer (i.e. 864000 for ten days) or shorter (i.e. 3600 for one hour)
+#  - request is the base64 encoded value of the CSR file content.
+#    - You can get the content using this command: cat myuser.csr | base64 | tr -d "\n"
+gusami@master:~$cat > csr-myuser.yaml 
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+  name: myuser
+spec:
+  request: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQ1ZqQ0NBVDRDQVFBd0VURVBNQTBHQTFVRUF3d0diWGwxYzJWeU1JSUJJakFOQmdrcWhraUc5dzBCQVFFRgpBQU9DQVE4QU1JSUJDZ0tDQVFFQTB3dGtQTURkcVFaVi9HWXEzMWU4SGM2RjBEenVUbTZ1SXF3MjBXczRWSW1BCk5FajJ6WVNoRFBsc2pHVk5DUklycHdSeGJ1TFhYQ25NNVpkSGVJaDQ0V001OTA4TnRIWWRFcWg5V3F0UzhXbXEKWEEySHlqUi9iSXBselJnWEZZeENVS2NaaThqU0U0N1ZjKzRWLzlKM1VRdFlQM2FPWEx1LzJoWFhGSmdweVNkSApERURPbzFnUk9FU0NYcTUvNGY1c3JUMzQyYXJud3FCbnRwQU9nUG54Y2xEcWpPN2o1Zy8yK3NWT3NVeDZLQ2tuCk5TYllMTVU3S0Zid09hUm9mQXA2SlZxR1B1d0FidGVpTVpMbnYwZVQ5U3l5anRIVU1uMEl2UCt1eHBMdGZ0S3MKTjVnRWNZb1hONElHdGl5QmRYVFRteThHVmkvQlNpUEE1Qk5wcms5NENRSURBUUFCb0FBd0RRWUpLb1pJaHZjTgpBUUVMQlFBRGdnRUJBRW5IOFJSRkZqVXNhS3Z6Mnphenp6YVV5MktkVlozSjhwbDhnYitCL3BOenRackpoRHRBCnphZzZVaHlud24xay9iUHhQb3Fudm9IR0VJaXJ5UW9pcVpJNUdNME1JaE1Ea3UzaWo5RUxTYnJEazBEOFJDdXEKK1Q0VTNWYXFrcVBCbjRMYnJwR3QrMG5yUWJ6Z1ZrNktYSDFIMXFiZkZuQ2poc096YkduZk96Z25PL0ltb0lSdgpMdC84aWJXNmd6bjB3OFZsNTMrZXFoTTloZjJPRDVYcVgzT2FSU2ZGSWd0blcrQ0RkeEhjcHB6OTVNTlplbk1QCmJIdGZzUjRrZzNrZENuMDhjWHVkMExNU3Fyc2c5QzM4UFJyejVCRmtKTGdtM1B6T0w5QkpDMjBpcUhPNG5PMHoKYjFXdnRMQTlmY1BiMUcyMDd3d0hUMU04ZkcxbmZjSnpyWVk9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=
+  signerName: kubernetes.io/kube-apiserver-client
+#  expirationSeconds: 86400  # one day
+  usages:
+  - client auth
+# Step 05: Create a CertificateSigningRequest and submit it to a Kubernetes Cluster via kubectl
+gusami@master:~$kubectl apply -f csr-myuser.yaml 
+certificatesigningrequest.certificates.k8s.io/myuser created
+# Step 06: CSR list 확인 
+#  - 승인되기 전까진 "Pending" 상태임
+gusami@master:~$ kubectl get csr
+NAME     AGE   SIGNERNAME                            REQUESTOR          REQUESTEDDURATION   CONDITION
+myuser   7s    kubernetes.io/kube-apiserver-client   kubernetes-admin   <none>              Pending
+# Step 07: CSR 승인
+gusami@master:~$kubectl certificate approve myuser
+certificatesigningrequest.certificates.k8s.io/myuser approved
+# CSR 승인 상태 확인
+gusami@master:~$kubectl get csr
+NAME     AGE     SIGNERNAME                            REQUESTOR          REQUESTEDDURATION   CONDITION
+myuser   3m13s   kubernetes.io/kube-apiserver-client   kubernetes-admin   <none>              Approved,Issued
+# Step 08: "myuser"의 CSR 상세 정보 확인
+#  - 인증 정보는 "status.certificate" 항목 (base64 인코딩)
+#  - csr request와 certificate 정보는 약간 차이가 남
+gusami@master:~$kubectl get csr/myuser -o yaml
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"certificates.k8s.io/v1","kind":"CertificateSigningRequest","metadata":{"annotations":{},"name":"myuser"},"spec":{"request":"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQ1ZqQ0NBVDRDQVFBd0VURVBNQTBHQTFVRUF3d0diWGwxYzJWeU1JSUJJakFOQmdrcWhraUc5dzBCQVFFRgpBQU9DQVE4QU1JSUJDZ0tDQVFFQTB3dGtQTURkcVFaVi9HWXEzMWU4SGM2RjBEenVUbTZ1SXF3MjBXczRWSW1BCk5FajJ6WVNoRFBsc2pHVk5DUklycHdSeGJ1TFhYQ25NNVpkSGVJaDQ0V001OTA4TnRIWWRFcWg5V3F0UzhXbXEKWEEySHlqUi9iSXBselJnWEZZeENVS2NaaThqU0U0N1ZjKzRWLzlKM1VRdFlQM2FPWEx1LzJoWFhGSmdweVNkSApERURPbzFnUk9FU0NYcTUvNGY1c3JUMzQyYXJud3FCbnRwQU9nUG54Y2xEcWpPN2o1Zy8yK3NWT3NVeDZLQ2tuCk5TYllMTVU3S0Zid09hUm9mQXA2SlZxR1B1d0FidGVpTVpMbnYwZVQ5U3l5anRIVU1uMEl2UCt1eHBMdGZ0S3MKTjVnRWNZb1hONElHdGl5QmRYVFRteThHVmkvQlNpUEE1Qk5wcms5NENRSURBUUFCb0FBd0RRWUpLb1pJaHZjTgpBUUVMQlFBRGdnRUJBRW5IOFJSRkZqVXNhS3Z6Mnphenp6YVV5MktkVlozSjhwbDhnYitCL3BOenRackpoRHRBCnphZzZVaHlud24xay9iUHhQb3Fudm9IR0VJaXJ5UW9pcVpJNUdNME1JaE1Ea3UzaWo5RUxTYnJEazBEOFJDdXEKK1Q0VTNWYXFrcVBCbjRMYnJwR3QrMG5yUWJ6Z1ZrNktYSDFIMXFiZkZuQ2poc096YkduZk96Z25PL0ltb0lSdgpMdC84aWJXNmd6bjB3OFZsNTMrZXFoTTloZjJPRDVYcVgzT2FSU2ZGSWd0blcrQ0RkeEhjcHB6OTVNTlplbk1QCmJIdGZzUjRrZzNrZENuMDhjWHVkMExNU3Fyc2c5QzM4UFJyejVCRmtKTGdtM1B6T0w5QkpDMjBpcUhPNG5PMHoKYjFXdnRMQTlmY1BiMUcyMDd3d0hUMU04ZkcxbmZjSnpyWVk9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=","signerName":"kubernetes.io/kube-apiserver-client","usages":["client auth"]}}
+  creationTimestamp: "2022-03-27T03:33:06Z"
+  name: myuser
+  resourceVersion: "356595"
+  uid: 088fdeca-2891-433a-9f9e-7cb6dbc6e77a
+spec:
+  groups:
+  - system:masters
+  - system:authenticated
+  request: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQ1ZqQ0NBVDRDQVFBd0VURVBNQTBHQTFVRUF3d0diWGwxYzJWeU1JSUJJakFOQmdrcWhraUc5dzBCQVFFRgpBQU9DQVE4QU1JSUJDZ0tDQVFFQTB3dGtQTURkcVFaVi9HWXEzMWU4SGM2RjBEenVUbTZ1SXF3MjBXczRWSW1BCk5FajJ6WVNoRFBsc2pHVk5DUklycHdSeGJ1TFhYQ25NNVpkSGVJaDQ0V001OTA4TnRIWWRFcWg5V3F0UzhXbXEKWEEySHlqUi9iSXBselJnWEZZeENVS2NaaThqU0U0N1ZjKzRWLzlKM1VRdFlQM2FPWEx1LzJoWFhGSmdweVNkSApERURPbzFnUk9FU0NYcTUvNGY1c3JUMzQyYXJud3FCbnRwQU9nUG54Y2xEcWpPN2o1Zy8yK3NWT3NVeDZLQ2tuCk5TYllMTVU3S0Zid09hUm9mQXA2SlZxR1B1d0FidGVpTVpMbnYwZVQ5U3l5anRIVU1uMEl2UCt1eHBMdGZ0S3MKTjVnRWNZb1hONElHdGl5QmRYVFRteThHVmkvQlNpUEE1Qk5wcms5NENRSURBUUFCb0FBd0RRWUpLb1pJaHZjTgpBUUVMQlFBRGdnRUJBRW5IOFJSRkZqVXNhS3Z6Mnphenp6YVV5MktkVlozSjhwbDhnYitCL3BOenRackpoRHRBCnphZzZVaHlud24xay9iUHhQb3Fudm9IR0VJaXJ5UW9pcVpJNUdNME1JaE1Ea3UzaWo5RUxTYnJEazBEOFJDdXEKK1Q0VTNWYXFrcVBCbjRMYnJwR3QrMG5yUWJ6Z1ZrNktYSDFIMXFiZkZuQ2poc096YkduZk96Z25PL0ltb0lSdgpMdC84aWJXNmd6bjB3OFZsNTMrZXFoTTloZjJPRDVYcVgzT2FSU2ZGSWd0blcrQ0RkeEhjcHB6OTVNTlplbk1QCmJIdGZzUjRrZzNrZENuMDhjWHVkMExNU3Fyc2c5QzM4UFJyejVCRmtKTGdtM1B6T0w5QkpDMjBpcUhPNG5PMHoKYjFXdnRMQTlmY1BiMUcyMDd3d0hUMU04ZkcxbmZjSnpyWVk9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=
+  signerName: kubernetes.io/kube-apiserver-client
+  usages:
+  - client auth
+  username: kubernetes-admin
+status:
+  certificate: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUM5akNDQWQ2Z0F3SUJBZ0lRQWpFaGZ0RUQzNkxCbEorNy9UNkc2ekFOQmdrcWhraUc5dzBCQVFzRkFEQVYKTVJNd0VRWURWUVFERXdwcmRXSmxjbTVsZEdWek1CNFhEVEl5TURNeU56QXpNekV4TjFvWERUSXpNRE15TnpBegpNekV4TjFvd0VURVBNQTBHQTFVRUF4TUdiWGwxYzJWeU1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBCk1JSUJDZ0tDQVFFQTB3dGtQTURkcVFaVi9HWXEzMWU4SGM2RjBEenVUbTZ1SXF3MjBXczRWSW1BTkVqMnpZU2gKRFBsc2pHVk5DUklycHdSeGJ1TFhYQ25NNVpkSGVJaDQ0V001OTA4TnRIWWRFcWg5V3F0UzhXbXFYQTJIeWpSLwpiSXBselJnWEZZeENVS2NaaThqU0U0N1ZjKzRWLzlKM1VRdFlQM2FPWEx1LzJoWFhGSmdweVNkSERFRE9vMWdSCk9FU0NYcTUvNGY1c3JUMzQyYXJud3FCbnRwQU9nUG54Y2xEcWpPN2o1Zy8yK3NWT3NVeDZLQ2tuTlNiWUxNVTcKS0Zid09hUm9mQXA2SlZxR1B1d0FidGVpTVpMbnYwZVQ5U3l5anRIVU1uMEl2UCt1eHBMdGZ0S3NONWdFY1lvWApONElHdGl5QmRYVFRteThHVmkvQlNpUEE1Qk5wcms5NENRSURBUUFCbzBZd1JEQVRCZ05WSFNVRUREQUtCZ2dyCkJnRUZCUWNEQWpBTUJnTlZIUk1CQWY4RUFqQUFNQjhHQTFVZEl3UVlNQmFBRkREeWpiOE1kOTFhbHd1UWJkS0UKNSt2QWMrSHVNQTBHQ1NxR1NJYjNEUUVCQ3dVQUE0SUJBUUMyM1BDZVk4ZHJvVFZOWnF1b0JZRUVLdU9idk5hWgpzZndUZkl5NjVLb2oxMzB1Y0c3TTZOUkczbU51OGF0TURvVUI1R0N4RjZsSjNFQzZEOGFuU0huQ215UUlvamhMCmYxM2xlL2F1U1BqZ3NZVlZKVTVMTzVGbUFVb3FocGpaaVVCZTdUbmdpa2pWWUNpK2VkNVo5VFkwNUFOeGcrMXQKUzYzYnVsWTVYWG9VcVdwNUIzVERHOXNKWlM4QmlJdWk1dnBTWEllcUNadi9aVS9sOUl4elk4MERCUDN6SVJ6LwpxMFJzUlZpRE1FWHUzTkx0ZW9Cd2VQdGJrQWQ0MHhLSFU2MENUVjBmRjNma0tYYkZSaFY3T2dwRkh5YVJlNDhICk9adFNjZkQrNXpXb0NYcEVzb09uU21kN3NaTTZ4dEE5aXQ5ZzNxU1gwYUF1R1V5U3FOMEs0M3ZQCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+  conditions:
+  - lastTransitionTime: "2022-03-27T03:36:17Z"
+    lastUpdateTime: "2022-03-27T03:36:17Z"
+    message: This CSR was approved by kubectl certificate approve.
+    reason: KubectlApprove
+    status: "True"
+    type: Approved
+# Step 09: 인증서 정보를 추출해서 인증서 파일 생성  
+gusami@master:~$kubectl get csr myuser -o jsonpath='{.status.certificate}' | base64 -d > myuser.crt
+# Step 10: 인증서 파일 세부 내용 확인
+gusami@master:~$cat myuser.crt 
+-----BEGIN CERTIFICATE-----
+MIIC9jCCAd6gAwIBAgIQAjEhftED36LBlJ+7/T6G6zANBgkqhkiG9w0BAQsFADAV
+MRMwEQYDVQQDEwprdWJlcm5ldGVzMB4XDTIyMDMyNzAzMzExN1oXDTIzMDMyNzAz
+MzExN1owETEPMA0GA1UEAxMGbXl1c2VyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A
+MIIBCgKCAQEA0wtkPMDdqQZV/GYq31e8Hc6F0DzuTm6uIqw20Ws4VImANEj2zYSh
+DPlsjGVNCRIrpwRxbuLXXCnM5ZdHeIh44WM5908NtHYdEqh9WqtS8WmqXA2HyjR/
+bIplzRgXFYxCUKcZi8jSE47Vc+4V/9J3UQtYP3aOXLu/2hXXFJgpySdHDEDOo1gR
+OESCXq5/4f5srT342arnwqBntpAOgPnxclDqjO7j5g/2+sVOsUx6KCknNSbYLMU7
+KFbwOaRofAp6JVqGPuwAbteiMZLnv0eT9SyyjtHUMn0IvP+uxpLtftKsN5gEcYoX
+N4IGtiyBdXTTmy8GVi/BSiPA5BNprk94CQIDAQABo0YwRDATBgNVHSUEDDAKBggr
+BgEFBQcDAjAMBgNVHRMBAf8EAjAAMB8GA1UdIwQYMBaAFDDyjb8Md91alwuQbdKE
+5+vAc+HuMA0GCSqGSIb3DQEBCwUAA4IBAQC23PCeY8droTVNZquoBYEEKuObvNaZ
+sfwTfIy65Koj130ucG7M6NRG3mNu8atMDoUB5GCxF6lJ3EC6D8anSHnCmyQIojhL
+f13le/auSPjgsYVVJU5LO5FmAUoqhpjZiUBe7TngikjVYCi+ed5Z9TY05ANxg+1t
+S63bulY5XXoUqWp5B3TDG9sJZS8BiIui5vpSXIeqCZv/ZU/l9IxzY80DBP3zIRz/
+q0RsRViDMEXu3NLteoBwePtbkAd40xKHU60CTV0fF3fkKXbFRhV7OgpFHyaRe48H
+OZtScfD+5zWoCXpEsoOnSmd7sZM6xtA9it9g3qSX0aAuGUySqN0K43vP
+-----END CERTIFICATE-----    
+```
+#### ServiceAccount 생성
+- https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
+- Service Account
+  - kubernetes 내부적으로 관리되는 Account
+  - Pod가 실행될 때, ServiceAccount를 지정하지 않으면 같은 namespace에 default라는 ServiceAccount가 할당됨
+    - ``$kubectl get serviceaccounts``
+    - ``$kubectl run testpod --image=nginx``
+    - ``$kubectl get pod testpod -o yaml | grep -i serviceAccount``
+- Service Account 생성
+```bash
+# service account 정보 보기
+#  - 기본적으로 "default"라는 serviceaccount가 존재
+gusami@master:~$kubectl get serviceaccounts
+NAME      SECRETS   AGE
+default   1         91d
+# "default" serviceaccount와 연관된 Token 정보 보기
+gusami@master:~$kubectl get secrets
+NAME                  TYPE                                  DATA   AGE
+default-token-4ws27   kubernetes.io/service-account-token   3      91d
+# nginx image를 사용한 testpod 생성 및 실행
+gusami@master:~$kubectl run testpod --image=nginx
+pod/testpod created
+# testpod의 serviceaccount가 "default"임을 확인
+#  - serviceAccount: default
+gusami@master:~$ kubectl get pod testpod -o yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2022-03-27T05:32:25Z"
+  labels:
+    run: testpod
+  name: testpod
+  namespace: product
+  resourceVersion: "367098"
+  uid: 87de03ac-7dc1-4c4d-b351-9a15bb7b53da
+spec:
+  containers:
+  - image: nginx
+    imagePullPolicy: Always
+    name: testpod
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-snh6l
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  nodeName: worker-1
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - name: kube-api-access-snh6l
+    projected:
+      defaultMode: 420
+      sources:
+      - serviceAccountToken:
+          expirationSeconds: 3607
+          path: token
+      - configMap:
+          items:
+          - key: ca.crt
+            path: ca.crt
+          name: kube-root-ca.crt
+      - downwardAPI:
+          items:
+          - fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+            path: namespace
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2022-03-27T05:32:25Z"
+    status: "True"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2022-03-27T05:32:46Z"
+    status: "True"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: "2022-03-27T05:32:46Z"
+    status: "True"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2022-03-27T05:32:25Z"
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - containerID: docker://44568a3703d2bfb80f9092deb5d4757155ac8b7306170d02717b26622cf931b4
+    image: nginx:latest
+    imageID: docker-pullable://nginx@sha256:4ed64c2e0857ad21c38b98345ebb5edb01791a0a10b0e9e3d9ddde185cdbd31a
+    lastState: {}
+    name: testpod
+    ready: true
+    restartCount: 0
+    started: true
+    state:
+      running:
+        startedAt: "2022-03-27T05:32:45Z"
+  hostIP: 10.0.1.5
+  phase: Running
+  podIP: 10.44.0.1
+  podIPs:
+  - ip: 10.44.0.1
+  qosClass: BestEffort
+  startTime: "2022-03-27T05:32:25Z"
+# service account "pod-viewer" 생성
+#  - service account token도 함께 생성됨  
+gusami@master:~$kubectl create serviceaccount pod-viewer
+serviceaccount/pod-viewer created
+# service account list 확인
+gusami@master:~$kubectl get serviceaccounts
+NAME         SECRETS   AGE
+default      1         91d
+pod-viewer   1         10s
+# service account "pod-viewer"를 위한 token도 자동 생성되었음을 확인 
+gusami@master:~$kubectl get secrets
+NAME                     TYPE                                  DATA   AGE
+default-token-4ws27      kubernetes.io/service-account-token   3      91d
+pod-viewer-token-jcsxf   kubernetes.io/service-account-token   3      76s
+# testpod를 이용한 yaml file 생성
+gusami@master:~$kubectl get pods testpod -o yaml > testpod.yaml
+# testpod 삭제
+gusami@master:~$kubectl delete pod testpod
+pod "testpod" deleted
+# serviceAccount를 "pod-viewer"로 수정
+gusami@master:~$ vi testpod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: testpod
+  namespace: product
+spec:
+  containers:
+  - image: nginx
+    name: testpod
+  serviceAccount: pod-viewer 
+# testpod 재생성
+gusami@master:~$kubectl apply -f testpod.yaml 
+pod/testpod created   
+# serviceAccount가 "pod-viewer"로 지정된 것을 확인 가능
+gusami@master:~$kubectl get pods -o yaml | grep serviceAccount
+        {"apiVersion":"v1","kind":"Pod","metadata":{"annotations":{},"name":"testpod","namespace":"product"},"spec":{"containers":[{"image":"nginx","name":"testpod"}],"serviceAccoun":"pod-viewer"}}
+    serviceAccount: pod-viewer
+    serviceAccountName: pod-viewer
+        - serviceAccountToken:
+```
+### 권한관리(Role/RoleBinding, ClusterRole/ClusterRoleBinding)
