@@ -9651,7 +9651,7 @@ status:
     reason: KubectlApprove
     status: "True"
     type: Approved
-# Step 09: 인증서 정보를 추출해서 인증서 파일 생성  
+# Step 09: 인증서 정보를 추출해서 base64 decoding해서 인증서 파일 생성   
 gusami@master:~$kubectl get csr myuser -o jsonpath='{.status.certificate}' | base64 -d > myuser.crt
 # Step 10: 인증서 파일 세부 내용 확인
 gusami@master:~$cat myuser.crt 
@@ -9839,3 +9839,297 @@ gusami@master:~$kubectl get pods -o yaml | grep serviceAccount
         - serviceAccountToken:
 ```
 ### 권한관리(Role/RoleBinding, ClusterRole/ClusterRoleBinding)
+- 특정 유저나 ServiceAccount가 접근하려는 API에 접근 권한을 설정
+- 권한 있는 User만 접근하도록 허용
+- 권한 제어
+#### Role/RoleBinding
+![RoleBinding_Concept](./images/RoleBinding_Concept.png)
+- user1과 group는 Role A 권한을 가지고, Service Account는 Role B 권한을 가짐
+- Role
+  - 어떤 API를 이용할 수 있는지의 정의
+  - 쿠버네티스의 사용 권한을 정의
+  - 지정된 네임스페이스에서만 유효
+- RoleBinding
+  - 사용자/그룹 또는 Service Account와 Role을 연결
+- https://kubernetes.io/docs/reference/access-authn-authz/certificate-signing-requests
+![AdmissionControll](./images/AdmissionControll.png)
+#### RBAC를 이용한 권한제어
+- https://kubernetes.io/docs/reference/access-authn-authz/certificate-signing-requests
+- Role
+  - 어떤 API를 사용할 수 있는지 권한 정의
+  - **지정된 네임스페이스에서만 유효** (User와 serviceAccount와 동일한 네임스페이스를 지정)
+- Role 예제: default namespace의 Pod에 대한 get, watch, list할 수 있는 권한
+  - pod는 코어 API이기 때문에, apiGroups를 따로 지정하지 않음. 만약 리소스가 job라면 apiGroups에 "batch"를 지정
+  - resources에는 pods, deployments, services등 사용할 API resources들을 명시
+  - verbs에는 단어 그대로 나열된 API 리소스에 허용할 기능을 나열
+    - ``create``: 새로운 리소스 생성
+    - ``get``: 개별 리소스 조회
+    - ``list``: 여러 건의 리소스 조회
+    - ``update``: 기존 리소스 내용 전체 업데이트
+    - ``patch``: 기존 리소스 중 일부 내용 변경
+    - ``delete``: 개별 리소스 삭제
+    - ``deletecollection``: 여러 리소스 삭제
+```bash
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: pod-reader
+rules:
+- apiGroups: [""]
+  verbs: ["get", "watch", "list"]
+```
+- RoleBinding
+  - User/Group 또는 Service Account와 Role을 연결
+- RoleBinding 예제: default 네임스페이스에서 유저 jane에게 pod-reader의 role을 할당
+![RoleBinding_Example](./images/RoleBinding_Example.png)  
+- Command line에서도 Role을 생성하고, RoleBinding할 수 있음
+```bash
+# create role on pod resource
+gusami@master:~$kubectl create role developer --verb=create --verb=get --verb=list --verb=update --verb=delete --resource=pods
+role.rbac.authorization.k8s.io/developer created
+# list role
+gusami@master:~$kubectl get role
+NAME        CREATED AT
+developer   2022-04-03T11:57:14Z
+# --dry-run을 이용한 yaml 형식 출력
+gusami@master:~$kubectl create role developer --verb=create --verb=get --verb=list --verb=update --verb=delete --resource=pods --dry-run -o yaml
+W0403 20:59:00.915174    7556 helpers.go:555] --dry-run is deprecated and can be replaced with --dry-run=client.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  creationTimestamp: null
+  name: developer
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - get
+  - list
+  - update
+  - delete
+# create role binding
+gusami@master:~$kubectl create rolebinding developer-binding-myuser --role=developer --user=myuser
+rolebinding.rbac.authorization.k8s.io/developer-binding-myuser created
+gusami@master:~$kubectl create rolebinding developer-binding-myuser --role=developer 
+# --dry-run을 통한 yaml 생성
+gusami@master:~$kubectl create rolebinding developer-binding-myuser --role=developer --user=myuser --dry-run -o yaml
+W0403 21:01:19.156953    8356 helpers.go:555] --dry-run is deprecated and can be replaced with --dry-run=client.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  creationTimestamp: null
+  name: developer-binding-myuser
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: developer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: myuser
+```
+#### kubeconfig에 사용자 추가
+- https://kubernetes.io/docs/reference/access-authn-authz/certificate-signing-requests
+- Step 01: 새로운 Credential을 kubeconfig에 사용자 추가하기
+  - ``kubectl config set-credentials myuser --client-key=myuser.key --client-certificate=myuser.crt --embed-certs=true``
+- Step 02: 새로운 user를 사용할 수 있는 context 추가하기
+  - ``kubectl config set-context myuser --cluster=kubernetes --user=myuser``
+- Step 03: context 변경한 후, 확인해 보기
+  - ``kubectl config use-context myuser``
+```bash
+# 현재 상태 확인
+#  - "kubernetes-admin" user만 존재
+gusami@master:~$kubectl config view
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://10.0.1.4:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    namespace: product
+    user: kubernetes-admin
+  name: example@kubernetes
+- context:
+    cluster: kubernetes
+    namespace: ingress-nginx
+    user: kubernetes-admin
+  name: ingress-admin@kubernetes
+- context:
+    cluster: kubernetes
+    namespace: default
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+current-context: example@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: REDACTED
+    client-key-data: REDACTE
+# Step 01: kubeconfig 파일에 사용자 추가
+gusami@master:~$kubectl config set-credentials myuser --client-key=myuser.key --client-certificate=myuser.crt --embed-certs=true
+User "myuser" set.
+# 생성된 myuser의 private key와 인증서 확인
+gusami@master:~$cat ~/.kube/config
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUMvakNDQWVhZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRJeE1URXhNekF4TURFeE4xb1hEVE14TVRFeE1UQXhNREV4TjFvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTlJPCmlpc3cvZk9IMnpJMWtDZ2xKT1ZFRzlJdUdyMWRjUUxIOGVhT1hvME45QjFUS0J6dE9vRnhOczc5VUVaaWllRloKYU9ZNTBvNnlGdDMxUHZpdm90RTF4cTc2a1FHTlNtcDVvaDU1UzN6RDlHVzFablg1akhkZ3drK3RiUEhqYlJXOApLZVJrVVJwYVFKSUszT2lRT2ovdU9VQjJVSXZrNE5IWnMvaWhhWUU0ajhkeTFFSEs1TWhBMk81QkVQWmhOKzkyCm5SUFBWWlpwZitUNnpOZWJxNEJvaFRiVEdCWmxzc0xTdXlINC9pY285YlcyVHVtUEtaOXMyc2lpS2pkVGR1QXYKMHZqWHhmc1h6d29NdHZhakhLd09GYVNGaENFOEVuVHdGakcyVW40MXQvTTcvUGhpRkJid051VUlFM1Vhb3Y0bApFb1FMRGh2dVlFWkpDQW11K0hFQ0F3RUFBYU5aTUZjd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0hRWURWUjBPQkJZRUZERHlqYjhNZDkxYWx3dVFiZEtFNSt2QWMrSHVNQlVHQTFVZEVRUU8KTUF5Q0NtdDFZbVZ5Ym1WMFpYTXdEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBS1RrOHI2UElaVlIwWFVpU1FkMAp2OUlTSzcrTnE1em9QUHRVN1NReDlEREJ6UnZ2UDB6UTFVa2kzNzQzUGtoT0VPQklZTmZkQWQ1bXRaTGcrWGc4CkFGd2UxVXk5V05EbjE5YXdDT2U1azFPUTZGZVl5OHRYbkxBYmNnRHlOdVBoMERTc2hqSHRLRWFvSEtMVXdTakEKMGdKaFhGZEZyQ3BZZTdUdHM3VzlrUXZKeGJ4MXpOcXhKcnJlczQ1NldYcFhDaGEzUTNsZzMzcXovZ3RKZDcvaQppVUc3WUFrSk5RckFNSXFHU2kyY3dQdXhvWnVpNG1IcXBaajhZbWd4dFNrN292dG1PYXBPaEdjOEQxQ3BLc1JIClpNbXhqYldYbk5FNjJMaUF2MExaMTE5YXJRNFRBMDJIeGlhNXVNSUNYckhmcTVnOStvRThRTUJoaUhHdE5RWnkKVmQwPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+    server: https://10.0.1.4:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    namespace: product
+    user: kubernetes-admin
+  name: example@kubernetes
+- context:
+    cluster: kubernetes
+    namespace: ingress-nginx
+    user: kubernetes-admin
+  name: ingress-admin@kubernetes
+- context:
+    cluster: kubernetes
+    namespace: default
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+current-context: example@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURJVENDQWdtZ0F3SUJBZ0lJSzY0OHdyNzcvbFF3RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TVRFeE1UTXdNVEF4TVRkYUZ3MHlNakV4TVRNd01UQXhNVGxhTURReApGekFWQmdOVkJBb1REbk41YzNSbGJUcHRZWE4wWlhKek1Sa3dGd1lEVlFRREV4QnJkV0psY201bGRHVnpMV0ZrCmJXbHVNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QU1JSUJDZ0tDQVFFQXZzQk1PRytQV2gwaVNaNEUKSVlGcEZ5VUpPaEJvR1lYMWNKUkJ0MVVlRk0wUVg2S1JrN3JGb1dWeUJrbnVWRjV3MFVSTEdyUVNQQkRIQmpncQp0cnMydHNiS2I1S3hWajh6RkowRUh1TUxSUjk2OW44UlVjclB6SHdzNGlINUlONm9mWmo4NlIzR3dJYjdpR09YCkRDQkxIUHVyVXdBNFEyeVFGRmcwelY2RVBsanRhdG5seXp2dXJISUsvZ3dlU1JMb3hWOEZtSXo4VVY5ZWRCOUkKYkxvZEdOLy94TzJWTDNzNzdhWW9ubkltTDNuQmNNUTNFNmY0OWlVWGtkS3dJeDA5Nk0ydWFBZGU0VC9yZEprbApoQmZaNjZaWk9UNTN2cDFoZHMwbVRvdmFZZEN2OGJITnJNeTRMYWsrc1JMaERPejEvU05ySXFEMlBVRklqVU04CmN4eFNNd0lEQVFBQm8xWXdWREFPQmdOVkhROEJBZjhFQkFNQ0JhQXdFd1lEVlIwbEJBd3dDZ1lJS3dZQkJRVUgKQXdJd0RBWURWUjBUQVFIL0JBSXdBREFmQmdOVkhTTUVHREFXZ0JRdzhvMi9ESGZkV3BjTGtHM1NoT2Zyd0hQaAo3akFOQmdrcWhraUc5dzBCQVFzRkFBT0NBUUVBa2gxSmdVTDdIRUxRT1dybU5rWE1mMGkzVGF2UkxGTHQ5WmVHCkxBQkNpTDNFbWJuU21KcjdrMmRwZ1R3OFJmay9hS0lPOURzOFFlNnRIL003ZUs0QWxERDYyUkFJNzluNVNxaysKR2d4WXFaVkJkclNZTXRPWHk3eHpKQVFxci9sa0ZvdEFMVGZHZ2Jic21wSXhIRGM4N3B6ZFphYi9vbldaNWt1WQpIdDdIZFhJam9OZHVYMWhKeGg4bnlJdEZGNzl5S3N2SXpDS0xoOVVQNFk2YVRxckUvaWFsbFhrZ2VlSko5eExZCk1WcmdLeDNCM2ZvYmlYcmRQcWxNVDhnQkswNjVQSXJRWmNvcis5ZDhsUy9OTENLS1pKQ0l4b1U5WjE1SDJsYysKbitidGNWOVdaY3o1ZGlyRDJlQWwxcGNmMlAvbDhPTERjN21ZOWE5S2dzVUNJR0xCNVE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+    client-key-data: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFb3dJQkFBS0NBUUVBdnNCTU9HK1BXaDBpU1o0RUlZRnBGeVVKT2hCb0dZWDFjSlJCdDFVZUZNMFFYNktSCms3ckZvV1Z5QmtudVZGNXcwVVJMR3JRU1BCREhCamdxdHJzMnRzYktiNUt4Vmo4ekZKMEVIdU1MUlI5NjluOFIKVWNyUHpId3M0aUg1SU42b2Zaajg2UjNHd0liN2lHT1hEQ0JMSFB1clV3QTRRMnlRRkZnMHpWNkVQbGp0YXRubAp5enZ1ckhJSy9nd2VTUkxveFY4Rm1JejhVVjllZEI5SWJMb2RHTi8veE8yVkwzczc3YVlvbm5JbUwzbkJjTVEzCkU2ZjQ5aVVYa2RLd0l4MDk2TTJ1YUFkZTRUL3JkSmtsaEJmWjY2WlpPVDUzdnAxaGRzMG1Ub3ZhWWRDdjhiSE4Kck15NExhaytzUkxoRE96MS9TTnJJcUQyUFVGSWpVTThjeHhTTXdJREFRQUJBb0lCQVFDbk5SbWJQdStDSnBldgp3SHdPZ3NvRUo4cjJ3dnI5cEplSm4rd2JNTm0xa2l3UUtRbERYaTF2Vk9XbTdaZWxEVVFIckwzSklwLzVWeHVmCk1BMEJNUXE5SFhUR2FPaGFtZnZFemY2V3RKOWtjRHZ4WjJGZk9WRCtCcnV4WGVac0VjSFFseExicGVaYlRmZWYKanUwUkRCM0x3akJrQ1lWSVZSblhPNXJOaTFTUThRMldKV2hIcGMwSlZZZjZZckVuM2pqcmRIYWxSekJGZ0FPVgpxWVJJZGd6Q1dmOTkxZlVwMTBubnlzWHRidXBLc2czanZOY0hXcXZGTkg2dVRwclFFM3doMi82dDJkNm1uaUVpCnh0NSt5U0J1Zld4M0VpTjBrUjZ5T2JEUVhyT2wzbHFiMTFlUjYyUzRYSDRpSTdodVNnVmFIUlFnV1Qwa3UrMDEKSVEvZHg1UEJBb0dCQVBRZGpSYXVIT1k4NHphVjI4bWU3SmZBa2RIS1ZGMlhpQWdudUkweFVvYWFjSWYvV2R5ZQpJMjkzaE9QbGc4VFJFS3Zkb0h3WW9vRlNDMWJBU29aeE5OQVphM1FaSmI1N2dLNkRlVHRuTHc5bEdlbkpUSUJFCkw2b280TTVxVFFBZnlhSFo5MGc0dzFocmloUys4aWpSVUxKMWJudHBiSjhnSHZ0cHNXenMwNXhYQW9HQkFNZ0oKcU1ySEVsSWdua0tac2JrZEtIelRIaDRmY05DVU1hSCtNdXg5czlyVkd1OHk0K0kxR1BlakluUjk4ZkpRSVpxcQpLRFc5TzZRUG5tTmVTZW5qVTI0dHJTa3dKaUFGWFdHRHJpYWU3TnZSUG4zMldidEZrMC9Wa1g2WkVBYlYwbThmCkJ6QSt1aXFveFBvY0w2VTQvejhnZEdIOTh0enptTzlFellCak5RK0ZBb0dBY0hxeFNMTC9JK01JT2wyQWdQMFcKUExJQlBtNEF3NE1QcmRwSGdkOHBERlphNVg3MTg5NTFxMldodUxSSEs4ZTg2OFBacjNSV1pFbmVhYUYrZFVYeQpOTFNSdTFQZS9VN0FzeWhuRXNUdmZTTnpkakpIYW82QWUrSUwrM0FsZkpvbytNZUsxaDg1ZXlOSjQxYzhFeXluCkJ5TnV2YlNNMVNFaXhXc2swbkNvN0U4Q2dZQWtiMlg0TVZSTDh6Y0FTSUJQaUZrVWkxdWovdlFNZWNHa2tPbHoKbTkzRGtTZEx4RWd2cnA0eWxOczB2cS93QTlwckVtMHFoS0kxV3NidHNJSGtBUXowTjR1ZndlNWZ6THBhaGFLVgoxRUt1TXltZnhkeElPUDhBL3BSMnE2aDRwaitqRDlLK1hkNkk0SjZvTTdRVjh4REN6Y1dGQjcxUnMyajZ3OXh1CmN5TjZCUUtCZ0Y2R1FBbUJRemxSNUxOSkx1S1h4aXlmSXJHT0hhckJpZHN3UEJFZ09JejcxTDN6em9CMUl1dkoKYnBIMlVkWks5aEZrTjduU3RicUtHOHB3eXJzWVVyeXhWbldUQUllWFhQNU90UThYc1JuT3dNRVhHSTBmWWhseApQbHV6ZGU2ZHJoejRMb0lOODhBbTh6SVh0cGpOM25nU0JwbUtGZXZqYjRyeFR5UC9uaHFrCi0tLS0tRU5EIFJTQSBQUklWQVRFIEtFWS0tLS0tCg==
+- name: myuser
+  user:
+    client-certificate-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUM5akNDQWQ2Z0F3SUJBZ0lRQWpFaGZ0RUQzNkxCbEorNy9UNkc2ekFOQmdrcWhraUc5dzBCQVFzRkFEQVYKTVJNd0VRWURWUVFERXdwcmRXSmxjbTVsZEdWek1CNFhEVEl5TURNeU56QXpNekV4TjFvWERUSXpNRE15TnpBegpNekV4TjFvd0VURVBNQTBHQTFVRUF4TUdiWGwxYzJWeU1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBCk1JSUJDZ0tDQVFFQTB3dGtQTURkcVFaVi9HWXEzMWU4SGM2RjBEenVUbTZ1SXF3MjBXczRWSW1BTkVqMnpZU2gKRFBsc2pHVk5DUklycHdSeGJ1TFhYQ25NNVpkSGVJaDQ0V001OTA4TnRIWWRFcWg5V3F0UzhXbXFYQTJIeWpSLwpiSXBselJnWEZZeENVS2NaaThqU0U0N1ZjKzRWLzlKM1VRdFlQM2FPWEx1LzJoWFhGSmdweVNkSERFRE9vMWdSCk9FU0NYcTUvNGY1c3JUMzQyYXJud3FCbnRwQU9nUG54Y2xEcWpPN2o1Zy8yK3NWT3NVeDZLQ2tuTlNiWUxNVTcKS0Zid09hUm9mQXA2SlZxR1B1d0FidGVpTVpMbnYwZVQ5U3l5anRIVU1uMEl2UCt1eHBMdGZ0S3NONWdFY1lvWApONElHdGl5QmRYVFRteThHVmkvQlNpUEE1Qk5wcms5NENRSURBUUFCbzBZd1JEQVRCZ05WSFNVRUREQUtCZ2dyCkJnRUZCUWNEQWpBTUJnTlZIUk1CQWY4RUFqQUFNQjhHQTFVZEl3UVlNQmFBRkREeWpiOE1kOTFhbHd1UWJkS0UKNSt2QWMrSHVNQTBHQ1NxR1NJYjNEUUVCQ3dVQUE0SUJBUUMyM1BDZVk4ZHJvVFZOWnF1b0JZRUVLdU9idk5hWgpzZndUZkl5NjVLb2oxMzB1Y0c3TTZOUkczbU51OGF0TURvVUI1R0N4RjZsSjNFQzZEOGFuU0huQ215UUlvamhMCmYxM2xlL2F1U1BqZ3NZVlZKVTVMTzVGbUFVb3FocGpaaVVCZTdUbmdpa2pWWUNpK2VkNVo5VFkwNUFOeGcrMXQKUzYzYnVsWTVYWG9VcVdwNUIzVERHOXNKWlM4QmlJdWk1dnBTWEllcUNadi9aVS9sOUl4elk4MERCUDN6SVJ6LwpxMFJzUlZpRE1FWHUzTkx0ZW9Cd2VQdGJrQWQ0MHhLSFU2MENUVjBmRjNma0tYYkZSaFY3T2dwRkh5YVJlNDhICk9adFNjZkQrNXpXb0NYcEVzb09uU21kN3NaTTZ4dEE5aXQ5ZzNxU1gwYUF1R1V5U3FOMEs0M3ZQCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    client-key-data: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFb3dJQkFBS0NBUUVBMHd0a1BNRGRxUVpWL0dZcTMxZThIYzZGMER6dVRtNnVJcXcyMFdzNFZJbUFORWoyCnpZU2hEUGxzakdWTkNSSXJwd1J4YnVMWFhDbk01WmRIZUloNDRXTTU5MDhOdEhZZEVxaDlXcXRTOFdtcVhBMkgKeWpSL2JJcGx6UmdYRll4Q1VLY1ppOGpTRTQ3VmMrNFYvOUozVVF0WVAzYU9YTHUvMmhYWEZKZ3B5U2RIREVETwpvMWdST0VTQ1hxNS80ZjVzclQzNDJhcm53cUJudHBBT2dQbnhjbERxak83ajVnLzIrc1ZPc1V4NktDa25OU2JZCkxNVTdLRmJ3T2FSb2ZBcDZKVnFHUHV3QWJ0ZWlNWkxudjBlVDlTeXlqdEhVTW4wSXZQK3V4cEx0ZnRLc041Z0UKY1lvWE40SUd0aXlCZFhUVG15OEdWaS9CU2lQQTVCTnByazk0Q1FJREFRQUJBb0lCQUdablNLUVNFWHhLanI2Qgo5SnVhdnJUWDJTWko2bmcwVEZxV3BhTElHL1VwSXdRN3cwWEY3VCtXWjQxWU9pRUVxQm5LbGgvd0FmKythS1dlCjJoY3FZVDA4SUl4WDE1YVJHVnBNVjBiL2lxZUpWaGlFbURjTmNpY0FvSlQ3ODNlSkwwUmpVSW43VDdRZHdvVVcKS2FhUVFVVVo5Q0FYTHN6Z2JSOHRLY2ZjYmFva2VsMFk3d1QxT2pNSEtyTnc3S2l6SkZOYUVZaEtIQnowbmhaMgowcGx2RVhYRWxiUm4wQ3B4RmZVVjREMEdUUElRUFQ0azdSSFlPZ3FXUXgvMm9VOVdWVkIvNnFLdlpYQVZPUVFaCk1qRFB2NG5QTGJubzBIcWwxclNGZmJVSlQ5cWZCT0VnQWN4N1Fuc3VzZFFIT1lxR3JaQXNDRk52NjFuQUJqenMKYlhlRkxBRUNnWUVBL29Cb3pRcGVkaVZjR3padGYzcmwyOVdGbVJtTUlRZ2oxVTM3K1UrZ0Z0N1QrSXFLUmFFNAp0WXozc0pLa2VDTCtBS0NqU0trbHdIelBwQS9aZkNkbmplYU1PMWkwRElkb2NBcWtJbTc5N2pYczFkeU11TlFqCm5kQkZHcEVoTkZ3c05PWUZuaVB4dTl6QUpqaUxqdE9qdVFhVjJwT3FYME1OT0tsM1N4czNQUEVDZ1lFQTFFbDcKampTSmpWcWtKNUlxdDYzZ1BNODdaTkc4dUYvTlR1UE9LbENTb2k5Ym53MEtHSTBYSThFTGR6S0JCMHhiSXR1WQp5WjE0V3dhWFdpY2pWbXI4cVprZTFicnNlTlhFUTBYRGdZdkhyaXZYcVozTlBBNmg3SXhJMDM3Lzh1L28vM2JpCjBKaDBYVHdYbnVnMDFlVDhvNk5sNXd2d0c0N1NRL3lpRnZGOHpKa0NnWUJHenY5Wm5QcnZNREhTT0hCNnVYemUKanlmZWt1Y1VBYW5HblMzd0RhRmkrNWhLWEhGZ01oMFBGaXVMNnlEcmRBRHJ0OFgyWDJscmhzNVd2VG9yZXVNcQo3ZXd5VHRtNWFxczZFUnZkb0xmeDRQc0YvWmtCaTdSbEloODM1dzB2L2owbWNxRTVnSkt2VEJvQ0NGVjc1WkoxCjFrazNTVUpyd3NJWTg3MkhIZ2xlWVFLQmdGNWVFQU9tRFNOK0VJemFxQXlneVphZWxJdDd4TVc5S0pvU0lGcWwKR0pucUxYTmxxNEJBYi9IZjVjWGwrSCtURE14UkMvbEwrKzJTMzRNZTlORjhtN2FVcjZWWkE3ZXZaeUIwaWJVegp1dDhNOUVDZE9sZWhOWS9leUp6anpzbGlwcE94ZUtBN3RUYWcrT3NWMUM3bExQMWRMSFpwMHlHYytwRm9ZM0dKCmhlMjVBb0dCQVBLdFpFNWFGV3k3ckRGcE1CWGY3ZmVXUDZpVGwxZHNVZmt6azZLTkxKVmZHeUpWaTRpTENEQjcKQnBHQWZ1bkVYVTBnMjJKNm1BaUlJZnllR0RKWko0eWVEZkNDYUtjMWJiaVNUZk9OdXkyVDFmN2RGMmRHQlpjawpSUUlLSGtqZkRzWG1QV0oxNWFHQ3I1Wm1vUCtkNW1MRFZhRnp6dU5xN1hweW11eThSS1p6Ci0tLS0tRU5EIFJTQSBQUklWQVRFIEtFWS0tLS0tCg==
+# 새로운 user인 "myuser"가 등록된 것을 확인
+gusami@master:~$ kubectl config view
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://10.0.1.4:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    namespace: product
+    user: kubernetes-admin
+  name: example@kubernetes
+- context:
+    cluster: kubernetes
+    namespace: ingress-nginx
+    user: kubernetes-admin
+  name: ingress-admin@kubernetes
+- context:
+    cluster: kubernetes
+    namespace: default
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+current-context: example@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: REDACTED
+    client-key-data: REDACTED
+- name: myuser
+  user:
+    client-certificate-data: REDACTED
+    client-key-data: REDACTED    
+# Step 02: 새로운 user를 사용할 수 있는 context 추가하기
+gusami@master:~$kubectl config set-context myuser --cluster=kubernetes --user=myuser
+Context "myuser" created.
+# 새로운 "myuser" context가 등록됨을 확인
+gusami@master:~$ kubectl config view
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://10.0.1.4:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    namespace: product
+    user: kubernetes-admin
+  name: example@kubernetes
+- context:
+    cluster: kubernetes
+    namespace: ingress-nginx
+    user: kubernetes-admin
+  name: ingress-admin@kubernetes
+- context:
+    cluster: kubernetes
+    namespace: default
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+- context:
+    cluster: kubernetes
+    user: myuser
+  name: myuser
+current-context: example@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: REDACTED
+    client-key-data: REDACTED
+- name: myuser
+  user:
+    client-certificate-data: REDACTED
+    client-key-data: REDACTED
+# list contexts
+gusami@master:~$kubectl config get-contexts
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+*         example@kubernetes            kubernetes   kubernetes-admin   product
+          ingress-admin@kubernetes      kubernetes   kubernetes-admin   ingress-nginx
+          kubernetes-admin@kubernetes   kubernetes   kubernetes-admin   default
+          myuser                        kubernetes   myuser             
+# "myuser" context로 변경 
+#  - pod들에 대해서 create, get, list, update, delete 권한만 존재
+gusami@master:~$kubectl config use-context myuser
+Switched to context "myuser".
+# namespace가 바인딩되지 않아서 pod들을 가져오기 못함
+#  - rolebinding은 지정된 namespace만 가능 (clusterrolebinding는 namespace 제한이 없음)
+gusami@master:~$kubectl get pods
+Error from server (Forbidden): pods is forbidden: User "myuser" cannot list resource "pods" in API group "" in the namespace "default"
+# 해당 context의 namespace를 product로 변경
+gusami@master:~$kubectl config set-context myuser --cluster=kubernetes --user=myuser --namespace=product
+Context "myuser" modified.
+# 해당 namespace의 pod 정보 확인
+gusami@master:~$kubectl get pods
+NAME      READY   STATUS    RESTARTS        AGE
+testpod   1/1     Running   2 (3d22h ago)   7d6h
+# service 정보 확인 
+#  - service resource type에 대한 권한이 없음을 확인
+gusami@master:~$kubectl get services
+Error from server (Forbidden): services is forbidden: User "myuser" cannot list resource "services" in API group "" in the namespace "product"
+# node 정보 확인 (권한 없음)
+gusami@master:~$ kubectl get nodes
+Error from server (Forbidden): nodes is forbidden: User "myuser" cannot list resource "nodes" in API group "" at the cluster scope
+# pvc 정보 확인 (권한 없음)
+gusami@master:~$kubectl get pvc
+Error from server (Forbidden): persistentvolumeclaims is forbidden: User "myuser" cannot list resource "persistentvolumeclaims" in API group "" in the namespace "product"
+# Pod 삭제 확인 (권한 있음)
+gusami@master:~$kubectl delete pod testpod 
+pod "testpod" deleted
+# Pod 생성 확인 (권한 있음)
+gusami@master:~$kubectl run myweb --image=nginx
+pod/myweb created
+```
+#### ClusterRole/ClusterRoleBinding
+20:30
