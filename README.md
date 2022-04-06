@@ -9857,7 +9857,8 @@ gusami@master:~$kubectl get pods -o yaml | grep serviceAccount
 - https://kubernetes.io/docs/reference/access-authn-authz/certificate-signing-requests
 - Role
   - 어떤 API를 사용할 수 있는지 권한 정의
-  - **지정된 네임스페이스에서만 유효** (User와 serviceAccount와 동일한 네임스페이스를 지정)
+  - **지정된 네임스페이스에서만 유효**
+    - RoleBinding 할 User와 serviceAccount가 연결된 context의 네임스페이스에 한정
 - Role 예제: default namespace의 Pod에 대한 get, watch, list할 수 있는 권한
   - pod는 코어 API이기 때문에, apiGroups를 따로 지정하지 않음. 만약 리소스가 job라면 apiGroups에 "batch"를 지정
   - resources에는 pods, deployments, services등 사용할 API resources들을 명시
@@ -9914,7 +9915,6 @@ rules:
 # create role binding
 gusami@master:~$kubectl create rolebinding developer-binding-myuser --role=developer --user=myuser
 rolebinding.rbac.authorization.k8s.io/developer-binding-myuser created
-gusami@master:~$kubectl create rolebinding developer-binding-myuser --role=developer 
 # --dry-run을 통한 yaml 생성
 gusami@master:~$kubectl create rolebinding developer-binding-myuser --role=developer --user=myuser --dry-run -o yaml
 W0403 21:01:19.156953    8356 helpers.go:555] --dry-run is deprecated and can be replaced with --dry-run=client.
@@ -10132,4 +10132,312 @@ gusami@master:~$kubectl run myweb --image=nginx
 pod/myweb created
 ```
 #### ClusterRole/ClusterRoleBinding
-20:30
+![ClusterRoleAndBinding](./images/ClusterRoleAndBinding.png)
+- Role과 RoleBinding을 Cluster 전체의 범위에서 할 수 있음
+- ClusterRole
+  - 어떤 API를 사용할 수 있는지 권한 정의
+  - Cluster 전체(모든 네임스페이스)에서 유효
+- ClusterRole 예제: 모든 네임스페이스의 Secret에 대한 get, watch, list할 수 있는 권한
+```bash
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: secret-reader
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "watch", "list"]  
+```
+- ClusterRoleBinding
+  - user/group 또는 serviceAccount와 clusterrole을 연결
+- ClusterRoleBinding 예제: manager group의 모든 사용자가 모든 네임스페이스의 secret을 읽을 수 있도록 구성
+```bash
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: read-secrets-global
+subjects:
+- kind: Group
+  name: manager
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: secret-reader
+  apiGroup: rbac.authorization.k8s.io
+```  
+- 실습
+```bash
+# 현재의 context 정보 확인
+gusami@master:~$kubectl config get-contexts
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+          example@kubernetes            kubernetes   kubernetes-admin   product
+          ingress-admin@kubernetes      kubernetes   kubernetes-admin   ingress-nginx
+          kubernetes-admin@kubernetes   kubernetes   kubernetes-admin   default
+*         myuser                        kubernetes   myuser             product
+# 자신의 namespace의 pod 정보 확인
+#  - list pod 권한 있음 
+gusami@master:~$kubectl get pods
+NAME    READY   STATUS      RESTARTS   AGE
+myweb   0/1     Completed   0          2d22h
+# 다른 namespace의 pod 정보 확인
+#  - list pod 권한 없음: clusterrolebinding가 아니고, rolebinding이기 때문
+gusami@master:~$kubectl get pods -n kube-system
+Error from server (Forbidden): pods is forbidden: User "myuser" cannot list resource "pods" in API group "" in the namespace "kube-system"
+# context 정보 확인
+gusami@master:~$kubectl config get-contexts
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+          example@kubernetes            kubernetes   kubernetes-admin   product
+          ingress-admin@kubernetes      kubernetes   kubernetes-admin   ingress-nginx
+          kubernetes-admin@kubernetes   kubernetes   kubernetes-admin   default
+*         myuser                        kubernetes   myuser             product
+# context를 example@kubernetes로 변경
+gusami@master:~$kubectl config use-context example@kubernetes
+Switched to context "example@kubernetes".
+# product namespace 내부의 rolebinding 정보 확인
+gusami@master:~$kubectl get rolebindings.rbac.authorization.k8s.io 
+NAME                       ROLE             AGE
+developer-binding-myuser   Role/developer   2d23h
+# rolebinding 정보 확인
+gusami@master:~$kubectl get rolebindings.rbac.authorization.k8s.io 
+NAME                       ROLE             AGE
+developer-binding-myuser   Role/developer   2d23h
+# rolebinding 삭제
+gusami@master:~$kubectl delete rolebindings.rbac.authorization.k8s.io developer-binding-myuser 
+rolebinding.rbac.authorization.k8s.io "developer-binding-myuser" deleted
+# role 정보 확인
+gusami@master:~$kubectl get role
+NAME        CREATED AT
+developer   2022-04-03T11:57:14Z
+# role 삭제
+gusami@master:~$kubectl delete role developer 
+role.rbac.authorization.k8s.io "developer" deleted
+# clusterrole 생성
+#  - namespace에 대한 제약이 없음
+#  - pod들에 대한 여러 권한을 부여
+gusami@master:~$kubectl create clusterrole developer --verb=create --verb=get --verb=list --verb=update --verb=delete --resource=pods
+clusterrole.rbac.authorization.k8s.io/developer created
+# clusterrolebinding 생성
+#  - namespace에 대한 제약이 없음
+gusami@master:~$kubectl create clusterrolebinding developer-binding-myuser --clusterrole=developer --user=myuser
+clusterrolebinding.rbac.authorization.k8s.io/developer-binding-myuser created
+# context 정보 확인
+gusami@master:~$kubectl config get-contexts
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+*         example@kubernetes            kubernetes   kubernetes-admin   product
+          ingress-admin@kubernetes      kubernetes   kubernetes-admin   ingress-nginx
+          kubernetes-admin@kubernetes   kubernetes   kubernetes-admin   default
+          myuser                        kubernetes   myuser             product
+# context 변경
+#  - myuser와 연결된 myuser context로 변경          
+gusami@master:~$kubectl config use-context myuser 
+Switched to context "myuser".
+# 다른 namespace에 존재하는 pod 정보 읽기
+gusami@master:~$kubectl get pods -n kube-system
+NAME                             READY   STATUS    RESTARTS         AGE
+coredns-78fcd69978-nz4fr         1/1     Running   42 (2d22h ago)   144d
+coredns-78fcd69978-vsnzh         1/1     Running   42 (2d22h ago)   144d
+etcd-master                      1/1     Running   43 (2d22h ago)   144d
+kube-apiserver-master            1/1     Running   43 (2d22h ago)   144d
+kube-controller-manager-master   1/1     Running   43 (2d22h ago)   144d
+kube-proxy-2pm78                 1/1     Running   23 (2d22h ago)   68d
+kube-proxy-s9cp2                 1/1     Running   40 (2d22h ago)   144d
+kube-proxy-vscnf                 1/1     Running   43 (2d22h ago)   144d
+kube-proxy-wsc4f                 1/1     Running   39 (2d22h ago)   144d
+kube-scheduler-master            1/1     Running   43 (2d22h ago)   144d
+weave-net-9s8mx                  2/2     Running   48 (2d22h ago)   68d
+weave-net-kzxnd                  2/2     Running   86 (2d22h ago)   144d
+weave-net-tbcxg                  2/2     Running   85 (2d22h ago)   144d
+weave-net-zvqg4                  2/2     Running   82 (2d22h ago)   144d
+# pod외의 다른 resource에 대해서는 여전히 접근 불가
+gusami@master:~$kubectl get nodes
+Error from server (Forbidden): nodes is forbidden: User "myuser" cannot list resource "nodes" in API group "" at the cluster scope
+gusami@master:~$kubectl get services
+Error from server (Forbidden): services is forbidden: User "myuser" cannot list resource "services" in API group "" in the namespace "product"
+# "kubernetes-admin" user와 연결된 context로 변경 (admin 권한)
+#  - cluster role과 cluster role binding을 삭제 처리
+gusami@master:~$kubectl config use-context kubernetes-admin@kubernetes
+Switched to context "kubernetes-admin@kubernetes".
+gusami@master:~$kubectl delete clusterrolebindings.rbac.authorization.k8s.io developer-binding-myuser 
+clusterrolebinding.rbac.authorization.k8s.io "developer-binding-myuser" deleted
+gusami@master:~$kubectl delete clusterrole developer 
+clusterrole.rbac.authorization.k8s.io "developer" deleted
+# context "myuser" 삭제
+gusami@master:~$kubectl config delete-context myuser 
+deleted context myuser from /home/gusami/.kube/config
+# user "myuser" 삭제
+gusami@master:~$kubectl config delete-user myuser
+deleted user myuser from /home/gusami/.kube/config
+# context 정보 확인
+gusami@master:~$kubectl config get-contexts
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+          example@kubernetes            kubernetes   kubernetes-admin   product
+          ingress-admin@kubernetes      kubernetes   kubernetes-admin   ingress-nginx
+*         kubernetes-admin@kubernetes   kubernetes   kubernetes-admin   default
+# csr 삭제
+gusami@master:~$kubectl delete csr myuser
+certificatesigningrequest.certificates.k8s.io "myuser" deleted
+# pod 삭제
+gusami@master:~$kubectl delete pod myweb -n product
+pod "myweb" deleted
+```
+- 부가적인 내용
+  - 사용자에게 권한을 부여할 때는 최소권한의 원칙을 적용 (필요한 권한만 할당해서 줘야 함)
+```bash
+# 시스템상에 존재하는 clusterrole 리스팅
+gusami@master:~$kubectl get clusterrole
+NAME                                                                   CREATED AT
+admin                                                                  2021-11-13T01:01:28Z
+cluster-admin                                                          2021-11-13T01:01:28Z
+edit                                                                   2021-11-13T01:01:28Z
+kubeadm:get-nodes                                                      2021-11-13T01:01:30Z
+system:aggregate-to-admin                                              2021-11-13T01:01:28Z
+system:aggregate-to-edit                                               2021-11-13T01:01:28Z
+system:aggregate-to-view                                               2021-11-13T01:01:28Z
+system:auth-delegator                                                  2021-11-13T01:01:28Z
+system:basic-user                                                      2021-11-13T01:01:28Z
+system:certificates.k8s.io:certificatesigningrequests:nodeclient       2021-11-13T01:01:28Z
+system:certificates.k8s.io:certificatesigningrequests:selfnodeclient   2021-11-13T01:01:28Z
+system:certificates.k8s.io:kube-apiserver-client-approver              2021-11-13T01:01:28Z
+system:certificates.k8s.io:kube-apiserver-client-kubelet-approver      2021-11-13T01:01:28Z
+system:certificates.k8s.io:kubelet-serving-approver                    2021-11-13T01:01:28Z
+system:certificates.k8s.io:legacy-unknown-approver                     2021-11-13T01:01:28Z
+system:controller:attachdetach-controller                              2021-11-13T01:01:28Z
+system:controller:certificate-controller                               2021-11-13T01:01:28Z
+system:controller:clusterrole-aggregation-controller                   2021-11-13T01:01:28Z
+system:controller:cronjob-controller                                   2021-11-13T01:01:28Z
+system:controller:daemon-set-controller                                2021-11-13T01:01:28Z
+system:controller:deployment-controller                                2021-11-13T01:01:28Z
+system:controller:disruption-controller                                2021-11-13T01:01:28Z
+system:controller:endpoint-controller                                  2021-11-13T01:01:28Z
+system:controller:endpointslice-controller                             2021-11-13T01:01:28Z
+system:controller:endpointslicemirroring-controller                    2021-11-13T01:01:28Z
+system:controller:ephemeral-volume-controller                          2021-11-13T01:01:28Z
+system:controller:expand-controller                                    2021-11-13T01:01:28Z
+system:controller:generic-garbage-collector                            2021-11-13T01:01:28Z
+system:controller:horizontal-pod-autoscaler                            2021-11-13T01:01:28Z
+system:controller:job-controller                                       2021-11-13T01:01:28Z
+system:controller:namespace-controller                                 2021-11-13T01:01:28Z
+system:controller:node-controller                                      2021-11-13T01:01:28Z
+system:controller:persistent-volume-binder                             2021-11-13T01:01:28Z
+system:controller:pod-garbage-collector                                2021-11-13T01:01:28Z
+system:controller:pv-protection-controller                             2021-11-13T01:01:28Z
+system:controller:pvc-protection-controller                            2021-11-13T01:01:28Z
+system:controller:replicaset-controller                                2021-11-13T01:01:28Z
+system:controller:replication-controller                               2021-11-13T01:01:28Z
+system:controller:resourcequota-controller                             2021-11-13T01:01:28Z
+system:controller:root-ca-cert-publisher                               2021-11-13T01:01:28Z
+system:controller:route-controller                                     2021-11-13T01:01:28Z
+system:controller:service-account-controller                           2021-11-13T01:01:28Z
+system:controller:service-controller                                   2021-11-13T01:01:28Z
+system:controller:statefulset-controller                               2021-11-13T01:01:28Z
+system:controller:ttl-after-finished-controller                        2021-11-13T01:01:28Z
+system:controller:ttl-controller                                       2021-11-13T01:01:28Z
+system:coredns                                                         2021-11-13T01:01:30Z
+system:discovery                                                       2021-11-13T01:01:28Z
+system:heapster                                                        2021-11-13T01:01:28Z
+system:kube-aggregator                                                 2021-11-13T01:01:28Z
+system:kube-controller-manager                                         2021-11-13T01:01:28Z
+system:kube-dns                                                        2021-11-13T01:01:28Z
+system:kube-scheduler                                                  2021-11-13T01:01:28Z
+system:kubelet-api-admin                                               2021-11-13T01:01:28Z
+system:monitoring                                                      2021-11-13T01:01:28Z
+system:node                                                            2021-11-13T01:01:28Z
+system:node-bootstrapper                                               2021-11-13T01:01:28Z
+system:node-problem-detector                                           2021-11-13T01:01:28Z
+system:node-proxier                                                    2021-11-13T01:01:28Z
+system:persistent-volume-provisioner                                   2021-11-13T01:01:28Z
+system:public-info-viewer                                              2021-11-13T01:01:28Z
+system:service-account-issuer-discovery                                2021-11-13T01:01:28Z
+system:volume-scheduler                                                2021-11-13T01:01:28Z
+view                                                                   2021-11-13T01:01:28Z
+weave-net                                                              2021-11-13T01:44:19Z
+# clusterrole "view"의 상세 내용 확인
+#  - k8s가 제공하는 대부분의 resource에 대한 "get, list, watch" 권한을 가짐
+#  - "view" clusterrole을 특정 사용자에게 Binding하면, 그 사용자는 해당 권한들을 가짐
+gusami@master:~$kubectl describe clusterrole view
+Name:         view
+Labels:       kubernetes.io/bootstrapping=rbac-defaults
+              rbac.authorization.k8s.io/aggregate-to-edit=true
+Annotations:  rbac.authorization.kubernetes.io/autoupdate: true
+PolicyRule:
+  Resources                                    Non-Resource URLs  Resource Names  Verbs
+  ---------                                    -----------------  --------------  -----
+  bindings                                     []                 []              [get list watch]
+  configmaps                                   []                 []              [get list watch]
+  endpoints                                    []                 []              [get list watch]
+  events                                       []                 []              [get list watch]
+  limitranges                                  []                 []              [get list watch]
+  namespaces/status                            []                 []              [get list watch]
+  namespaces                                   []                 []              [get list watch]
+  persistentvolumeclaims/status                []                 []              [get list watch]
+  persistentvolumeclaims                       []                 []              [get list watch]
+  pods/log                                     []                 []              [get list watch]
+  pods/status                                  []                 []              [get list watch]
+  pods                                         []                 []              [get list watch]
+  replicationcontrollers/scale                 []                 []              [get list watch]
+  replicationcontrollers/status                []                 []              [get list watch]
+  replicationcontrollers                       []                 []              [get list watch]
+  resourcequotas/status                        []                 []              [get list watch]
+  resourcequotas                               []                 []              [get list watch]
+  serviceaccounts                              []                 []              [get list watch]
+  services/status                              []                 []              [get list watch]
+  services                                     []                 []              [get list watch]
+  controllerrevisions.apps                     []                 []              [get list watch]
+  daemonsets.apps/status                       []                 []              [get list watch]
+  daemonsets.apps                              []                 []              [get list watch]
+  deployments.apps/scale                       []                 []              [get list watch]
+  deployments.apps/status                      []                 []              [get list watch]
+  deployments.apps                             []                 []              [get list watch]
+  replicasets.apps/scale                       []                 []              [get list watch]
+  replicasets.apps/status                      []                 []              [get list watch]
+  replicasets.apps                             []                 []              [get list watch]
+  statefulsets.apps/scale                      []                 []              [get list watch]
+  statefulsets.apps/status                     []                 []              [get list watch]
+  statefulsets.apps                            []                 []              [get list watch]
+  horizontalpodautoscalers.autoscaling/status  []                 []              [get list watch]
+  horizontalpodautoscalers.autoscaling         []                 []              [get list watch]
+  cronjobs.batch/status                        []                 []              [get list watch]
+  cronjobs.batch                               []                 []              [get list watch]
+  jobs.batch/status                            []                 []              [get list watch]
+  jobs.batch                                   []                 []              [get list watch]
+  endpointslices.discovery.k8s.io              []                 []              [get list watch]
+  daemonsets.extensions/status                 []                 []              [get list watch]
+  daemonsets.extensions                        []                 []              [get list watch]
+  deployments.extensions/scale                 []                 []              [get list watch]
+  deployments.extensions/status                []                 []              [get list watch]
+  deployments.extensions                       []                 []              [get list watch]
+  ingresses.extensions/status                  []                 []              [get list watch]
+  ingresses.extensions                         []                 []              [get list watch]
+  networkpolicies.extensions                   []                 []              [get list watch]
+  replicasets.extensions/scale                 []                 []              [get list watch]
+  replicasets.extensions/status                []                 []              [get list watch]
+  replicasets.extensions                       []                 []              [get list watch]
+  replicationcontrollers.extensions/scale      []                 []              [get list watch]
+  ingresses.networking.k8s.io/status           []                 []              [get list watch]
+  ingresses.networking.k8s.io                  []                 []              [get list watch]
+  networkpolicies.networking.k8s.io            []                 []              [get list watch]
+  poddisruptionbudgets.policy/status           []                 []              [get list watch]
+  poddisruptionbudgets.policy                  []                 []              [get list watch]
+# clusterrole "cluster-admin"의 상세 내용 확인
+#  - k8s가 제공하는 모든 resource에 대한 모든 권한을 가짐
+#  - "cluster-admin" clusterrole을 특정 사용자에게 Binding하면, 해당 사용자는 모든 권한을 가진 admin이 됨
+gusami@master:~$kubectl describe clusterrole cluster-admin
+Name:         cluster-admin
+Labels:       kubernetes.io/bootstrapping=rbac-defaults
+Annotations:  rbac.authorization.kubernetes.io/autoupdate: true
+PolicyRule:
+  Resources  Non-Resource URLs  Resource Names  Verbs
+  ---------  -----------------  --------------  -----
+  *.*        []                 []              [*]
+             [*]                []              [*]
+```
+#### LAB 실습
+- 앞서 만들었던 role과 RoleBinding 예제를 기준으로 다음의 조건의 ClusterRole, ClusterRoleBinding을 생성해 보시오
+- 조건: User인 app-manager에게 Cluster내의 모든 namespace의 ``deployment, pod, service`` 리소스를 ``create, list, get, update, delete``할 수 있는 권한을 할당하시오
+  - User인 app-manager 인증서 생성 및 등록
+    - 인증서 이름: app-manager
+    - username:
+  - clusterRole 생성
+    - name: app-access
+  - clusterRoleBinding 생성
+    - name: app-binding-manager
