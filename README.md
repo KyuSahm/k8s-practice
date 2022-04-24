@@ -10441,3 +10441,183 @@ PolicyRule:
     - name: app-access
   - clusterRoleBinding 생성
     - name: app-binding-manager
+## Kubernetes의 Volumn관리
+### Kubernetes Storage
+- https://kubernetes.io/docs/concepts/storage/volumes/
+- To use a volume, specify the volumes to provide for the Pod in ``.spec.volumes`` and declare where to mount those volumes into containers in ``.spec.containers[*].volumeMounts``
+- Volumn은 kubernete Storage의 추상화 개념
+  - Container는 Pod에 바인딩되는 volumn을 Mount하고 마치 로컬 파일시스템에 있는 것처럼 스토리지에 접근
+- kubernetes Storage 정의 
+```bash
+  volumes:
+  - name: html
+    hostPath:
+      path: /hostdir_or_file
+```
+- Container 단위로 mount
+```bash
+  volumeMounts:
+  - name: html
+    mountPath: /usr/share/nginx/html
+```
+- kubernetes 스토리지 종류
+![Storage_Types](./images/Storage_Types.png)
+
+- 실습
+```bash
+# volume와 volumeMounts를 정의한 nginx yaml 파일
+#  - 물리적인 노드의 /webdata 디렉토리를 pod내의 /usr/share로 마운트 함
+gusami@master:~$cat pod-nginx.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web
+spec:
+  volumes:
+  - name: html
+    hostPath:
+      path: /webdata
+  containers:
+  - name: nginx
+    image: nginx:1.14
+    volumeMounts:
+    - name: html
+      mountPath: /usr/share/nginx/html
+# hotPath의 단점: Pod가 어디에서 실행될지 모르기 때문에, 모든 노드에 디렉토리와 파일이 존재해야 함
+# worker-1 node에 디렉토리와 index.html 파일 생성
+gusami@worker-1:~$ sudo su -
+[sudo] gusami의 암호: 
+root@worker-1:~# cd /
+root@worker-1:/# mkdir webdata && cd webdata
+root@worker-1:/# cat > index.html
+worker-1
+# worker-2 node에 디렉토리와 index.html 파일 생성
+gusami@worker-2:~$ sudo su -
+[sudo] gusami의 암호: 
+root@worker-2:~# cd /
+root@worker-2:/# mkdir webdata && cd webdata
+root@worker-2:/# cat > index.html
+worker-2
+# worker-3 node에 디렉토리와 index.html 파일 생성
+gusami@worker-3:~$ sudo su -
+[sudo] gusami의 암호: 
+root@worker-3:~# cd /
+root@worker-3:/# mkdir webdata && cd webdata
+root@worker-3:/# cat > index.html
+worker-3
+# Pod 생성
+gusami@master:~$kubectl apply -f pod-nginx.yaml 
+pod/web created
+# 생성된 Pod 확인
+gusami@master:~$kubectl get pods -o wide
+NAME   READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+web    1/1     Running   0          9s    10.40.0.1   worker-3   <none>           <none>
+# web pod에 접속해 보기
+gusami@master:~$curl http://10.40.0.1:80
+worker-3
+```
+#### hostPath
+- Node의 파일시스템의 디렉토리나 파일을 Container에 Mount
+- Node에 디렉토리나 파일을 생성하여 Mount 가능
+- hostPath는 type 지시어를 이용해 mount 구성의 요구를 추가할 수 있음
+  - default 값: DirectoryOrCreate
+```bash
+  volumes:
+  - name: html
+    hostPath:
+      path: /hostdir_or_file
+      type: DirectoryOrCreate
+```
+| type      | Description |
+| --------- | ----------- |
+| DirectoryOrCreate | 주어진 경로에 아무것도 없다면, 필요에 따라 kubelet의 소유권, 권한을 0755로 설정한 빈 디렉토리를 생성 |
+| Directory | 주어진 경로에 디렉토리가 있어야 함 |
+| FileOrCreate | 주어진 경로에 아무것도 없다면, 필요에 따라 kubelet의 소유권, 권한을 0755로 설정한 파일을 생성 |
+| File | 주어진 경로에 파일이 있어야 함 |
+#### emptyDir volume
+![Empty_Dir](./images/Empty_Dir.png)
+- Pod 생성과 함께 빈 공간이 생김
+- volumes을 통해 Pod 내부의 Container들간에 데이터 공유하기
+- emptyDir volume은 빈 디렉토리로 시작
+- Pod 내부에서 실행 중인 애플리케이션은 필요한 모든 파일을 작성
+- Pod를 삭제하면 Volume의 내용이 손실됨
+- 동일한 Pod에서 실행되는 컨테이너 간에 파일을 공유할 때 유용
+```bash
+# pod 정의
+gusami@master:~$cat > pod-nginx.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web
+spec:
+  volumes:
+  - name: html
+    emptyDir: {}
+  containers:
+  - name: nginx
+    image: nginx:1.14
+    volumeMounts:
+    - name: html
+      mountPath: /usr/share/nginx/html
+# pod 생성      
+gusami@master:~$kubectl apply -f pod-nginx.yaml 
+pod/web created
+# 생성된 pod 정보 확인
+gusami@master:~$kubectl get pods -o wide
+NAME   READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+web    1/1     Running   0          5s    10.44.0.1   worker-1   <none>           <none>
+# 디렉토리가 비어있기 때문에 403 에러가 발생
+gusami@master:~$curl 10.44.0.1:80
+<html>
+<head><title>403 Forbidden</title></head>
+<body bgcolor="white">
+<center><h1>403 Forbidden</h1></center>
+<hr><center>nginx/1.14.2</center>
+</body>
+</html>
+# Container에 접속
+gusami@master:~$kubectl exec web -it -- /bin/bash
+# mount된 정보 확인
+root@web:/# mount
+........
+/dev/sda5 on /usr/share/nginx/html type ext4 (rw,relatime,errors=remount-ro)
+tmpfs on /run/secrets/kubernetes.io/serviceaccount type tmpfs (ro,relatime,size=1922804k,inode64)
+..........
+# 디렉토리 이동 후, 파일 확인
+root@web:/# cd /usr/share/nginx/html
+root@web:/usr/share/nginx/html# ls
+# 파일 생성
+root@web:/usr/share/nginx/html# cat > index.html
+hello
+root@web:/usr/share/nginx/html# exit
+exit
+# 접속 테스트
+gusami@master:~$ curl 10.44.0.1:80
+hello
+# Pod 삭제. emptyDir의 내용이 사라짐. hostPath는 Pod의 삭제와 상관없이 존재
+gusami@master:~$ kubectl delete pod --all
+pod "web" deleted
+```
+#### NFS
+![NFS](./images/NFS.png)
+- NFS 서버가 공유하고 있는 데이터 디렉토리를 worker node이 pod들이 access할 수 있도록 지원
+- 사전 준비
+  - NFS 서버는 애플리케이션이 사용할 공유 디렉토리를 지원하고 있어야 함
+  - worker node는 NFS 클라이언트가 되어서 NFS Server가 지원하는 공유 폴더에 접근할 수 있어야 함
+- NFS volume 사용
+```bash
+  volumes:
+  - name: webdata
+    nfs:
+      server: nfs.server.name
+      path: /share/dir/path
+```
+- 실습
+  - nfs 서버 주소 및 공유 디렉토리 확인
+![NFS_Server](./images/NFS_Server.png)
+![NFS_Server_addr](./images/NFS_Server_addr.png)
+  - nfs를 사용하도록 Pod 정의: nfs server addr과 공유 디렉토리 지정
+![NFS_Pod_Definition](./images/NFS_Pod_Definition.png)
+  - Pod 생성 및 실행 후 확인
+![NFS_Pod_Exec](./images/NFS_Pod_Exec.png)
+### PV & PVC
