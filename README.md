@@ -1,7 +1,7 @@
 # kubernetes
 - 유튜브 이성미 강사님의 [따라하면서 배우는 쿠버네티스](https://www.youtube.com/watch?v=6n5obRKsCRQ&list=PLApuRlvrZKohaBHvXAOhUD-RxD0uQ3z0c)를 주로 정리
 - [이성미 강사님의 GitHub 페이지](https://github.com/237summit)
-- ``쿠버네티스 입문(90가지 예제로 배우는 컨테이너 관리 자동화 표준)``을 정리
+- Book ``쿠버네티스 입문(90가지 예제로 배우는 컨테이너 관리 자동화 표준)``을 정리
 
 ## 설치없이 쿠버네티스 사용하기
 - 카타코다 쿠버네티스 플레이그라운드
@@ -18,7 +18,7 @@
 - WSL이란?
   - Windows Subsystem for Linux
   - Hypervisor 위에 윈도우 NT 커널과 리눅스 커널을 각각 올리는 방식
-  ![WSL2](./images/WSL.png)  
+    ![WSL2](./images/WSL.png)  
 - 상세 절차는 [MS Document를 참조](https://docs.microsoft.com/en-us/windows/wsl/install-manual)
 #### Step 1: Enable the Windows Subsystem for Linux
 - 윈도우에 Linux를 깔기 전에 "Windows Subsystem for Linux" optional feature를 Enable함
@@ -118,11 +118,11 @@ wsl --mount <DiskPath>
 - 참조: [나만의 k8s 클러스터 구축하기](https://coffeewhale.com/kubernetes/cluster/virtualbox/2020/08/31/k8s-virtualbox/)
 - ``VirtualBox 6.1.28 platform packages`` 설치
 - 아래 그림의 형태로 노드들을 구성
-![Node Configuration](./images/Node_Configuration.png)
-#### virtual Box 설치
+  ![Node Configuration](./images/Node_Configuration.png)
+#### virtual Box 다운로드 및 설치
 - [https://www.virtualbox.org/wiki/Downloads](https://www.virtualbox.org/wiki/Downloads)
-  - ``VirtualBox platform packages > Windows hosts`` 선택해서 다운로드
-#### Ubuntu 20.04 LTS 설치
+  - ``VirtualBox platform packages > Windows hosts`` 선택해서 다운로드해서 설치
+#### Ubuntu 20.04 LTS 다운로드
 - [https://releases.ubuntu.com/20.04/](https://releases.ubuntu.com/20.04/)
   - ``64-bit PC (AMD64) desktop image`` 선택해서 다운로드
 #### 네트워크 및 노드 설정
@@ -158,10 +158,10 @@ wsl --mount <DiskPath>
 - master VM을 더블클릭하여 서버를 구동
   - 시동 디스크 선택: 다운로드 받은 우분투 20.04 이미지를 선택
   - 시작
-  - English > Install Ubuntu (사용자의 취향에 맞게 설정합니다.)
-  - Keyboard layout: English > English(US) (사용자의 취향에 맞게 설정합니다.) > Continue
+  - English > Install Ubuntu (사용자의 취향에 맞게 설정)
+  - Keyboard layout: English > English(US) (사용자의 취향에 맞게 설정) > Continue
   - Minimal installation > Download updates (체크 해제) > Continue
-  - Erase disk and install Ubuntu (사용자의 취향에 맞게 설정합니다.) > Install Now
+  - Erase disk and install Ubuntu (사용자의 취향에 맞게 설정) > Install Now
   - Write the changes to disk? > Continue
   - Where are you? (Seoul) > Continue
   - Who are you?
@@ -253,13 +253,13 @@ exit
 - 출처: [개발자를 꿈꾸는 프로그래머](https://jwprogramming.tistory.com/35)
 
 ## kubeadm을 이용한 쿠버네티스 설치 - 온프레미스
- 1. Docker Install
- 2. Kubernetes Install
-   1. 설치 전 환경설정
-   2. kubeadm, kubectl, kubelet 설치
-   3. control-plane 구성
-   4. worker node 구성
-   5. 설치 확인
+  1. Docker Install
+  2. Kubernetes Install
+    3. 설치 전 환경설정
+    4. kubeadm, kubectl, kubelet 설치
+    5. control-plane 구성
+    6. worker node 구성
+    7. 설치 확인
 #### Docker Install
 - k8s-master, k8s-node1, k8s-node2 리눅스 시스템들에 모두  Docker를 Install해야 함
 - https://docs.docker.com/ >> Download and install >> Docker for Linux >> 왼쪽 창의 ``Installation per distro`` >> ``Install on Ubuntu`` 에 접속
@@ -550,7 +550,7 @@ Connection closed.
 ### kubectl이란?
 - "쿠버네티스야 웹서버 3개 실행해줘"라고 하면, worker node들에 알아서 분배해서 실행해 줌
 - 실제 실행할 컨테이너와 이미지와 옵션들과 개수들을 지정할 수 있음
-![kubectl_concept](./images/kubectl_concept.png)  
+  ![kubectl_concept](./images/kubectl_concept.png)  
 #### kubectl 명령어 기본 구조
 - command: 자원(object)에 실행 할 명령
   - ``create, get, delete, edit.....``
@@ -1997,7 +1997,7 @@ gusami@master:~$kubectl logs web-1
 #### 쿠버네티스 Pod 동작 Flow
 - Pending 상태
   - The Pod has been accepted by the Kubernetes cluster, but one or more of the containers has not been set up and made ready to run. This includes time a Pod spends waiting to be scheduled as well as the time spent downloading container images over the network.
-- Running	상태
+  - Running상태
   - The Pod has been bound to a node, and all of the containers have been created. At least one container is still running, or is in the process of starting or restarting.
 - Succeeded 상태
   - All containers in the Pod have terminated in success, and will not be restarted.
@@ -3513,6 +3513,7 @@ $kubectl delete pod --all
   - 현재 디렉토리에 rs-lab.yaml 파일이 생성되어야 하고, Application 동작은 파일을 이용해 실행하시오
 - Q2. 동작되는 ``httpd:2.2`` 버전의 Container를 1개로 축소하는 명령을 적고, 실행하시오
 ```bash
+
 ```
 ### RollingUpdate를 위한 Deployment
 ![Deployment](./images/Deployment.png)
@@ -3532,7 +3533,7 @@ $kubectl delete pod --all
 ![RollingUpdate_4](./images/RollingUpdate_4.png)
 - Deployment Vs ReplicaSet Definition
   - yaml definition이 거의 비슷
-  ![DeploymentVsReplicaSet](./images/DeploymentVsReplicaSet.png)
+    ![DeploymentVsReplicaSet](./images/DeploymentVsReplicaSet.png)
 - Deployment Example
 ```bash
 # deployment yaml file generation
@@ -4052,6 +4053,7 @@ REVISION  CHANGE-CAUSE
 - Q3. 현재의 ``dep-mainui`` 히스토리를 확인하고, rollback 시키시오
 - Q4. 현재 동작중인 Pod의 httpd 이미지 버전이 어떻게 되는지 확인하시오
 ```bash
+
 ```
 ### DaemonSet + RollingUpdate
 - DaemonSet
@@ -5072,13 +5074,13 @@ cronjob.batch "cronjob-exam" deleted
   - ClusterIP가 기본적으로 생성한 후, Master 및 모든 Worker Node에 외부에서 접속가능한 Port가 Open
   - ClusterIP + External Port Open on Worker Node
   - 사용자가 특정 Master 또는 Worker node의 Port로 접속하면, 서비스로 등록된 Pod들로 균일하게 연결
-  ![Service_Type_NodePort](./images/Service_Type_NodePort.png)  
+    ![Service_Type_NodePort](./images/Service_Type_NodePort.png)  
 - Type 3. LoadBalancer
   - ClusterIP가 기본적으로 생성한 후, 모든 Worker Node에 외부에서 접속가능한 Port가 Open하고, 외부에 존재하는 LoadBalancer(실제 장비)와 연결
   - LoadBalancer를 통하면 Worker node들에 Open된 Port에 균일하게 분배되어 접속
   - ClusterIP + External Port Open on Worker Node + External LoadBalancer
   - LoadBalancer는 Cloud Infrastructer(AWS, Azure etc)나 Open Stack Cloud에서만 사용 가능
-  ![Service_Type_LoadBalancer](./images/Service_Type_LoadBalancer.png)  
+    ![Service_Type_LoadBalancer](./images/Service_Type_LoadBalancer.png)  
 - Type 4. ExternalName  
   - Cluster 안에서 외부로 접속 시, 사용할 도메인을 등록해서 사용
   - Cluster Domain이 실제 외부 Domain으로 치환되어 동작
@@ -5593,7 +5595,7 @@ curl: (6) Could not resolve host: externalname-svc.product.svc.cluster.local
 ![Headless_Service](./images/Headless_Service.png)
 - Headless Service Example
   - ``type:ClusterIP``인 상태에서 ``clusterIP:None``로 설정
-  ![Headless_Service_Example](./images/Headless_Service_Example.png)
+    ![Headless_Service_Example](./images/Headless_Service_Example.png)
 - Headless Service 실습
 ```bash
 # define nginx deployment yaml
@@ -7319,7 +7321,7 @@ gusami@k8s-ubuntu:~$curl worker-3:30100/pay
 PAYMENT Page
 ```
 - 마지막으로, 외부에서 공인 IP를 통해 접속하도록 Port Forwarding를 설정
-![Ingress_Public_IP_Port_Forwarding](./images/Ingress_Public_IP_Port_Forwarding.png)
+  ![Ingress_Public_IP_Port_Forwarding](./images/Ingress_Public_IP_Port_Forwarding.png)
 - 아니면, Cloud 환경에서 LoadBalancer를 구현하는 것도 가능
   - 참조 링크: https://kubernetes.github.io/ingress-nginx/deploy/#tls-termination-in-aws-load-balancer-nlb
 - ingress controller에 HTTPS 인증서를 만들어서 주입 가능
@@ -7327,7 +7329,7 @@ PAYMENT Page
 
 #### Windows 10에서 접속해 보기
 - Step 01: Port Forwarding
-![Ingress_Port_Forward](./images/Ingress_Port_Forward.png)
+  ![Ingress_Port_Forward](./images/Ingress_Port_Forward.png)
 
 - Step 02: HTML 파일 수정(상대 경로) 및 Volume mount
 ```bash
@@ -7390,8 +7392,8 @@ gusami@worker-3 password:
 ...copied
 ```
 - Step 03: 접속하기
-![Ingress_Windows_Connect](./images/Ingress_Windows_Connect.png)
-![Ingress_Windows_Connect_pay](./images/Ingress_Windows_Connect_pay.png)
+  ![Ingress_Windows_Connect](./images/Ingress_Windows_Connect.png)
+  ![Ingress_Windows_Connect_pay](./images/Ingress_Windows_Connect_pay.png)
 
 ## Label과 Annotation
 ### Label이란?
@@ -7401,7 +7403,7 @@ gusami@worker-3 password:
 - **리소스의 특성을 분류하고, Selector를 이용해서 선택**
 - ``Key-Value`` 쌍으로 적용
 - Label과 Selector
-![LabelAndSelector](./images/LabelAndSelector.png)
+  ![LabelAndSelector](./images/LabelAndSelector.png)
 - Valid Label Value
   - must be 63 characters or less (can be empty),
   - unless empty, must begin and end with an alphanumeric character ([a-z0-9A-Z]),
@@ -7433,7 +7435,7 @@ spec:
     - containerPort: 80
 ```
 - Label Template: 단순 문자열이 들어갈 경우, ""이 없어도 됨(단, TRUE, FALSE, YES, NO는 제외)
-![LabelTemplate](./images/LabelTemplate.png)
+  ![LabelTemplate](./images/LabelTemplate.png)
 - 실습
 ```bash
 # create nginx pod on command line
@@ -7569,9 +7571,9 @@ pod "cmdpod" deleted
     - 하드웨어 정보를 수집해서 Kubernetes가 기억하고 있지는 않음
     - 사용자가 Machine Learning를 동작시키는 Pod는 GPU가 장착된 Node에 배치하고 싶은 경우
 - Node를 선택해서 Pod를 배치할 수 있음
-![Node_Label_Example](./images/Node_Label_Example.png)
+  ![Node_Label_Example](./images/Node_Label_Example.png)
 - Node Label 관리 명령어 실습하기
-![NodeLabel_Definition](./images/NodeLabel_Definition.png)
+  ![NodeLabel_Definition](./images/NodeLabel_Definition.png)
 ```bash
 # 현재의 Node 정보 확인하기
 gusami@master:~$kubectl get nodes -o wide
@@ -7671,7 +7673,7 @@ pod "pod-nodeselector" deleted
     imageRegistry: https://hub.docker.com/
 ```
 - Annotation Example
-![Annotation_Example](./images/Annotation_Example.png)
+  ![Annotation_Example](./images/Annotation_Example.png)
 ```bash
 # nginx pod에 annotation을 추가해서 yaml형태로 정의
 gusami@master:~$cat > annotation.yaml 
@@ -7792,7 +7794,7 @@ spec:
 - Canary 배포
   - 기존 버전을 유지한 채로 일부만 신규 버전으로 올려서 신규 버전에 Bug나 이상은 없는지 확인
 - Canary 배포 Example: Blue 제품 2개와 Green 제품 1개(Carnary version)을 동시에 운용하면서 확인
-![CanaryDeployment](./images/CanaryDeployment.png)
+  ![CanaryDeployment](./images/CanaryDeployment.png)
 - Canary 배포 실습
 ```bash
 # blue product yaml definition
@@ -7961,7 +7963,7 @@ mainui-canary   3/3     3            3           7m57s
 ```
 ## ConfigMap
 - ConfigMap: Container 구성 정보를 한 곳에 모아서 관리
-![ConfigMap_Concept](./images/ConfigMap_Concept.png)
+  ![ConfigMap_Concept](./images/ConfigMap_Concept.png)
 ### ConfigMap 생성
 #### 명령어를 이용한 생성 법
 ![CreateConfigMap](./images/CreateConfigMap.png)
@@ -7998,10 +8000,10 @@ metadata:
   namespace: default
 data:
   log_level: INFO
-```  
+```
 #### ConfigMap 생성 실습
 - ``$kubectl create configmap ttabae-config --from-literal=INTERVAL=2 --from-literal=OPTION=boy --from-file=config.dir/``
-![ConfigMap_Example](./images/ConfigMap_Example.png)
+  ![ConfigMap_Example](./images/ConfigMap_Example.png)
 ```bash
 # Windows 10 local directory
 $pwd
@@ -8168,7 +8170,7 @@ Events:  <none>
 ```
 ### ConfigMap의 일부분을 적용하기
 - 생성한 Configmap의 Key를 Pod의 컨테이너에 적용
-![Apply_ConfigMap_To_Pod](./images/Apply_ConfigMap_To_Pod.png)
+  ![Apply_ConfigMap_To_Pod](./images/Apply_ConfigMap_To_Pod.png)
 ```bash
 # 먼저, genid라는 container의 동작방식을 이해해 보자!!
 # scp from windows 10 to master node
@@ -8526,7 +8528,7 @@ gusami@master:~/build$curl 10.36.0.1
     - ``key``: configMap에서 해당 키를 가져옴
     - ``path``: 마운트되는 Path에 사용할 파일 이름
 - ``ttabae-config`` ConfigMap의 ``nginx-conf.conf`` key를 container내의 ``/etc/nginx/conf.d``로 마운트하기
-![Apply_ConfigMap_Volume](./images/Apply_ConfigMap_Volume.png)
+  ![Apply_ConfigMap_Volume](./images/Apply_ConfigMap_Volume.png)
 ```bash
 # web-server container의 /etc/nginx/conf.d 경로에 "nginx-config.conf" 키를 마운트하기
 #  - ``key``: configMap에서 해당 키를 가져옴
@@ -8644,9 +8646,9 @@ lrwxrwxrwx 1 root root 24 Mar 12 10:52 nginx-config.conf -> ..data/nginx-config.
   - Admin은 PV들을 생성해서 관리하고, User는 PVC를 생성하여 PV들을 사용함
 - Volume의 종류가 다양하기 때문에, 각 Volume에 연결하기 위한 방법과 설정이 상이함
 - PV (Persistent Volumes)
-![PersistentVolume_Definition](./images/PersistentVolume_Definition.png)
+  ![PersistentVolume_Definition](./images/PersistentVolume_Definition.png)
 - PVC (Persistent Volume Claim)
-![PersistentVolumeClaim_Definition](./images/PersistentVolumeClaim_Definition.png)
+  ![PersistentVolumeClaim_Definition](./images/PersistentVolumeClaim_Definition.png)
 - 처리 흐름 정리
   - 최초 Admin이 PV를 생성
   - 사용자(User)가 PVC를 생성
@@ -8679,7 +8681,7 @@ lrwxrwxrwx 1 root root 24 Mar 12 10:52 nginx-config.conf -> ..data/nginx-config.
     - ``--key=``: Path to private key associated with given certificate
     - Public Key Vs Private Key: https://blog.naver.com/PostView.naver?blogId=chodahi&logNo=221385524980
 - secret type: 사용하는 ``Available commands``와 연관
-![Secret_Types](./images/Secret_Types.png)
+  ![Secret_Types](./images/Secret_Types.png)
 ```bash
 # tls command의 secret 생성. --cert, --key 옵션을 명시해야 함
 $kubectl create secret tls my-secret --cert=path/to/cert/file --key=path/to/key/file
@@ -8743,7 +8745,7 @@ Data
 ====
 INTERVAL:           1 bytes
 nginx-config.conf:  230 bytes
-```  
+```
 ### secret 사용 하기
 ![Secret_HowTo](./images/Secret_HowTo.png)
 - 정의된 secret를 Pod의 Container에 전달하는 방법
@@ -8751,7 +8753,7 @@ nginx-config.conf:  230 bytes
   - Command-line Argument로 전달
   - Volume에 secret을 사용하여 컨테이너 디렉토리에 Mount
 - 생성한 secret를 Container 환경변수(env)로 컨테이너에 전달하기
-![Secret_Env](./images/Secret_Env.png)
+  ![Secret_Env](./images/Secret_Env.png)
 ```bash
 # Pod definition using secret with yaml file
 # 사용 방법이 ConfigMap과 거의 유사
@@ -8824,7 +8826,7 @@ OPTION=stone
 HOME=/root
 ```
 - 생성한 secret를 Container Volume mount하기
-![Secret_Volume](./images/Secret_Volume.png)
+  ![Secret_Volume](./images/Secret_Volume.png)
 - ``secret.items`` 속성
   - ``key``: Secret에서 해당 키를 가져옴
   - ``path``: 마운트되는 Path에 사용할 파일 이름
@@ -9148,7 +9150,7 @@ frontend-6fbcc977ff-jndx9   1/1     Running   0          34s   10.40.0.2   worke
 frontend-6fbcc977ff-lx4fr   1/1     Running   0          34s   10.40.0.1   worker-3   <none>           <none>            app=frontend,pod-template-hash=6fbcc977ff
 frontend-6fbcc977ff-rfc2s   1/1     Running   0          34s   10.36.0.1   worker-2   <none>           <none>            app=frontend,pod-template-hash=6fbcc977ff
 webbackend                  1/1     Running   0          13m   10.44.0.1   worker-1   <none>           <none>            app=backend
-```  
+```
 ### taint & toleration
 - Master Node에서 Pod가 실행되지 않은 이유와 관련
 - **node taint, Pod toleration**
@@ -9176,7 +9178,7 @@ Taints:             node-role.kubernetes.io/master:NoSchedule
 # Worker node이 상세정보 - Taint가 없음
 gusami@master:~$kubectl describe nodes worker-1 | grep -i taint
 Taints:             <none>
-```  
+```
 ![TaintAndToleration](./images/TaintAndToleration.png)
 - 위의 이미지처럼, node에 taint가 설정된 경우
   - Pod들이 toleration을 taint와 동일한 값("role=web:NoSchedule")을 가지면, node1, node2, node3에도 배치가능
@@ -9293,7 +9295,7 @@ gusami@master:~$kubectl taint nodes master node-role.kubernetes.io/master:NoSche
 node/master tainted
 gusami@master:~$kubectl describe nodes master | grep -i taint
 Taints:             node-role.kubernetes.io/master:NoSchedule
-```  
+```
 ### cordon & drain
 - Node 관련 명령
 - 특정 노드에 Pod를 스케줄링하지 말아줘!
@@ -9411,11 +9413,11 @@ worker-3   Ready    <none>                 56d    v1.23.3
 ### Pod Scheduling 실습
 - 다음과 같은 Node Label을 설정하시오
 
-| Node      | LABEL       |
-| --------- | ----------- |
-| node1     | disktype=std, gpu=true       |
-| node2     | disktype=ssd, gpu=false      |
-| node3     | disktype=ssd, gpu=true       |
+| Node  | LABEL                   |
+| ----- | ----------------------- |
+| node1 | disktype=std, gpu=true  |
+| node2 | disktype=ssd, gpu=false |
+| node3 | disktype=ssd, gpu=true  |
 
 - nodeSelector를 이용하여 tensorflow/tensorflow:nightly-juptyer 컨테이너를 다음의 조건으로 실행하시오
 ```bash
@@ -9852,7 +9854,7 @@ gusami@master:~$kubectl get pods -o yaml | grep serviceAccount
 - RoleBinding
   - 사용자/그룹 또는 Service Account와 Role을 연결
 - https://kubernetes.io/docs/reference/access-authn-authz/certificate-signing-requests
-![AdmissionControll](./images/AdmissionControll.png)
+  ![AdmissionControll](./images/AdmissionControll.png)
 #### RBAC를 이용한 권한제어
 - https://kubernetes.io/docs/reference/access-authn-authz/certificate-signing-requests
 - Role
@@ -9883,7 +9885,7 @@ rules:
 - RoleBinding
   - User/Group 또는 Service Account와 Role을 연결
 - RoleBinding 예제: default 네임스페이스에서 유저 jane에게 pod-reader의 role을 할당
-![RoleBinding_Example](./images/RoleBinding_Example.png)  
+  ![RoleBinding_Example](./images/RoleBinding_Example.png)  
 - Command line에서도 Role을 생성하고, RoleBinding할 수 있음
 ```bash
 # create role on pod resource
@@ -10164,7 +10166,7 @@ roleRef:
   kind: ClusterRole
   name: secret-reader
   apiGroup: rbac.authorization.k8s.io
-```  
+```
 - 실습
 ```bash
 # 현재의 context 정보 확인
@@ -10461,7 +10463,7 @@ PolicyRule:
     mountPath: /usr/share/nginx/html
 ```
 - kubernetes 스토리지 종류
-![Storage_Types](./images/Storage_Types.png)
+  ![Storage_Types](./images/Storage_Types.png)
 
 - 실습
 ```bash
@@ -10528,12 +10530,12 @@ worker-3
       path: /hostdir_or_file
       type: DirectoryOrCreate
 ```
-| type      | Description |
-| --------- | ----------- |
+| type              | Description                              |
+| ----------------- | ---------------------------------------- |
 | DirectoryOrCreate | 주어진 경로에 아무것도 없다면, 필요에 따라 kubelet의 소유권, 권한을 0755로 설정한 빈 디렉토리를 생성 |
-| Directory | 주어진 경로에 디렉토리가 있어야 함 |
-| FileOrCreate | 주어진 경로에 아무것도 없다면, 필요에 따라 kubelet의 소유권, 권한을 0755로 설정한 파일을 생성 |
-| File | 주어진 경로에 파일이 있어야 함 |
+| Directory         | 주어진 경로에 디렉토리가 있어야 함                      |
+| FileOrCreate      | 주어진 경로에 아무것도 없다면, 필요에 따라 kubelet의 소유권, 권한을 0755로 설정한 파일을 생성 |
+| File              | 주어진 경로에 파일이 있어야 함                        |
 #### emptyDir volume
 ![Empty_Dir](./images/Empty_Dir.png)
 - Pod 생성과 함께 빈 공간이 생김
@@ -10614,10 +10616,10 @@ pod "web" deleted
 ```
 - 실습
   - nfs 서버 주소 및 공유 디렉토리 확인
-![NFS_Server](./images/NFS_Server.png)
-![NFS_Server_addr](./images/NFS_Server_addr.png)
+    ![NFS_Server](./images/NFS_Server.png)
+    ![NFS_Server_addr](./images/NFS_Server_addr.png)
   - nfs를 사용하도록 Pod 정의: nfs server addr과 공유 디렉토리 지정
-![NFS_Pod_Definition](./images/NFS_Pod_Definition.png)
+    ![NFS_Pod_Definition](./images/NFS_Pod_Definition.png)
   - Pod 생성 및 실행 후 확인
-![NFS_Pod_Exec](./images/NFS_Pod_Exec.png)
+    ![NFS_Pod_Exec](./images/NFS_Pod_Exec.png)
 ### PV & PVC
