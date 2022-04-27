@@ -1447,7 +1447,7 @@ webserver   1/1     Running   0          13s   10.44.0.1   worker-1   <none>    
  - 다른 namespace의 pod이더라도, 서로 통신이 가능
  - 클러스터의 장애가 발생한 경우, 모든 namespace가 타격을 입음
  - 쿠버네티스 클러스터 하나를 여러 팀이나 사용자가 함께 공유 가능
- - 용도에 다라 실행해야 하는 앱을 구분할 때 사용 
+ - 용도에 따라 실행해야 하는 앱을 구분할 때 사용 
  - ``namespace = k8s API`` 종류 중 하나
 
 ![k8s_namespace](./images/k8s_namespaces.png)
@@ -1686,8 +1686,8 @@ CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPAC
   - Python처럼 들여쓰기로 데이터 계층을 표기
   - 들여쓰기를 할 때에는 Tab이 아닌 **Space Bar**를 사용
   - 가독성이 좋아 설정 파일에 적합한 형식
-  - Scalar 문법: **`:`을 기준으로 key:value를 설정
-  - 배열 문법: `-`문자로 여러 개를 나열
+  - Scalar 문법: ``:``을 기준으로 key:value를 설정
+  - 배열 문법: ``-``문자로 여러 개를 나열
   - 공식 사이트: http://yaml.org/
 - kubernetes yaml example
 ```bash
@@ -3288,7 +3288,7 @@ rc-nginx-f8rt4   1/1     Running   0          58s   10.36.0.2   worker-2   <none
 # kubectl scale 명령어를 통한 scale In/Out
 gusami@master:~$kubectl scale rc rc-nginx --replicas=2
 replicationcontroller/rc-nginx scaled
-# 가장 오래된 Pod를 정리
+# 가장 최근에 생성된 Pod들을 정리
 gusami@master:~$watch kubectl get pods -o wide
 NAME             READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
 rc-nginx-2g9st   1/1     Running   0          22m   10.44.0.1   worker-1   <none>           <none>
