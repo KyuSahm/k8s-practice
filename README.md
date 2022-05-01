@@ -10622,4 +10622,210 @@ pod "web" deleted
     ![NFS_Pod_Definition](./images/NFS_Pod_Definition.png)
   - Pod 생성 및 실행 후 확인
     ![NFS_Pod_Exec](./images/NFS_Pod_Exec.png)
-### PV & PVC
+### Persistent Volume & Persistent Volume Claim
+- Kubernetes Volumes 운영환경 분리
+  - 기본 스토리지 운영환경을 분리
+    - 관리자: 특성과 용량에 맞게 스토리지 구성하고, PersistentVolumes에 해당 스토리지 등록
+    - 개발자: 필요한 특성과 용량을 만족하는 스토리지를 PersistentVolumeClaims을 통해서 요구
+- PersistentVolumes & PersistentVolumeClaims
+![PersistentVolumeAndPersistentVolumeClaim](./images/PersistentVolumeAndPersistentVolumeClaim.png)
+#### Volume Mode와 Access Mode
+![PV_Volume_Mode](./images/PV_Volume_Mode.png)
+![PV_Access_Mode](./images/PV_Access_Mode.png)
+![PV_Access_Mode_Detail](./images/PV_Access_Mode_Detail.png)
+![PV_ReclaimPolicyAndMountOption](./images/PV_ReclaimPolicyAndMountOption.png)
+#### PV(PersistentVolume) 생성
+![PV_Generation](./images/PV_Generation.png)
+- https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+  - capacity 지정
+  - accessModes 지정
+  - persistentVolumeReclaimPolicy 지정
+- NFS를 이용하여 PV 등록하는 정의
+![PV_NFS](./images/PV_NFS.png)
+```bash
+# hostPath를 이용한 PV를 생성하는 yaml 정의
+gusami@master:~$cat > pv-hostpath.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-hostpath
+spec:
+  capacity:
+    storage: 2Gi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: manual
+  persistentVolumeReclaimPolicy: Delete
+  hostPath:
+    path: /tmp/k8s-pv
+# Create persistentvolume   
+gusami@master:~$kubectl create -f pv-hostpath.yaml 
+persistentvolume/pv-hostpath created
+# persistentvolume 목록 얻기
+gusami@master:~$ kubectl get pv
+NAME          CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   REASON   AGE
+pv-hostpath   2Gi        RWO            Delete           Available           manual                  6
+# hostPath를 이용한 또다른 PV를 생성하는 yaml 정의
+gusami@master:~$ cat > pv-hostpath2.yaml 
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-hostpath2
+spec:
+  capacity:
+    storage: 3Gi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: manual
+  persistentVolumeReclaimPolicy: Delete
+  hostPath:
+    path: /tmp/k8s-pv2
+# Create PV    
+gusami@master:~$kubectl apply -f pv-hostpath2.yaml 
+persistentvolume/pv-hostpath2 created
+# PV 목록 얻기
+gusami@master:~$kubectl get pv
+NAME           CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   REASON   AGE
+pv-hostpath    2Gi        RWO            Delete           Available           manual                  3m56s
+pv-hostpath2   3Gi        RWO            Delete           Available           manual                  5s    
+```
+#### PVC(PersistentVolumeClaim) 생성
+![PVC_Generation](./images/PVC_Generation.png)
+- 선행 조건: Persistent Volume을 모아 놓은 Pool이 존재해야 함 
+- requests에서 필요한 Storage Size를 지정
+- accessModes에서 필요한 access mode를 지정
+```bash
+# pvc definition
+gusami@master:~$cat pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-web
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 2.5Gi
+  storageClassName: manual
+# create pvc
+gusami@master:~$kubectl apply -f pvc.yaml 
+persistentvolumeclaim/pvc-web created
+# 생성된 pvc 확인
+#  - 3Gi를 제공하는 PV인 "pv-hostpath2"와 bound된 것을 확인
+gusami@master:~$kubectl get pvc
+NAME      STATUS   VOLUME         CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+pvc-web   Bound    pv-hostpath2   3Gi        RWO            manual         63
+```
+#### Pod에서 PVC를 사용하기
+![Pod_PVC](./images/Pod_PVC.png)
+```bash
+# Pod 정의
+#  - pvc-web persistent volume claim을 사용하도록 지정
+gusami@master:~$cat > pod-nginx-pvc.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.14
+    volumeMounts:
+    - name: html
+      mountPath: /usr/share/nginx/html
+  volumes:
+    - name: html
+      persistentVolumeClaim:
+        claimName: pvc-web
+# Pod 생성        
+gusami@master:~$kubectl apply -f pod-nginx-pvc.yaml 
+pod/web created
+# worker-3 node에 Persistent Volume "k8s-pv2"가 생성됨
+gusami@worker-3:~$ls -al /tmp
+합계 60
+drwxrwxrwt 15 root   root   4096  5월  1 20:33 .
+drwxr-xr-x 21 root   root   4096  4월 24 20:23 ..
+drwxr-xr-x  2 root   root   4096  5월  1 20:33 k8s-pv2
+# 파일 생성을 위해 root로 전환
+gusami@worker-3:/tmp/k8s-pv2$sudo su -
+[sudo] gusami의 암호: 
+# 디렉토리 변경
+root@worker-3:~# cd /tmp/k8s-pv2/
+# index.html 파일 생성
+root@worker-3:/tmp/k8s-pv2#echo "Welcome to PVC example" > index.html
+# 생성된 파일 확인
+root@worker-3:/tmp/k8s-pv2#ls -al
+합계 12
+drwxr-xr-x  2 root root 4096  5월  1 20:38 .
+drwxrwxrwt 15 root root 4096  5월  1 20:35 ..
+-rw-r--r--  1 root root   23  5월  1 20:38 index.html
+# curl로 접속해서 index.html 파일 내용 확인
+gusami@master:~$curl http://10.40.0.1
+Welcome to PVC example
+# Pod 목록 확인
+gusami@master:~$ kubectl get pods -o wide
+NAME   READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+web    1/1     Running   0          10m   10.40.0.1   worker-3   <none>           <none>
+# web Pod의 상세 내용 확인
+#  - Volumes에 PVC 정보가 포함
+#  - Mounts에 Pod내에 Mount되는 위치 정보가 포함
+gusami@master:~$kubectl describe pod web
+Name:         web
+Namespace:    default
+Priority:     0
+Node:         worker-3/10.0.1.7
+Start Time:   Sun, 01 May 2022 20:33:28 +0900
+Labels:       <none>
+Annotations:  <none>
+Status:       Running
+IP:           10.40.0.1
+IPs:
+  IP:  10.40.0.1
+Containers:
+  nginx:
+    Container ID:   docker://61c883626cd3bff29de36d8561072dee474e730cabef6baebd537308321009fd
+    Image:          nginx:1.14
+    Image ID:       docker-pullable://nginx@sha256:f7988fb6c02e0ce69257d9bd9cf37ae20a60f1df7563c3a2a6abe24160306b8d
+    Port:           <none>
+    Host Port:      <none>
+    State:          Running
+      Started:      Sun, 01 May 2022 20:33:29 +0900
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /usr/share/nginx/html from html (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-thsnv (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             True 
+  ContainersReady   True 
+  PodScheduled      True 
+Volumes:
+  html:
+    Type:       PersistentVolumeClaim (a reference to a PersistentVolumeClaim in the same namespace)
+    ClaimName:  pvc-web
+    ReadOnly:   false
+  kube-api-access-thsnv:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   BestEffort
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type    Reason     Age    From               Message
+  ----    ------     ----   ----               -------
+  Normal  Scheduled  7m52s  default-scheduler  Successfully assigned default/web to worker-3
+  Normal  Pulled     7m52s  kubelet            Container image "nginx:1.14" already present on machine
+  Normal  Created    7m52s  kubelet            Created container nginx
+  Normal  Started    7m52s  kubelet            Started container nginx
+```
