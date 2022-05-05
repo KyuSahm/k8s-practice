@@ -10829,3 +10829,420 @@ Events:
   Normal  Created    7m52s  kubelet            Created container nginx
   Normal  Started    7m52s  kubelet            Started container nginx
 ```
+## Cluster Network 구성
+### Docker Container Networking
+- Container Network Model
+- docker0
+  - ``virtual ethernet bridge: 172.17.0.0/16``
+  - L2 통신 기반
+  - container 생성 시 veth 인터페이스 생성(sandbox)
+  - 모든 컨테이너는 외부 통신을 docker0를 통해 진행
+  - container running 시 172.17.X.Y로 IP 주소 할당
+#### 단일 호스트 컨테이너 네트워킹
+![Docker_Network](./images/Docker_Network.png)
+- 하나의 Node 내에서 vitual ethernet bridge를 생성
+- 하나의 Node 내의 container간의 통신 가능
+- 하나의 Node 내의 container가 외부로 통신 가능
+  - Gateway가 NAT 서비스를 제공
+```bash
+# ubuntu linux
+#  - docker0 interface 확인
+#  - inet 172.17.0.1/16 (NAT 서비스 지원 - 외부 접속 시)
+gusami@docker-ubuntu:~$ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:ea:40:0f brd ff:ff:ff:ff:ff:ff
+    inet 10.100.0.105/24 brd 10.100.0.255 scope global noprefixroute enp0s3
+       valid_lft forever preferred_lft forever
+    inet6 fe80::4b11:b4d4:a9a5:4af1/64 scope link noprefixroute 
+       valid_lft forever preferred_lft forever
+3: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:d6:24:43:ec brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:d6ff:fe24:43ec/64 scope link 
+       valid_lft forever preferred_lft forever
+4: br-8c77177f93c4: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether 02:42:6a:e9:01:03 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.100.254/24 brd 192.168.100.255 scope global br-8c77177f93c4
+       valid_lft forever preferred_lft forever
+6: veth3b90e79@if5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether 5e:e7:21:bf:9c:02 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet6 fe80::5ce7:21ff:febf:9c02/64 scope link 
+       valid_lft forever preferred_lft forever
+# centos linux
+#  - docker0 interface 확인
+#  - inet 172.17.0.1/16 (NAT 서비스 지원 - 외부 접속 시)
+[gusami@docker-centos ~]$ ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+    link/ether 08:00:27:15:70:71 brd ff:ff:ff:ff:ff:ff
+    inet 10.100.0.106/24 brd 10.100.0.255 scope global noprefixroute enp0s3
+       valid_lft forever preferred_lft forever
+    inet6 fe80::139d:a032:e603:c398/64 scope link noprefixroute 
+       valid_lft forever preferred_lft forever
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether 02:42:8b:51:05:68 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+```
+#### 멀티 호스트 컨테이너 네트워킹
+- Docker Container Networking로는 다른 노드의 container와는 통신이 불가능
+![Multi_Host_Docker_Network](./images/Multi_Host_Docker_Network.png)
+- Container network Interface(CNI): 새로운 형태의 네트워크가 필요
+![Container_Network_Interface](./images/Container_Network_Interface.png)
+  - node마다 ip 대역대가 달라짐: ``10.244.1.0/24 vs 10.244.2.0/24``
+  - ``10.244.1.0`` 대역은 ``172.27.20.50`` interface를 거치도록 Routing table 설정
+  - ``10.244.2.0`` 대역은 ``172.27.20.51`` interface를 거치도록 Routing table 설정
+  - CNI와 관련된 weave net 등을 설치하면 위의 형태로 알아서 구성해 줌
+- Container Network Interface를 수동으로도 생성 가능
+  - ip netns man page: https://man7.org/linux/man-pages/man8/ip-netns.8.html
+  - ip link man page: https://man7.org/linux/man-pages/man8/ip-link.8.html
+  - ip addr man page: https://man7.org/linux/man-pages/man8/ip-address.8.html
+  - 혼자 구성해 보기: https://www.44bits.io/ko/post/container-network-2-ip-command-and-network-namespace
+- network namespace란?
+  - A network namespace is logically another copy of the network stack, with its own routes, firewall rules, and network devices
+- iptables: https://webterror.net/2015/02/11/1622/
+![iptables](./images/iptables.png)  
+- CNI 수동 생성 실습    
+```bash
+# v-net-0라는 network namespace를 생성
+#  - ip-netns: process network namespace management
+#  - ip netns add NAME - create a new named network namespace with "NAME"
+$ip netns add v-net-0
+# v-net-0 network를 bridge type으로 생성
+#  - ip link add: add virtual link
+#  - Link types:
+#    - bridge: Ethernet Bridge device
+$ip link add v-net-0 type bridge
+# v-net-0 network를 활성화
+$ip link set dev v-net-0 up
+
+# veth0라는 virtual network interface를 추가하고 peer로 veth1을 할당
+#  - ip link add: add virtual link
+#    - type veth: Virtual ethernet interface
+#    - peer name NAME: specifies the virtual pair device. NAME: name of the VETH/VXCAN tunnel
+$ip link add veth0 type veth peer name veth1
+# veth1 device를 v-net-0 network namespace로 이동
+#  - ip link set: change device attributes
+#  - netns NETNSNAME | PID: move the device to the network namespace associated with name NETNSNAME or process PID.
+$ip link set veth1 netns v-net-0
+# virtual network interface veth0를 활성화
+$ip link set veth0 up
+# veth0에 "10.244.1.1" 주소를 할당
+#  - ip address add - add new protocol address.
+#    - dev IFNAME: the name of the device to add the address to.
+$ip addr add 10.244.1.1/24 dev veth0
+
+# v-net-0 network namespace에서 veth1 인터페이스를 활성화
+$ip netns exec v-net-0 ip link set veth1 up
+# v-net-0 network namespace에 존재하는 veth1 인터페이스에 IP 주소를 할당
+$ip netns exec v-net-0 ip addr add 10.244.1.2 dev veth1
+
+# v-net-0 network namespace에 대해서 목적지가 "10.244.1.0/24"인 경우, 172.27.20.50을 경유하도록 설정
+$ip netns exec v-net-0 ip route add 10.244.1.0/24 via 172.27.20.50
+# 나가는 Packet을 위한 NAT 서비스 등록
+$iptables -t nat -A POSTROUTING -s 10.244.0.0/24 -j MASQUERADE
+
+# node의 routing table 업데이트
+#  - ``10.244.1.0`` 대역은 ``172.27.20.50`` interface를 거치도록 Routing table 설정
+#  - ``10.244.2.0`` 대역은 ``172.27.20.51`` interface를 거치도록 Routing table 설정
+$ip route add 10.244.1.0 via 172.27.20.50
+$ip route add 10.244.2.0 via 172.27.20.51
+```
+- CNI 종류
+![CNI_Types](./images/CNI_Types.png)
+  - https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#pod-network
+  - https://kubernetes.io/docs/concepts/cluster-administration/networking/#how-to-implement-the-kubernetes-networking-model
+    - ACI
+    - Antrea
+    - AWS VPC CNI for Kubernetes
+    - Azure CNI for Kubernetes
+    - Calico
+    - .....
+    - Weave Net from Weaveworks
+```bash
+# CNI가 Pod 형태로 서비스가 되고 있음
+#  - 각 노드마다 weave net pod가 하나씩 존재(master, worker-1, worker-2, worker-3)
+gusami@master:~$ kubectl get pod -A
+NAMESPACE     NAME                             READY   STATUS    RESTARTS      AGE
+.....
+kube-system   weave-net-9s8mx                  2/2     Running   57 (8h ago)   97d
+kube-system   weave-net-kzxnd                  2/2     Running   94 (2d ago)   173d
+kube-system   weave-net-tbcxg                  2/2     Running   93 (2d ago)   173d
+kube-system   weave-net-zvqg4                  2/2     Running   90 (2d ago)   173d
+# kube-proxy와 weave-net이 각 노드당 하나씩 pod를 제공하는 daemonset으로 만들어짐
+gusami@master:~$kubectl get daemonsets.apps -A
+NAMESPACE     NAME         DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+kube-system   kube-proxy   4         4         4       4            4           kubernetes.io/os=linux   173d
+kube-system   weave-net    4         4         4       4            4           <none>                   173d
+```    
+- 실습  
+```bash
+# k8s worker-1 node의 네트워크 설정 확인
+#  - docker0외에도 weave network interface(CNI)가 존재
+gusami@master:~$ ip addr
+....
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:e9:a0:56 brd ff:ff:ff:ff:ff:ff
+    inet 10.0.1.4/24 brd 10.0.1.255 scope global noprefixroute enp0s3
+       valid_lft forever preferred_lft forever
+    inet6 fe80::1c49:f674:9f6:357a/64 scope link noprefixroute 
+       valid_lft forever preferred_lft forever
+    inet6 fe80::adb0:5a54:990a:8967/64 scope link dadfailed tentative noprefixroute 
+       valid_lft forever preferred_lft forever
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether 02:42:fe:67:2e:32 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+....
+6: weave: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1376 qdisc noqueue state UP group default qlen 1000
+    link/ether 46:0e:8e:28:b0:e5 brd ff:ff:ff:ff:ff:ff
+    inet 10.32.0.1/12 brd 10.47.255.255 scope global weave
+       valid_lft forever preferred_lft forever
+    inet6 fe80::440e:8eff:fe28:b0e5/64 scope link 
+       valid_lft forever preferred_lft forever
+# k8s worker-1 node의 네트워크 설정 확인
+#  - docker0외에도 weave network interface(CNI)가 존재
+gusami@worker-1:~$ip addr
+....
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:05:ff:a4 brd ff:ff:ff:ff:ff:ff
+    inet 10.0.1.5/24 brd 10.0.1.255 scope global noprefixroute enp0s3
+       valid_lft forever preferred_lft forever
+    inet6 fe80::1c49:f674:9f6:357a/64 scope link dadfailed tentative noprefixroute 
+       valid_lft forever preferred_lft forever
+    inet6 fe80::adb0:5a54:990a:8967/64 scope link noprefixroute 
+       valid_lft forever preferred_lft forever
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether 02:42:43:85:4d:3d brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+....
+6: weave: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1376 qdisc noqueue state UP group default qlen 1000
+    link/ether e2:99:1d:a3:b7:ef brd ff:ff:ff:ff:ff:ff
+    inet 10.44.0.0/12 brd 10.47.255.255 scope global weave
+       valid_lft forever preferred_lft forever
+    inet6 fe80::e099:1dff:fea3:b7ef/64 scope link 
+       valid_lft forever preferred_lft forever
+# k8s worker-2 node의 네트워크 설정 확인
+#  - docker0외에도 weave network interface(CNI)가 존재
+gusami@worker-2:~$ ip addr
+.....
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:6c:a5:f0 brd ff:ff:ff:ff:ff:ff
+    inet 10.0.1.6/24 brd 10.0.1.255 scope global noprefixroute enp0s3
+       valid_lft forever preferred_lft forever
+    inet6 fe80::adb0:5a54:990a:8967/64 scope link dadfailed tentative noprefixroute 
+       valid_lft forever preferred_lft forever
+    inet6 fe80::1c49:f674:9f6:357a/64 scope link dadfailed tentative noprefixroute 
+       valid_lft forever preferred_lft forever
+    inet6 fe80::cd4f:fa51:bf74:de40/64 scope link noprefixroute 
+       valid_lft forever preferred_lft forever
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether 02:42:ae:43:a2:15 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+......
+6: weave: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1376 qdisc noqueue state UP group default qlen 1000
+    link/ether 76:49:04:25:a1:8e brd ff:ff:ff:ff:ff:ff
+    inet 10.36.0.0/12 brd 10.47.255.255 scope global weave
+       valid_lft forever preferred_lft forever
+    inet6 fe80::7449:4ff:fe25:a18e/64 scope link 
+       valid_lft forever preferred_lft forever
+# k8s worker-3 node의 네트워크 설정 확인
+#  - docker0외에도 weave network interface가 존재       
+gusami@worker-3:~$ip addr
+......
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:c1:66:14 brd ff:ff:ff:ff:ff:ff
+    inet 10.0.1.7/24 brd 10.0.1.255 scope global noprefixroute enp0s3
+       valid_lft forever preferred_lft forever
+    inet6 fe80::9cf7:f10:2141:6bd6/64 scope link noprefixroute 
+       valid_lft forever preferred_lft forever
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether 02:42:98:ae:8a:25 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+.......
+6: weave: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1376 qdisc noqueue state UP group default qlen 1000
+    link/ether 4e:b5:a3:09:4b:da brd ff:ff:ff:ff:ff:ff
+    inet 10.40.0.0/12 brd 10.47.255.255 scope global weave
+       valid_lft forever preferred_lft forever
+    inet6 fe80::4cb5:a3ff:fe09:4bda/64 scope link 
+       valid_lft forever preferred_lft forever
+```
+### kube-proxy
+![kube_proxy_iptables](./images/kube_proxy_iptables.png)
+- kube-proxy의 default mode는 iptables
+  - 역할 01: 서비스가 생성될 때, 각 노드마다 iptables를 생성
+    - step 01: etcd에 서비스를 구성하는 각 pod들의 주소들에 정보가 수집
+    - step 02: 각 노드에 존재하는 kubelet을 통해서 해당 노드의 kube-proxy에게 하나의 Cluster-IP에 대한 접속이 들어오면, 각 pod들의 주소들로 갈 수 있도록 iptables rule을 노드마다 생성하도록 지시
+    - step 03: kube-proxy는 iptables rule을 생성하도록 해당 노드의 kernel에 지시. 생성된 rule을 통해서 실제 pod들로 load balancing을 처리함
+  - 역할 02: NodePort 서비스의 Port를 Listen함
+    - 해당 NodePort로 연결이 들어오면, iptables rule을 통해 해당 서비스를 구성하는 여러 개의 Pod들로 Load Balancing
+```bash
+# deployment definition
+gusami@master:~$cat > deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webui
+  template:
+    metadata:
+      name: nginx-pod
+      labels:
+        app: webui
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.14
+# deployment 생성        
+gusami@master:~$kubectl apply -f deployment.yaml 
+deployment.apps/web created
+# 생성된 Pod 정보 확인
+gusami@master:~$kubectl get pods -o wide
+NAME                   READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+web-6d4c4cc4b8-9cjjh   1/1     Running   0          6s    10.44.0.2   worker-1   <none>           <none>
+web-6d4c4cc4b8-qnw2l   1/1     Running   0          6s    10.44.0.1   worker-1   <none>           <none>
+web-6d4c4cc4b8-vw8mj   1/1     Running   0          6s    10.40.0.2   worker-3   <none>           <none>
+# web deployment를 사용할 수 있는 서비스 정의 
+gusami@master:~$cat > svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: webui-svc
+spec:
+  clusterIP: 10.96.100.100
+  selector:
+    app: webui
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+# 서비스 생성
+gusami@master:~$kubectl apply -f svc.yaml 
+service/webui-svc created
+# 생성된 서비스 확인
+gusami@master:~$kubectl get svc
+NAME        TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+webui-svc   ClusterIP   10.96.100.100   <none>        80/TCP    11s
+# 생성된 가상 Cluster IP로 접속 (Load balancing)
+gusami@master:~$curl 10.96.100.100
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+# 서비스의 상세 정보 확인
+#  - 하나의 Cluster IP (10.96.100.100)에 접속하면, 세 개의 Endpoints(10.40.0.2:80,10.44.0.1:80,10.44.0.2:80) 중 하나로 접속
+gusami@master:~$kubectl describe svc webui-svc 
+Name:              webui-svc
+Namespace:         product
+Labels:            <none>
+Annotations:       <none>
+Selector:          app=webui
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                10.96.100.100
+IPs:               10.96.100.100
+Port:              <unset>  80/TCP
+TargetPort:        80/TCP
+Endpoints:         10.40.0.2:80,10.44.0.1:80,10.44.0.2:80
+Session Affinity:  None
+Events:            <none>
+# worker-1 node의 ip tables 정보 살펴보기
+#  - destination address가 10.96.100.100이고, port가 80인 경우에 KUBE-SVC-ZVJQQ4NIUL23U rule로 점프해라!
+root@worker-1:~# iptables -t nat -S | grep 10.96.100.100
+-A KUBE-SERVICES -d 10.96.100.100/32 -p tcp -m comment --comment "product/webui-svc cluster IP" -m tcp --dport 80 -j KUBE-SVC-ZVJQQ4NIUL23U
+# KUBE-SVC-ZVJQQ4NIUL23U인 경우에 random하게 33.3% 확률로 KUBE-SEP-HZGHJD4CAFOGI6G7 rule로 점프해라!
+# KUBE-SVC-ZVJQQ4NIUL23U인 경우에 random하게 66.6% * 0.5% 확률로 KUBE-SEP-BYJXY3MQNHVFP2KF rule로 점프해라!
+# KUBE-SVC-ZVJQQ4NIUL23U인 경우에 random하게 나머지 확률로 KUBE-SEP-RYJKMIWKQRTWHD5T rule로 점프해라!
+root@worker-1:~# iptables -t nat -S | grep KUBE-SVC-ZVJQQ4NIUL23UNF2
+-N KUBE-SVC-ZVJQQ4NIUL23UNF2
+-A KUBE-SERVICES -d 10.96.100.100/32 -p tcp -m comment --comment "product/webui-svc cluster IP" -m tcp --dport 80 -j KUBE-SVC-ZVJQQ4NIUL23UNF2
+-A KUBE-SVC-ZVJQQ4NIUL23UNF2 -m comment --comment "product/webui-svc" -m statistic --mode random --probability 0.33333333349 -j KUBE-SEP-HZGHJD4CAFOGI6G7
+-A KUBE-SVC-ZVJQQ4NIUL23UNF2 -m comment --comment "product/webui-svc" -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-BYJXY3MQNHVFP2KF
+-A KUBE-SVC-ZVJQQ4NIUL23UNF2 -m comment --comment "product/webui-svc" -j KUBE-SEP-RYJKMIWKQRTWHD5T
+# KUBE-SEP-HZGHJD4CAFOGI6G7 rule인 경우에 10.40.0.2:80로 연결하라
+root@worker-1:~# iptables -t nat -S | grep KUBE-SEP-HZGHJD4CAFOGI6G7
+-N KUBE-SEP-HZGHJD4CAFOGI6G7
+-A KUBE-SEP-HZGHJD4CAFOGI6G7 -s 10.40.0.2/32 -m comment --comment "product/webui-svc" -j KUBE-MARK-MASQ
+-A KUBE-SEP-HZGHJD4CAFOGI6G7 -p tcp -m comment --comment "product/webui-svc" -m tcp -j DNAT --to-destination 10.40.0.2:80
+-A KUBE-SVC-ZVJQQ4NIUL23UNF2 -m comment --comment "product/webui-svc" -m statistic --mode random --probability 0.33333333349 -j KUBE-SEP-HZGHJD4CAFOGI6G7
+# KUBE-SEP-BYJXY3MQNHVFP2KF rule인 경우에 10.44.0.1:80로 연결하라
+root@worker-1:~# iptables -t nat -S | grep KUBE-SEP-BYJXY3MQNHVFP2KF
+-N KUBE-SEP-BYJXY3MQNHVFP2KF
+-A KUBE-SEP-BYJXY3MQNHVFP2KF -s 10.44.0.1/32 -m comment --comment "product/webui-svc" -j KUBE-MARK-MASQ
+-A KUBE-SEP-BYJXY3MQNHVFP2KF -p tcp -m comment --comment "product/webui-svc" -m tcp -j DNAT --to-destination 10.44.0.1:80
+-A KUBE-SVC-ZVJQQ4NIUL23UNF2 -m comment --comment "product/webui-svc" -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-BYJXY3MQNHVFP2KF
+# KUBE-SEP-RYJKMIWKQRTWHD5T rule인 경우에 10.44.0.2:80로 연결하라
+root@worker-1:~# iptables -t nat -S | grep KUBE-SEP-RYJKMIWKQRTWHD5T
+-N KUBE-SEP-RYJKMIWKQRTWHD5T
+-A KUBE-SEP-RYJKMIWKQRTWHD5T -s 10.44.0.2/32 -m comment --comment "product/webui-svc" -j KUBE-MARK-MASQ
+-A KUBE-SEP-RYJKMIWKQRTWHD5T -p tcp -m comment --comment "product/webui-svc" -m tcp -j DNAT --to-destination 10.44.0.2:80
+-A KUBE-SVC-ZVJQQ4NIUL23UNF2 -m comment --comment "product/webui-svc" -j KUBE-SEP-RYJKMIWKQRTWHD5T
+````
+- kube-proxy 동작방식
+![kube_proxy_modes](./images/kube_proxy_modes.png)
+  - 3가지 mode가 존재: User space mode, iptables mode, IPVS mode
+  - iptables mode가 default mode임
+#### kube-proxy 예제
+- kubernetes service 동작 시, 실제 kube-proxy는 어떻게 동작되나?
+- 실습1: kubernetes Service 동작하기
+```bash
+$cat deployment.yaml
+$cat svc.yaml
+$kubectl apply -f deployment.yaml
+$kubectl apply -f svc.yaml
+$kubectl get all
+```
+- 실습2: kube-proxy가 worker node에 동작중인지 확인하라
+```bash
+$kubectl get pod -n kube-system -o wide | grep kube-proxy
+```
+- 실습3: kube-proxy가 하는 일을 worker node에 shell로 접속하여 확인하라
+```bash
+$iptables -t nat -S | grep 80
+```
+- 실습4: 서비스와 deploy를 삭제하라
+```bash
+$kubectl delete deployments.apps webui
+$kubectl delete svc webui-svc
+```
