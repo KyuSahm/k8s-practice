@@ -11246,3 +11246,320 @@ $iptables -t nat -S | grep 80
 $kubectl delete deployments.apps webui
 $kubectl delete svc webui-svc
 ```
+## Kubernetes DNS
+### core DNS 사용하기
+![coreDNS](./images/coreDNS.png)
+- coreDNS
+  - Service 및 Pod용 DNS
+  - **서비스 이름과 Cluster IP를 이용한 DNS가 등록**
+  - ``http://서비스명.네임스페이스명.svc.cluster.local``로 접속 가능
+- k8s 내부에서 동작하는 DNS 서버 역할을 수행
+- 서비스와 서비스(Pod와 Pod)간에 통신을 할 때, IP Address가 아닌 Naming Service를 사용할 수 있도록 지원
+- kube-dns service
+  - cluster-ip: 10.96.0.10
+  - coreDNS Pod들로 구성해서 동작
+- 실제 k8s에서 dns 서비스 및 Pod의 존재를 확인
+```bash
+# 모든 namespace의 서비스 목록 확인
+#  - kube-dns라는 이름을 가진 서비스로 존재
+#  - 기본적으로 "10.96.0.10"의 IP를 가지고 서비스를 제공
+gusami@master:~$kubectl get svc -A
+NAMESPACE     NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                  AGE
+default       kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP                  174d
+default       mydb         ClusterIP   10.98.227.39    <none>        80/TCP                   146d
+default       myservice    ClusterIP   10.106.2.106    <none>        80/TCP                   146d
+kube-system   kube-dns     ClusterIP   10.96.0.10      <none>        53/UDP,53/TCP,9153/TCP   174d
+product       webui-svc    ClusterIP   10.96.100.100   <none>        80/TCP                   22h
+# coredns의 서비스를 제공하는 Pod 존재 확인
+gusami@master:~$ kubectl get pod -o wide -A | grep dns
+kube-system   coredns-78fcd69978-nz4fr         1/1     Running   47 (21h ago)   174d   10.32.0.3   master     <none>           <none>
+kube-system   coredns-78fcd69978-vsnzh         1/1     Running   47 (21h ago)   174d   10.32.0.2   master     <none>           <none>
+```
+- 모든 Pod들은 내부의 ``/etc/resolve.conf``을 이용하여 dns domain에 대한 ip address를 요청함
+  - 해당 파일에 dns nameserver가 ``10.96.0.10``으로 설정되어 있음
+```bash
+# 현재 실행 중인 Pod 리스트 확인
+gusami@master:~$kubectl get pods
+NAME                   READY   STATUS    RESTARTS      AGE
+web-6d4c4cc4b8-9cjjh   1/1     Running   1 (21h ago)   22h
+web-6d4c4cc4b8-qnw2l   1/1     Running   1 (21h ago)   22h
+web-6d4c4cc4b8-vw8mj   1/1     Running   1 (21h ago)   22h
+# 특정 Pod에 진입
+gusami@master:~$kubectl exec -it web-6d4c4cc4b8-9cjjh -- /bin/bash
+root@web-6d4c4cc4b8-9cjjh:/# cd /etc/
+# /etc/resolv.conf 정보 확인
+#  - nameserver가 "10.96.0.10"으로 되어 있음
+#  - 따라서, pod들이 dns를 사용할 때, 해당 nameserver의 IP를 가지는 coreDNS 서비스를 이용
+#  - 실제 coreDNS 서비스는 해당 서비스를 구성하는 Pod들에 의해 제공
+root@web-6d4c4cc4b8-9cjjh:/etc#cat resolv.conf
+nameserver 10.96.0.10
+search product.svc.cluster.local svc.cluster.local cluster.local
+options ndots:5
+```
+- coreDNS 사용 방법
+  - kubernetes DNS는 Cluster에서 실행되는 모든 Pod가 사용할 수 있도록 구성
+  - DNS를 통해 Service와 Pod Access
+    - Service Access: ``service_name.namespace.svc.cluster.local``
+    - Pod Access: ``Pod-IP-Address.namespace.pod.cluster.local``
+- 실습
+```bash
+# deployment 정의
+gusami@master:~$cat > deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      name: nginx-pod
+      labels:
+        app: web
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.14
+# deployment 생성을 통한 replicaset와 pod 생성
+gusami@master:~$kubectl apply -f deployment.yaml 
+deployment.apps/web created
+# ClusterIP 서비스 정의
+#  - ClusterIP를 "10.96.100.100"으로 고정. 고정 안해도 DNS에 문제없음
+gusami@master:~$cat > svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-web
+spec:
+  clusterIP: 10.96.100.100
+  selector:
+    app: web
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+# 서비스 생성    
+gusami@master:~$kubectl apply -f svc.yaml 
+service/svc-web created
+# 생성된 리소스 확인
+gusami@master:~$kubectl get all
+NAME                      READY   STATUS    RESTARTS   AGE
+pod/web-74dbbbc58-2pnr6   1/1     Running   0          88s
+pod/web-74dbbbc58-4nsxz   1/1     Running   0          88s
+pod/web-74dbbbc58-bqtjj   1/1     Running   0          88s
+
+NAME              TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+service/svc-web   ClusterIP   10.96.100.100   <none>        80/TCP    49s
+
+NAME                  READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/web   3/3     3            3           88s
+
+NAME                            DESIRED   CURRENT   READY   AGE
+replicaset.apps/web-74dbbbc58   3         3         3       88s
+# 서비스로 접속 확인 (ClusterIP를 이용)
+gusami@master:~$curl 10.96.100.100
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+# centos 이미지를 다운로드 받아 client-pod를 생성한 후, Pod 내부로 접속
+gusami@master:~$ kubectl run client-pod --image=centos:7 -it -- /bin/bash
+If you do not see a command prompt, try pressing enter.
+# client-pod 접속 후, /etc/resolv.conf 파일 내부 정보 확인
+#  - nameserver가 10.96.0.10인 것을 확인
+#  - search의 의미: 사용자가 생략 시, 자동으로 뒤에 붙여서 dns를 생성하겠다는 의미
+[root@client-pod /]# cat /etc/resolv.conf
+nameserver 10.96.0.10
+search product.svc.cluster.local svc.cluster.local cluster.local
+options ndots:5
+# Pod 내부에서 다른 서비스의 ClusterIP를 통해서 접속 가능
+[root@client-pod /]# curl 10.96.100.100
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+# Pod 내부에서 DNS를 통해서 다른 서비스에 접속 가능
+[root@client-pod /]# curl svc-web.product.svc.cluster.local
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+# 서비스명만 명시해도 접속 가능
+#  - 이유는 /etc/resolve.conf의 search항목 때문
+#    - search product.svc.cluster.local svc.cluster.local cluster.local
+[root@client-pod /]#curl svc-web
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+# 전체 Pod 리스트 확인
+gusami@master:~$kubectl get pods -o wide
+NAME                  READY   STATUS    RESTARTS   AGE   IP          NODE       NOMINATED NODE   READINESS GATES
+client-pod            1/1     Running   0          14m   10.40.0.3   worker-3   <none>           <none>
+web-74dbbbc58-2pnr6   1/1     Running   0          22m   10.44.0.2   worker-1   <none>           <none>
+web-74dbbbc58-4nsxz   1/1     Running   0          22m   10.44.0.1   worker-1   <none>           <none>
+web-74dbbbc58-bqtjj   1/1     Running   0          22m   10.40.0.2   worker-3   <none>           <none>
+# pod 내부에서 다른 pod에 대한 dns 서비스도 제공
+[root@client-pod /]# curl 10-44-0-2.product.pod.cluster.local
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+```    
+### Pod내 DNS 설정
+![Pod_Custom_DNS](./images/Pod_Custom_DNS.png)
+- https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/
+- pod내부의 ``/etc/resolv.conf``을 다른 DNS를 사용할 수 있도록 지원
+- Pod 생성 시, ``dnsConfig``를 통해서 core DNS를 편집할 수 있도록 지원
+```bash
+# Pod를 정의하는 yaml
+#  - nameserver를 1.2.3.4를 사용하도록 설정
+#  - search 정보를 ns1.svc.cluster-domain.example와 my.dns.search.suffix를 사용 
+gusami@master:~$cat custom-dns.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: product
+  name: dns-example
+spec:
+  containers:
+    - name: test
+      image: nginx
+  dnsPolicy: "None"
+  dnsConfig:
+    nameservers:
+      - 1.2.3.4
+    searches:
+      - ns1.svc.cluster-domain.example
+      - my.dns.search.suffix
+    options:
+      - name: ndots
+        value: "2"
+      - name: edns0
+# Pod 생성      
+gusami@master:~$kubectl apply -f custom-dns.yaml 
+pod/dns-example created
+# 생성된 Pod 리스트 확인
+gusami@master:~$kubectl get pods
+NAME                  READY   STATUS    RESTARTS   AGE
+client-pod            1/1     Running   0          24m
+dns-example           1/1     Running   0          8s
+web-74dbbbc58-2pnr6   1/1     Running   0          33m
+web-74dbbbc58-4nsxz   1/1     Running   0          33m
+web-74dbbbc58-bqtjj   1/1     Running   0          33m
+# Pod내부로 접속
+gusami@master:~$kubectl exec dns-example  -it -- /bin/bash
+# /etc/resolv.conf 파일의 내용 확인
+#  - Pod 생성 시, 설정한 정보가 존재
+root@dns-example:/# cat /etc/resolv.conf
+nameserver 1.2.3.4
+search ns1.svc.cluster-domain.example my.dns.search.suffix
+options ndots:2 edns0
+```
