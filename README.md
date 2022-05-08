@@ -11563,3 +11563,56 @@ nameserver 1.2.3.4
 search ns1.svc.cluster-domain.example my.dns.search.suffix
 options ndots:2 edns0
 ```
+## kubernetes Auto Scaling
+### k8s Autoscaling
+- 두 가지 종류의 Autoscaling이 존재
+  - Cluster level scalability
+  - Pods layer autoscale
+    - Horizontal Pod Autoscaler(HPA)
+    - Vertical Pods Autoscaler(VPA)
+#### Cluster level scalability
+![cluster_level_scale](./images/cluster_level_scale.png)
+![cluster_level_scale2](./images/cluster_level_scale2.png)
+- GCP, AWS 및 Azure와 같은 Cloud Infrastructure를 통해서 사용
+- 온프레미스 환경 OpenStack의 Auto Scaling Kubernetes 클러스터
+- Cluster AutoScaler(CA)
+  - Pod가 node Resource(cpu, memory)를 할당 받지 못해 pending될 때, 새로운 worker node를 생성
+  - Node Pool의 min/max를 기준으로 그 범위내로 노드확장
+  - 할당된 node가 장시간 충분히 활용되지 못하면 node를 해제
+  - 10초마다 불필요한 노드 확인, 10분간 적은 리소스를 유지하면 Scale Down
+#### Pod layer autoscale
+- Horizontal Pod Autoscaler(HPA)
+  - 동일한 서비스를 제공하는 Pod 개수를 늘림
+  - Pod의 리소스(cpu, memory) 사용량이 미리 설정한 임계치를 넘는 경우
+  - deployment의 replicas의 값을 증가시켜서 Pod의 개수를 늘림
+- Vertical Pods Autoscaler(VPA): 하나의 Pod의 resource(cpu, memory) 양을 늘림
+- 사용 예
+  - 백신 예약 시스템
+  - 수강 신청 시스템
+##### Horizontal Pod Autoscaler (HPA)
+![HPA](./images/HPA.png)
+- https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+- Metrics-Server
+  - 각 Pod와 Node의 리소스(cpu, memory) 사용량을 모니터링하고 API를 통해 볼 수 있게 제공
+    - 모니터링해서 etcd에 저장
+  - HPA, VPA를 위해서 반드시 설치되어 있어야 함
+- Pod의 replicas 수를 관리
+  - 구독 중인 Pod의 CPU/Memory 사용률을 기반으로 Pod를 Scale-Out
+    - 한 개씩 늘리는 것이 아니라, 필요한 Pod 개수를 현재의 Resource(CPU, Memory) 사용량과 Target Resource양을 기준으로 계산해서 늘림
+    - ``desiredReplicas = ceil[currentReplicas * ( currentMetricValue / desiredMetricValue )]``
+  - 확장/축소할 최소/최대 Pods 수량은 Pods의 Deployment에 의해 제어
+- HPA가 Metrics-Server의 모니터링 정보를 이용하여 Deployment를 통해서 replica 수를 관리  
+- HPA 동작 조건
+  - HPA는 기본 30초 간격으로 Pod 리소스 사용량을 check HPA에 설정한 임계 값을 초과할 경우 Pod확장
+  - Scale-out 이후 3분 대기, Scale-in 이후 5분 대기
+- VPA보다 HPA가 일반적으로 사용됨  
+##### Vertical Pod Autoscaler(VPA)
+![VPA](./images/VPA.png)
+- VerticalPodAutoscaler라는 사용자 정의 리소스 정의
+- Pod의 리소스를 관리
+  - Pod에 대한 CPU/Memory 리소스를 추천
+  - Pod에 대한 CPU/Memory 리소스를 자동으로 조정
+- 동작방식
+  - metrics를 10초 간격으로 지속적으로 확인
+  - 할당된 CPU/Memory의 임계치를 넘으면 Pod Template를 변경하여 Pod의 리소스 할당 값을 변경한 후 Pod를 다시 시작
+- VerticalPodAutoscaler라는 사용자 정의 리소스로 구성
