@@ -3362,7 +3362,7 @@ Containers:
 - Q2. 동작되는 ``httpd:2.2`` version의 Pod를 3개로 확장하는 명령어를 적고 실행하시오
 
 ### ReplicaSet Controller
-- ReplicastionControlller과 유사점과 차이점
+- ReplicationController과 유사점과 차이점
   - ReplicationController와 동일한 역할을 하는 Controller
     - 역할: Pod의 개수는 보장
   - ReplicationController보다 풍부한 ``selector``
