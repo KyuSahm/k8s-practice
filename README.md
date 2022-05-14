@@ -11616,3 +11616,242 @@ options ndots:2 edns0
   - metrics를 10초 간격으로 지속적으로 확인
   - 할당된 CPU/Memory의 임계치를 넘으면 Pod Template를 변경하여 Pod의 리소스 할당 값을 변경한 후 Pod를 다시 시작
 - VerticalPodAutoscaler라는 사용자 정의 리소스로 구성
+### HAP Autoscaling 운영
+#### metrics-server 설치
+- Metrics-Server
+  - Pod와 Node들의 CPU/Memory 사용량을 주기적으로 모니터링하고 metrics정보를 수집하여 API에 제공
+  - ``kubectl top`` 명령어 지원
+  - Horizontal Pod Autoscaler을 통해 원하는 Replicas 수 결정
+    - 원하는 Replica 수 = ceil[현재 Replica 수 * (현재 메트릭 값 / 원하는 메트릭 값)]
+    - https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+- metrics-server 설치
+  - ``$git clone https://github.com/237summit/kubernetes-metrics-server.git``
+  - ``$cd kubernetes-metrics-server``
+  - ``$kubectl apply -f .``
+  - ``$kubectl get pods -A``
+- metrics-server 설치 확인
+  - ``$kubectl top nodes``
+  - ``$kubectl top pods -A``
+  - ``$cd ..``
+- 실습
+```bash
+# 명령어로 metrics server 설치 확인
+gusami@master:~$kubectl top nodes
+error: Metrics API not available
+# 이성미 강사님 github repository에서 metrics server download
+gusami@master:~$git clone https://github.com/237summit/kubernetes-metrics-server.git
+Cloning into 'kubernetes-metrics-server'...
+remote: Enumerating objects: 25, done.
+remote: Counting objects: 100% (25/25), done.
+remote: Compressing objects: 100% (24/24), done.
+remote: Total 25 (delta 9), reused 9 (delta 1), pack-reused 0
+Unpacking objects: 100% (25/25), 5.46 KiB | 620.00 KiB/s, done.
+# 다운로드 받은 디렉토리로 이동
+gusami@master:~$cd kubernetes-metrics-server/
+gusami@master:~/kubernetes-metrics-server$ls
+aggregated-metrics-reader.yaml  auth-reader.yaml         metrics-server-deployment.yaml  README.md
+auth-delegator.yaml             metrics-apiservice.yaml  metrics-server-service.yaml     resource-reader.yaml
+# 현재 디렉토리 안의 모든 yaml 파일들을 이용해서 resource 생성
+gusami@master:~/kubernetes-metrics-server$ kubectl apply -f .
+clusterrole.rbac.authorization.k8s.io/system:aggregated-metrics-reader created
+clusterrolebinding.rbac.authorization.k8s.io/metrics-server:system:auth-delegator created
+rolebinding.rbac.authorization.k8s.io/metrics-server-auth-reader created
+apiservice.apiregistration.k8s.io/v1beta1.metrics.k8s.io created
+serviceaccount/metrics-server created
+deployment.apps/metrics-server created
+service/metrics-server created
+clusterrole.rbac.authorization.k8s.io/system:metrics-server created
+clusterrolebinding.rbac.authorization.k8s.io/system:metrics-server created
+# kube-system namespace에서 metrics-server deployments가 실행 중임을 확인
+gusami@master:~/kubernetes-metrics-server$kubectl get deployments.apps -A
+NAMESPACE     NAME             READY   UP-TO-DATE   AVAILABLE   AGE
+kube-system   coredns          2/2     2            2           182d
+kube-system   metrics-server   1/1     1            1           4m35s
+# node별 metrics 정보 확인 가능
+gusami@master:~/kubernetes-metrics-server$kubectl top nodes
+NAME       CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%   
+master     153m         7%     1164Mi          62%       
+worker-1   45m          2%     642Mi           34%       
+worker-2   68m          3%     486Mi           25%       
+worker-3   38m          1%     522Mi           27%
+# pod별 metrics 정보 확인 가능
+gusami@master:~/kubernetes-metrics-server$kubectl top pods -A
+NAMESPACE     NAME                              CPU(cores)   MEMORY(bytes)   
+default       web                               0m           1Mi             
+kube-system   coredns-78fcd69978-nz4fr          2m           29Mi            
+kube-system   coredns-78fcd69978-vsnzh          2m           10Mi            
+kube-system   etcd-master                       20m          61Mi            
+kube-system   kube-apiserver-master             67m          291Mi           
+kube-system   kube-controller-manager-master    22m          72Mi            
+kube-system   kube-proxy-2pm78                  1m           14Mi            
+kube-system   kube-proxy-s9cp2                  1m           14Mi            
+kube-system   kube-proxy-vscnf                  1m           25Mi            
+kube-system   kube-proxy-wsc4f                  1m           14Mi            
+kube-system   kube-scheduler-master             4m           31Mi            
+kube-system   metrics-server-774b56d589-bmhx2   2m           15Mi            
+kube-system   weave-net-9s8mx                   2m           68Mi            
+kube-system   weave-net-kzxnd                   2m           69Mi            
+kube-system   weave-net-tbcxg                   2m           80Mi            
+kube-system   weave-net-zvqg4                   2m           69M
+```
+#### CPU 기반의 HPA 운영
+- https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/
+- Step 01. Horizontal Pod Autoscaler 실습을 위해 CPU로드를 발생시키는 smlinux/hpa-example 컨테이너를 빌드
+![HPA_Example_1](./images/HPA_Example_1.png)
+- Step 02. smlinux/hpa-example 이미지를 이용해 deployment 리소스를 생성하고, service를 노출
+![HPA_Example_2](./images/HPA_Example_2.png)
+- Step 03. Horizontal Pod Autoscaler를 생성: CPU 또는 Memory를 옵션으로 지정 가능. 할당된 양에서 특정 퍼센트를 초과하면 scaling이 일어남
+![HPA_Example_3](./images/HPA_Example_3.png)
+- Step 04. CPU 부하를 증가시켜 autoscale 상태를 확인
+![HPA_Example_4](./images/HPA_Example_4.png)
+```bash
+# docker image 생성하기
+# Step 01: 디렉토리 생성
+gusami@master:~$mkdir horizontal
+gusami@master:~$cd horizontal/
+# Step 02: php 파일 작성
+#  - 100만번의 sqrt 연산을 실행. 상당한 CPU 자원을 소모
+#  - 클라이언트가 해당 페이지에 접속할 때마다 해당 연산들을 수행
+gusami@master:~/horizontal$ vi index.php
+<?php
+  $x = 0.0001;
+  for ($i = 0; $i <= 1000000; $i++) {
+    $x += sqrl($x);
+  }
+  echo "OK!";
+?>
+# Step 03: docker image 생성을 위한 dockerfile 정의
+gusami@master:~/horizontal$cat > dockerfile
+FROM php:5-apache
+ADD index.php /var/www/html/index.php
+RUN chmod a+rx index.php
+# Step 04: docker image 생성
+gusami@master:~/horizontal$sudo docker build -t smlinux/hpa-example .
+Sending build context to Docker daemon  3.072kB
+Step 1/3 : FROM php:5-apache
+ ---> 24c791995c1e
+Step 2/3 : ADD index.php /var/www/html/index.php
+ ---> 9d9c933dc484
+Step 3/3 : RUN chmod a+rx index.php
+ ---> Running in a056775efb06
+Removing intermediate container a056775efb06
+ ---> edd756409cf7
+Successfully built edd756409cf7
+Successfully tagged smlinux/hpa-example:latest
+# 1. 위에서 정의한 이미지를 사용하는 Deployment 정의
+#  - CPU를 200m를 할당받아서 동작
+#  - 이미지: smlinux/hpa-example
+#  - replicas: 1 (1개의 Pod)
+# 2. ClusterIP 형태의 서비스 제공
+gusami@master:~$cat > deploy_web.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+      - image: smlinux/hpa-example
+        name: web
+        ports:
+        - containerPort: 80
+        resources: 
+          requests: 
+            cpu: 200m  
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-web
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+  selector:
+    app: web
+# deployment와 service 생성
+gusami@master:~$kubectl apply -f deploy_web.yaml 
+deployment.apps/deploy-web created
+service/svc-web created
+# 생성된 pod, service, deployment, replicaset 확인
+gusami@master:~$kubectl get all
+NAME                              READY   STATUS    RESTARTS   AGE
+pod/deploy-web-7f98bb5565-jh2xw   1/1     Running   0          2m20s
+
+NAME              TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+service/svc-web   ClusterIP   10.101.40.139   <none>        80/TCP    2m20s
+
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/deploy-web   1/1     1            1           2m20s
+
+NAME                                    DESIRED   CURRENT   READY   AGE
+replicaset.apps/deploy-web-7f98bb5565   1         1         1       2m20s
+# HPA Autoscaling 정의
+#  - 특정 deployment의 replicas 개수를 조절
+#  - 최소값: 1, 최대값: 10
+#  - 개수가 늘어나는 조건: Pod의 CPU 사용량이 현재 할당된 CPU 양의 50 퍼센트를 초과하는 경우
+#    targetCPUUtilizationPercentage: 50 (200m * 0.5 = 100m)
+#    현재 할당된 CPU 사용량은 200m임
+gusami@master:~$cat > hpa_web.yaml
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-web
+spec:
+  maxReplicas: 10
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: deploy-web
+  targetCPUUtilizationPercentage: 50
+# HPA 생성
+gusami@master:~$kubectl apply -f hpa_web.yaml 
+horizontalpodautoscaler.autoscaling/hpa-web created
+# 생성된 HPA 확인
+gusami@master:~$kubectl get hpa
+NAME      REFERENCE               TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+hpa-web   Deployment/deploy-web   <unknown>/50%   1         10        1          18s
+# 서비스의 ClusterIP 확인
+gusami@master:~$kubectl get svc
+NAME      TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+svc-web   ClusterIP   10.101.40.139   <none>        80/TCP    4h13m
+# 서비스 IP와 Port 확인
+gusami@master:~$kubectl get all
+NAME                              READY   STATUS    RESTARTS   AGE
+pod/deploy-web-58cc68b9c8-8brz5   1/1     Running   0          17s
+
+NAME              TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE
+service/svc-web   ClusterIP   10.101.191.141   <none>        80/TCP    17s
+
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/deploy-web   1/1     1            1           17s
+
+NAME                                    DESIRED   CURRENT   READY   AGE
+replicaset.apps/deploy-web-58cc68b9c8   1         1         1       17s
+
+NAME                                          REFERENCE               TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/hpa-web   Deployment/deploy-web   <unknown>/50%   1         10        1          31s
+# curl 명령어를 반복적으로 수행함으로써 부하를 만듬
+gusami@master:~$ while true; do curl 10.105.110.0; done
+OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!
+# 부하 때문에 horizontal autoscaling이 되어서 9개의 Pod가 동작되는 것을 확인
+gusami@master:~$kubectl get hpa
+NAME      REFERENCE               TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+hpa-web   Deployment/deploy-web   51/50%          1         10        9          2m28s
+# 부하를 없애면, 5분 후에 scaling down이 일어남
+gusami@master:~$ while true; do curl 10.105.110.0; done
+OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!OK!^C
+# 부하가 줄어둔 후, 5분이 경과하면 다시 Scaling Down된 것을 확인 가능함
+gusami@master:~$kubectl get hpa
+NAME      REFERENCE               TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+hpa-web   Deployment/deploy-web   0/50%           1         10        1          14m
+```
